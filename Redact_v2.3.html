@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Redact — обезличивание таблиц</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlJlZGFjdCI+PHJlY3QgeD0iNS41IiB5PSIyLjUiIHdpZHRoPSIyMSIgaGVpZ2h0PSIyNyIgcng9IjQiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0iIzE0MTQxNCIgc3Ryb2tlLXdpZHRoPSIzIi8+PHJlY3QgeD0iMTAiIHk9IjkiIHdpZHRoPSIxMiIgaGVpZ2h0PSI1IiByeD0iMSIgZmlsbD0iIzE0MTQxNCIvPjxyZWN0IHg9IjEwIiB5PSIxOCIgd2lkdGg9IjgiIGhlaWdodD0iNSIgcng9IjEiIGZpbGw9IiMxNDE0MTQiLz48L3N2Zz4K">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlJlZGFjdCI+PHJlY3QgeD0iNS41IiB5PSIyLjUiIHdpZHRoPSIyMSIgaGVpZ2h0PSIyNyIgcng9IjQiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0iIzE0MTQxNCIgc3Ryb2tlLXdpZHRoPSIzIi8+PHJlY3QgeD0iMTAiIHk9IjgiIHdpZHRoPSIxMiIgaGVpZ2h0PSI1IiByeD0iMSIgZmlsbD0iIzE0MTQxNCIvPjxyZWN0IHg9IjEwIiB5PSIxNS41IiB3aWR0aD0iOCIgaGVpZ2h0PSIzIiByeD0iMSIgZmlsbD0iI0M5OEE0RSIvPjxyZWN0IHg9IjEwIiB5PSIyMSIgd2lkdGg9IjEyIiBoZWlnaHQ9IjQiIHJ4PSIxIiBmaWxsPSIjMTQxNDE0Ii8+PC9zdmc+Cg==">
 <style>
 /* Redact — дизайн-токены. Источник правды: tokens.json и BRAND.md.
    Подключите шрифты:
@@ -22,6 +22,7 @@
   --border: #D8D6D0;
   --border-strong: var(--ink);
   --redact: var(--ink);
+  --brand-ochre: #C98A4E; /* только логотип */
   --highlight: #F2A93B;
   --highlight-soft: #FBE2B6;
   --on-highlight: #141414;
@@ -440,8 +441,8 @@ input[type=password] {
 <header class="appbar">
   <div class="wrap appbar-row">
     <a class="brand" href="#" aria-label="Redact">
-      <img class="mark mark-light" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4OCAxMTIiIHdpZHRoPSI4OCIgaGVpZ2h0PSIxMTIiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iUmVkYWN0Ij48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMSAwKSBzY2FsZSgxKSI+PHJlY3QgeD0iNSIgeT0iNSIgd2lkdGg9Ijc4IiBoZWlnaHQ9IjEwMiIgcng9IjEyIiBmaWxsPSJub25lIiBzdHJva2U9IiMxNDE0MTQiIHN0cm9rZS13aWR0aD0iNiIvPjxyZWN0IHg9IjE5IiB5PSIyMiIgd2lkdGg9IjUwIiBoZWlnaHQ9IjkiIHJ4PSIyIiBmaWxsPSIjMTQxNDE0Ii8+PHJlY3QgeD0iMTkiIHk9IjQwIiB3aWR0aD0iMzAiIGhlaWdodD0iNCIgcng9IjIiIGZpbGw9IiM4QThBODYiLz48cmVjdCB4PSIxOSIgeT0iNTIiIHdpZHRoPSI1MCIgaGVpZ2h0PSIxNiIgcng9IjIiIGZpbGw9IiMxNDE0MTQiLz48cmVjdCB4PSIxOSIgeT0iNzYiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0IiByeD0iMiIgZmlsbD0iIzhBOEE4NiIvPjxyZWN0IHg9IjE5IiB5PSI4OCIgd2lkdGg9IjI2IiBoZWlnaHQ9IjkiIHJ4PSIyIiBmaWxsPSIjMTQxNDE0Ii8+PC9nPjwvc3ZnPgo=" alt="" width="19" height="24">
-      <img class="mark mark-dark" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4OCAxMTIiIHdpZHRoPSI4OCIgaGVpZ2h0PSIxMTIiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iUmVkYWN0Ij48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMSAwKSBzY2FsZSgxKSI+PHJlY3QgeD0iNSIgeT0iNSIgd2lkdGg9Ijc4IiBoZWlnaHQ9IjEwMiIgcng9IjEyIiBmaWxsPSJub25lIiBzdHJva2U9IiNGNEYzRjAiIHN0cm9rZS13aWR0aD0iNiIvPjxyZWN0IHg9IjE5IiB5PSIyMiIgd2lkdGg9IjUwIiBoZWlnaHQ9IjkiIHJ4PSIyIiBmaWxsPSIjRjRGM0YwIi8+PHJlY3QgeD0iMTkiIHk9IjQwIiB3aWR0aD0iMzAiIGhlaWdodD0iNCIgcng9IjIiIGZpbGw9IiM4QThBODYiLz48cmVjdCB4PSIxOSIgeT0iNTIiIHdpZHRoPSI1MCIgaGVpZ2h0PSIxNiIgcng9IjIiIGZpbGw9IiNGNEYzRjAiLz48cmVjdCB4PSIxOSIgeT0iNzYiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0IiByeD0iMiIgZmlsbD0iIzhBOEE4NiIvPjxyZWN0IHg9IjE5IiB5PSI4OCIgd2lkdGg9IjI2IiBoZWlnaHQ9IjkiIHJ4PSIyIiBmaWxsPSIjRjRGM0YwIi8+PC9nPjwvc3ZnPgo=" alt="" width="19" height="24">
+      <img class="mark mark-light" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4OCAxMTIiIHdpZHRoPSI4OCIgaGVpZ2h0PSIxMTIiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iUmVkYWN0Ij48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMSAwKSBzY2FsZSgxKSI+PHJlY3QgeD0iNSIgeT0iNSIgd2lkdGg9Ijc4IiBoZWlnaHQ9IjEwMiIgcng9IjEyIiBmaWxsPSJub25lIiBzdHJva2U9IiMxNDE0MTQiIHN0cm9rZS13aWR0aD0iNiIvPjxyZWN0IHg9IjE5IiB5PSIyMiIgd2lkdGg9IjUwIiBoZWlnaHQ9IjkiIHJ4PSIyIiBmaWxsPSIjMTQxNDE0Ii8+PHJlY3QgeD0iMTkiIHk9IjM5IiB3aWR0aD0iMzAiIGhlaWdodD0iNiIgcng9IjIiIGZpbGw9IiNDOThBNEUiLz48cmVjdCB4PSIxOSIgeT0iNTIiIHdpZHRoPSI1MCIgaGVpZ2h0PSIxNiIgcng9IjIiIGZpbGw9IiMxNDE0MTQiLz48cmVjdCB4PSIxOSIgeT0iNzUiIHdpZHRoPSI0MCIgaGVpZ2h0PSI2IiByeD0iMiIgZmlsbD0iIzhBOEE4NiIvPjxyZWN0IHg9IjE5IiB5PSI4OCIgd2lkdGg9IjI2IiBoZWlnaHQ9IjkiIHJ4PSIyIiBmaWxsPSIjMTQxNDE0Ii8+PC9nPjwvc3ZnPgo=" alt="" width="19" height="24">
+      <img class="mark mark-dark" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4OCAxMTIiIHdpZHRoPSI4OCIgaGVpZ2h0PSIxMTIiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iUmVkYWN0Ij48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMSAwKSBzY2FsZSgxKSI+PHJlY3QgeD0iNSIgeT0iNSIgd2lkdGg9Ijc4IiBoZWlnaHQ9IjEwMiIgcng9IjEyIiBmaWxsPSJub25lIiBzdHJva2U9IiNGNEYzRjAiIHN0cm9rZS13aWR0aD0iNiIvPjxyZWN0IHg9IjE5IiB5PSIyMiIgd2lkdGg9IjUwIiBoZWlnaHQ9IjkiIHJ4PSIyIiBmaWxsPSIjRjRGM0YwIi8+PHJlY3QgeD0iMTkiIHk9IjM5IiB3aWR0aD0iMzAiIGhlaWdodD0iNiIgcng9IjIiIGZpbGw9IiNDOThBNEUiLz48cmVjdCB4PSIxOSIgeT0iNTIiIHdpZHRoPSI1MCIgaGVpZ2h0PSIxNiIgcng9IjIiIGZpbGw9IiNGNEYzRjAiLz48cmVjdCB4PSIxOSIgeT0iNzUiIHdpZHRoPSI0MCIgaGVpZ2h0PSI2IiByeD0iMiIgZmlsbD0iIzhBOEE4NiIvPjxyZWN0IHg9IjE5IiB5PSI4OCIgd2lkdGg9IjI2IiBoZWlnaHQ9IjkiIHJ4PSIyIiBmaWxsPSIjRjRGM0YwIi8+PC9nPjwvc3ZnPgo=" alt="" width="19" height="24">
       <span class="display-s">REDACT</span>
     </a>
     <span class="chip mono-small" id="appVersion"></span>
@@ -713,7 +714,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 // Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
-window.ANON_VERSION = '2.2';
+window.ANON_VERSION = '2.3';
 
 </script>
 <script>

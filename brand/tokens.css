@@ -14,6 +14,7 @@
   --border: #D8D6D0;
   --border-strong: var(--ink);
   --redact: var(--ink);
+  --brand-ochre: #C98A4E; /* только логотип */
   --highlight: #F2A93B;
   --highlight-soft: #FBE2B6;
   --on-highlight: #141414;
