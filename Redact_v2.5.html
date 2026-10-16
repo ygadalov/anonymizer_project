@@ -265,7 +265,11 @@ input[type=text], input[type=number], select {
   border: 1px solid var(--border); border-radius: var(--radius-md);
   height: 40px; padding: 0 var(--space-3); min-width: 0;
 }
-input:focus, select:focus { border-color: var(--border-strong); outline: 2px solid var(--focus); outline-offset: 2px; }
+/* Фокус полей — одна рамка: граница становится цвета ink и толщиной 2px (вторая линия — внутренняя, без отступа).
+   Кольцо с отступом из tokens.css остаётся у кнопок и вкладок — для работы с клавиатуры */
+input:focus, select:focus, input:focus-visible, select:focus-visible {
+  outline: none; border-color: var(--border-strong); box-shadow: inset 0 0 0 1px var(--border-strong);
+}
 .mono-input, .params input { font: 400 14px/20px var(--font-mono); }
 input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--ink); margin: 0; flex: none; }
 #headerRow, #rHeaderRow { width: 80px; }
@@ -729,7 +733,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 // Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
-window.ANON_VERSION = '2.4';
+window.ANON_VERSION = '2.5';
 
 </script>
 <script>
