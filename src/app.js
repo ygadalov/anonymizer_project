@@ -78,19 +78,12 @@
         $('sheet').disabled = true;
       } else {
         S.kind = 'xlsx';
+        // Файл заранее приводится к виду, который ExcelJS читает без потерь (выгрузки из 1С и т.п.)
+        const fixed = await A.repairXlsx(buf, JSZip);
+        if (fixed.changed) S.buffer = fixed.buffer;
+        S.loadNotes = fixed.notes;
         S.wb = new ExcelJS.Workbook();
-        try {
-          await S.wb.xlsx.load(buf);
-        } catch (e) {
-          // Файл может быть «нестандартным» (так бывает с выгрузками из 1С) — чиним и читаем ещё раз
-          console.warn('Повторное чтение после починки файла:', e);
-          const fixed = await A.repairXlsx(buf, JSZip);
-          if (!fixed.notes.length) throw e;
-          S.wb = new ExcelJS.Workbook();
-          await S.wb.xlsx.load(fixed.buffer);
-          S.buffer = fixed.buffer;
-          S.loadNotes = fixed.notes;
-        }
+        await S.wb.xlsx.load(S.buffer);
         if (!S.wb.worksheets.length) throw new Error('В книге нет листов.');
         $('sheet').innerHTML = S.wb.worksheets.map((ws, i) => `<option value="${i}">${esc(ws.name)}${ws.state && ws.state !== 'visible' ? ' (скрытый)' : ''}</option>`).join('');
         $('sheet').disabled = S.wb.worksheets.length < 2;
@@ -449,6 +442,9 @@
         if ($('clearNotes').checked) A.clearNotes(ws);
         if ($('clearHF').checked) A.clearHeaderFooter(ws);
         wb.calcProperties = { ...(wb.calcProperties || {}), fullCalcOnLoad: true };
+        // ExcelJS ссылается на тему оформления, даже если в исходной книге её не было, но сам файл темы не пишет —
+        // Excel тогда предлагает «восстановить» книгу. Без своей темы записывается стандартная.
+        if (!wb._themes || !Object.keys(wb._themes).length) wb._themes = undefined;
         const out = await wb.xlsx.writeBuffer();
         download(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), baseName() + '_redact.xlsx');
       }

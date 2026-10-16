@@ -618,8 +618,17 @@
    * ExcelJS падает на некоторых файлах, которые Excel открывает без проблем. Известный случай —
    * рисунок листа (xl/drawings/drawingN.xml), записанный без префикса пространства имён:
    * <wsDr xmlns="..."> вместо <xdr:wsDr ...>. Такой рисунок отвязываем от листа и удаляем.
-   * Возвращает { buffer, notes } — исправленный файл и список того, что было изменено.
+   * Также исправляет булевы свойства шрифтов (см. normalizeFontBooleans).
+ * Возвращает { buffer, notes, changed } — файл (исправленный или исходный) и список заметных исправлений.
    */
+  const FONT_BOOLEANS = 'b|i|strike|outline|shadow|condense|extend';
+  function normalizeFontBooleans(xml) {
+    return xml
+      .replace(new RegExp(`<(?:${FONT_BOOLEANS})\\s+val="(?:false|0)"\\s*/>`, 'g'), '')
+      .replace(new RegExp(`<(${FONT_BOOLEANS})\\s+val="(?:true|1)"\\s*/>`, 'g'), '<$1/>')
+      .replace(/<u\s+val="none"\s*\/>/g, '');
+  }
+
   async function repairXlsx(buffer, JSZip) {
     const zip = await JSZip.loadAsync(buffer);
     const notes = [];
@@ -677,8 +686,18 @@
       for (const d of removed) ct = ct.replace(new RegExp(`<Override\\b[^>]*PartName="/${d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*/>`), '');
       zip.file('[Content_Types].xml', ct);
     }
+    // Булевы свойства шрифта вида <b val="false"/> (так пишет 1С): ExcelJS считает включённым любой такой тег,
+    // и шрифт становится жирным, курсивным или зачёркнутым. Оставляем только действительно включённые.
+    let fontsFixed = false;
+    for (const name of ['xl/styles.xml', 'xl/sharedStrings.xml']) {
+      if (!zip.file(name)) continue;
+      const xml = await text(name);
+      const fixed = normalizeFontBooleans(xml);
+      if (fixed !== xml) { zip.file(name, fixed); fontsFixed = true; }
+    }
+    if (!removed.size && !fontsFixed) return { buffer, notes, changed: false };
     const out = await zip.generateAsync({ type: 'arraybuffer', compression: 'DEFLATE' });
-    return { buffer: out, notes };
+    return { buffer: out, notes, changed: true };
   }
 
   // ---------- Запись в книгу ExcelJS ----------
@@ -733,7 +752,7 @@
     VERSION: root.ANON_VERSION || 'dev',
     cyrb128, makeRng, randomSeed, factorFromSeed, shiftFromSeed,
     parseTextDate, formatTextDate, gridFromWorksheet, parseCsv, gridToCsv,
-    detectHeaderRow, analyze, suggest, transform, applyToWorksheet, clearWorkbookMeta, clearNotes, repairXlsx, headerFooterText, clearHeaderFooter,
+    detectHeaderRow, analyze, suggest, transform, applyToWorksheet, clearWorkbookMeta, clearNotes, repairXlsx, normalizeFontBooleans, headerFooterText, clearHeaderFooter,
     splitLegalForm, METHODS, METHOD_HINTS, TYPE_NAMES, DICT_METHODS, colLetter, isDate,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

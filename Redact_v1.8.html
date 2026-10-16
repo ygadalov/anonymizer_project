@@ -574,7 +574,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 // Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
-window.ANON_VERSION = '1.7';
+window.ANON_VERSION = '1.8';
 
 </script>
 <script>
@@ -1198,8 +1198,17 @@ window.ANON_VERSION = '1.7';
    * ExcelJS падает на некоторых файлах, которые Excel открывает без проблем. Известный случай —
    * рисунок листа (xl/drawings/drawingN.xml), записанный без префикса пространства имён:
    * <wsDr xmlns="..."> вместо <xdr:wsDr ...>. Такой рисунок отвязываем от листа и удаляем.
-   * Возвращает { buffer, notes } — исправленный файл и список того, что было изменено.
+   * Также исправляет булевы свойства шрифтов (см. normalizeFontBooleans).
+ * Возвращает { buffer, notes, changed } — файл (исправленный или исходный) и список заметных исправлений.
    */
+  const FONT_BOOLEANS = 'b|i|strike|outline|shadow|condense|extend';
+  function normalizeFontBooleans(xml) {
+    return xml
+      .replace(new RegExp(`<(?:${FONT_BOOLEANS})\\s+val="(?:false|0)"\\s*/>`, 'g'), '')
+      .replace(new RegExp(`<(${FONT_BOOLEANS})\\s+val="(?:true|1)"\\s*/>`, 'g'), '<$1/>')
+      .replace(/<u\s+val="none"\s*\/>/g, '');
+  }
+
   async function repairXlsx(buffer, JSZip) {
     const zip = await JSZip.loadAsync(buffer);
     const notes = [];
@@ -1257,8 +1266,18 @@ window.ANON_VERSION = '1.7';
       for (const d of removed) ct = ct.replace(new RegExp(`<Override\\b[^>]*PartName="/${d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*/>`), '');
       zip.file('[Content_Types].xml', ct);
     }
+    // Булевы свойства шрифта вида <b val="false"/> (так пишет 1С): ExcelJS считает включённым любой такой тег,
+    // и шрифт становится жирным, курсивным или зачёркнутым. Оставляем только действительно включённые.
+    let fontsFixed = false;
+    for (const name of ['xl/styles.xml', 'xl/sharedStrings.xml']) {
+      if (!zip.file(name)) continue;
+      const xml = await text(name);
+      const fixed = normalizeFontBooleans(xml);
+      if (fixed !== xml) { zip.file(name, fixed); fontsFixed = true; }
+    }
+    if (!removed.size && !fontsFixed) return { buffer, notes, changed: false };
     const out = await zip.generateAsync({ type: 'arraybuffer', compression: 'DEFLATE' });
-    return { buffer: out, notes };
+    return { buffer: out, notes, changed: true };
   }
 
   // ---------- Запись в книгу ExcelJS ----------
@@ -1313,7 +1332,7 @@ window.ANON_VERSION = '1.7';
     VERSION: root.ANON_VERSION || 'dev',
     cyrb128, makeRng, randomSeed, factorFromSeed, shiftFromSeed,
     parseTextDate, formatTextDate, gridFromWorksheet, parseCsv, gridToCsv,
-    detectHeaderRow, analyze, suggest, transform, applyToWorksheet, clearWorkbookMeta, clearNotes, repairXlsx, headerFooterText, clearHeaderFooter,
+    detectHeaderRow, analyze, suggest, transform, applyToWorksheet, clearWorkbookMeta, clearNotes, repairXlsx, normalizeFontBooleans, headerFooterText, clearHeaderFooter,
     splitLegalForm, METHODS, METHOD_HINTS, TYPE_NAMES, DICT_METHODS, colLetter, isDate,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
@@ -1402,19 +1421,12 @@ window.ANON_VERSION = '1.7';
         $('sheet').disabled = true;
       } else {
         S.kind = 'xlsx';
+        // Файл заранее приводится к виду, который ExcelJS читает без потерь (выгрузки из 1С и т.п.)
+        const fixed = await A.repairXlsx(buf, JSZip);
+        if (fixed.changed) S.buffer = fixed.buffer;
+        S.loadNotes = fixed.notes;
         S.wb = new ExcelJS.Workbook();
-        try {
-          await S.wb.xlsx.load(buf);
-        } catch (e) {
-          // Файл может быть «нестандартным» (так бывает с выгрузками из 1С) — чиним и читаем ещё раз
-          console.warn('Повторное чтение после починки файла:', e);
-          const fixed = await A.repairXlsx(buf, JSZip);
-          if (!fixed.notes.length) throw e;
-          S.wb = new ExcelJS.Workbook();
-          await S.wb.xlsx.load(fixed.buffer);
-          S.buffer = fixed.buffer;
-          S.loadNotes = fixed.notes;
-        }
+        await S.wb.xlsx.load(S.buffer);
         if (!S.wb.worksheets.length) throw new Error('В книге нет листов.');
         $('sheet').innerHTML = S.wb.worksheets.map((ws, i) => `<option value="${i}">${esc(ws.name)}${ws.state && ws.state !== 'visible' ? ' (скрытый)' : ''}</option>`).join('');
         $('sheet').disabled = S.wb.worksheets.length < 2;
@@ -1773,6 +1785,9 @@ window.ANON_VERSION = '1.7';
         if ($('clearNotes').checked) A.clearNotes(ws);
         if ($('clearHF').checked) A.clearHeaderFooter(ws);
         wb.calcProperties = { ...(wb.calcProperties || {}), fullCalcOnLoad: true };
+        // ExcelJS ссылается на тему оформления, даже если в исходной книге её не было, но сам файл темы не пишет —
+        // Excel тогда предлагает «восстановить» книгу. Без своей темы записывается стандартная.
+        if (!wb._themes || !Object.keys(wb._themes).length) wb._themes = undefined;
         const out = await wb.xlsx.writeBuffer();
         download(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), baseName() + '_redact.xlsx');
       }
