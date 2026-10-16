@@ -114,12 +114,43 @@ td.r, th.r { text-align: right; }
 .settings-info:empty { display: none; }
 .warn-text { color: #c0392b; }
 .ver { font-size: 13px; font-weight: 500; color: var(--muted); border: 1px solid var(--border); border-radius: 10px; padding: 1px 8px; vertical-align: middle; }
+
+/* SVG-иконки (Lucide, ISC): цвет берётся из текста через currentColor */
+.i { width: 16px; height: 16px; flex: none; vertical-align: -3px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.btn { display: inline-flex; align-items: center; gap: 6px; }
+.btn.small .i { width: 18px; height: 18px; }
+h1 { display: flex; align-items: center; gap: 10px; }
+.i.logo { width: 26px; height: 26px; color: var(--accent); }
+.i.drop-icon { width: 32px; height: 32px; color: var(--accent); margin-bottom: 4px; }
+#fileInfo .i { margin-right: 6px; color: var(--accent); }
+.warn > b { display: inline-flex; align-items: center; gap: 6px; }
+.warn .i { color: #c0392b; }
+.toast { display: flex; align-items: center; gap: 8px; }
 </style>
 </head>
 <body>
+<!-- icons:start -->
+<!-- Иконки: Lucide (lucide.dev), лицензия ISC — vendor/lucide.LICENSE. Генерируется build.py из src/icons/ -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+<symbol id="i-circle-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></symbol>
+<symbol id="i-circle-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></symbol>
+<symbol id="i-dices" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="12" height="12" x="2" y="10" rx="2" ry="2" /><path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6" /><path d="M6 18h.01" /><path d="M10 14h.01" /><path d="M15 6h.01" /><path d="M18 9h.01" /></symbol>
+<symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" /></symbol>
+<symbol id="i-file-spreadsheet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M8 13h2" /><path d="M14 13h2" /><path d="M8 17h2" /><path d="M14 17h2" /></symbol>
+<symbol id="i-folder-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" /></symbol>
+<symbol id="i-key-round" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z" /><circle cx="16.5" cy="7.5" r=".5" fill="currentColor" /></symbol>
+<symbol id="i-rotate-ccw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></symbol>
+<symbol id="i-save" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" /><path d="M7 3v4a1 1 0 0 0 1 1h7" /></symbol>
+<symbol id="i-shield-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></symbol>
+<symbol id="i-triangle-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" x2="12" y1="3" y2="15" /></symbol>
+<symbol id="i-wand-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72" /><path d="m14 7 3 3" /><path d="M5 6v4" /><path d="M19 14v4" /><path d="M10 2v2" /><path d="M7 8H3" /><path d="M21 16h-4" /><path d="M11 3H9" /></symbol>
+</svg>
+<!-- icons:end -->
 <header class="top">
   <div class="wrap">
-    <h1>Анонимайзер таблиц <span class="ver" id="appVersion"></span></h1>
+    <h1><svg class="i logo" aria-hidden="true"><use href="#i-shield-check"></use></svg>Анонимайзер таблиц <span class="ver" id="appVersion"></span></h1>
     <p class="sub">Excel / CSV → выбор столбцов → файл со скрытыми данными. Всё обрабатывается в браузере, файл никуда не отправляется.</p>
   </div>
 </header>
@@ -130,12 +161,13 @@ td.r, th.r { text-align: right; }
     <h2><span class="num">1</span> Загрузите файл</h2>
     <label class="drop" id="drop">
       <input type="file" id="file" accept=".xlsx,.xlsm,.csv,.txt" hidden>
+      <svg class="i drop-icon" aria-hidden="true"><use href="#i-upload"></use></svg>
       <span class="drop-main">Перетащите файл сюда или нажмите для выбора</span>
       <span class="drop-hint">.xlsx, .xlsm, .csv (старый .xls сначала пересохраните в .xlsx)</span>
     </label>
     <div id="fileInfo" class="muted"></div>
     <div class="row-controls settings-line">
-      <label class="btn ghost">📂 Загрузить настройки (JSON)<input type="file" id="profileFile1" accept=".json,application/json" hidden></label>
+      <label class="btn ghost"><svg class="i" aria-hidden="true"><use href="#i-folder-open"></use></svg>Загрузить настройки (JSON)<input type="file" id="profileFile1" accept=".json,application/json" hidden></label>
       <span class="muted" id="pendingInfo">Есть сохранённые настройки? Загрузите их до или после файла с данными.</span>
     </div>
   </section>
@@ -150,11 +182,11 @@ td.r, th.r { text-align: right; }
       <span class="muted" id="rowsInfo"></span>
     </div>
     <div class="row-controls">
-      <button class="btn" id="btnAuto" title="Подобрать методы по названиям столбцов">Автовыбор по названиям</button>
-      <button class="btn ghost" id="btnReset">Сбросить всё на «Оставить»</button>
+      <button class="btn" id="btnAuto" title="Подобрать методы по названиям столбцов"><svg class="i" aria-hidden="true"><use href="#i-wand-sparkles"></use></svg>Автовыбор по названиям</button>
+      <button class="btn ghost" id="btnReset"><svg class="i" aria-hidden="true"><use href="#i-rotate-ccw"></use></svg>Сбросить всё на «Оставить»</button>
       <span class="spacer"></span>
-      <button class="btn ghost" id="btnSaveProfile" title="Методы по столбцам, строка заголовков, лист и флажки">💾 Сохранить настройки (JSON)</button>
-      <label class="btn ghost">📂 Загрузить настройки (JSON)<input type="file" id="profileFile" accept=".json,application/json" hidden></label>
+      <button class="btn ghost" id="btnSaveProfile" title="Методы по столбцам, строка заголовков, лист и флажки"><svg class="i" aria-hidden="true"><use href="#i-save"></use></svg>Сохранить настройки (JSON)</button>
+      <label class="btn ghost"><svg class="i" aria-hidden="true"><use href="#i-folder-open"></use></svg>Загрузить настройки (JSON)<input type="file" id="profileFile" accept=".json,application/json" hidden></label>
     </div>
     <div class="table-scroll">
       <table class="cols" id="colsTable">
@@ -173,17 +205,17 @@ td.r, th.r { text-align: right; }
     <div class="grid3">
       <label class="field">
         <span>Секретный ключ</span>
-        <span class="inline"><input type="text" id="seed" spellcheck="false"><button class="btn small ghost" id="btnSeed" title="Новый случайный ключ">🎲</button></span>
+        <span class="inline"><input type="text" id="seed" spellcheck="false"><button class="btn small ghost" id="btnSeed" title="Новый случайный ключ" aria-label="Новый случайный ключ"><svg class="i" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
         <small>Один и тот же ключ → одни и те же замены (удобно для ежемесячных выгрузок). Не передавайте ключ вместе с файлом.</small>
       </label>
       <label class="field">
         <span>Коэффициент K для чисел</span>
-        <span class="inline"><input type="number" id="factor" step="0.0001"><button class="btn small ghost" id="btnFactor" title="Случайный K">🎲</button></span>
+        <span class="inline"><input type="number" id="factor" step="0.0001"><button class="btn small ghost" id="btnFactor" title="Случайный K" aria-label="Случайный K"><svg class="i" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
         <small>Все числа с методом «K» умножаются на одно число — пропорции, доли и суммы сохраняются.</small>
       </label>
       <label class="field">
         <span>Сдвиг дат D, дней</span>
-        <span class="inline"><input type="number" id="shiftDays" step="1"><button class="btn small ghost" id="btnShift" title="Случайный сдвиг">🎲</button></span>
+        <span class="inline"><input type="number" id="shiftDays" step="1"><button class="btn small ghost" id="btnShift" title="Случайный сдвиг" aria-label="Случайный сдвиг"><svg class="i" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
         <small>Все даты сдвигаются одинаково — сроки, просрочка и интервалы сохраняются.</small>
       </label>
     </div>
@@ -199,10 +231,10 @@ td.r, th.r { text-align: right; }
   <section class="card hidden" id="step4">
     <h2><span class="num">4</span> Предпросмотр и выгрузка</h2>
     <div class="row-controls">
-      <button class="btn" id="btnPreview">Обновить предпросмотр</button>
+      <button class="btn" id="btnPreview"><svg class="i" aria-hidden="true"><use href="#i-eye"></use></svg>Обновить предпросмотр</button>
       <span class="spacer"></span>
-      <button class="btn primary" id="btnDownload">Скачать анонимизированный файл</button>
-      <button class="btn ghost" id="btnKey" title="Таблица соответствий «было → стало». Храните отдельно!">Скачать ключ соответствий</button>
+      <button class="btn primary" id="btnDownload"><svg class="i" aria-hidden="true"><use href="#i-download"></use></svg>Скачать анонимизированный файл</button>
+      <button class="btn ghost" id="btnKey" title="Таблица соответствий «было → стало». Храните отдельно!"><svg class="i" aria-hidden="true"><use href="#i-key-round"></use></svg>Скачать ключ соответствий</button>
     </div>
     <div id="previewStats" class="muted"></div>
     <div class="table-scroll"><table class="preview" id="previewTable"></table></div>
@@ -261,7 +293,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 // Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
-window.ANON_VERSION = '1.0';
+window.ANON_VERSION = '1.1';
 
 </script>
 <script>
@@ -903,6 +935,7 @@ window.ANON_VERSION = '1.0';
   'use strict';
   const A = window.Anon;
   const $ = id => document.getElementById(id);
+  const icon = (name, cls = 'i') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"></use></svg>`;
   const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 
   const S = {
@@ -923,9 +956,10 @@ window.ANON_VERSION = '1.0';
 
   // ---------- Уведомления ----------
   let toastTimer;
-  function toast(msg, ms = 3500) {
+  function toast(msg, ms = 3500, kind) {
     const t = $('toast');
-    t.textContent = msg;
+    kind = kind || (/^(ошибк|не удалось)/i.test(msg) ? 'error' : 'ok');
+    t.innerHTML = icon(kind === 'error' ? 'circle-alert' : 'circle-check') + `<span>${esc(msg)}</span>`;
     t.classList.remove('hidden');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => t.classList.add('hidden'), ms);
@@ -977,7 +1011,7 @@ window.ANON_VERSION = '1.0';
         S.sheetIndex = best;
         S.grid = A.gridFromWorksheet(S.wb.worksheets[best]);
       }
-      $('fileInfo').innerHTML = `<b>${esc(file.name)}</b> · ${(file.size / 1024).toFixed(0)} КБ`;
+      $('fileInfo').innerHTML = `${icon('file-spreadsheet')}<b>${esc(file.name)}</b> · ${(file.size / 1024).toFixed(0)} КБ`;
       if (!$('seed').value) newSeed();
       $('settingsInfo').textContent = '';
       setupSheet(true);
@@ -1267,7 +1301,7 @@ window.ANON_VERSION = '1.0';
       const others = S.wb.worksheets.filter((_, i) => i !== S.sheetIndex).map(ws => `«${ws.name}»`).join(', ');
       w.push(`В книге есть другие листы (${others}) — они не анонимизируются и удаляются из результата.`);
     }
-    $('warnings').innerHTML = w.length ? `<div class="warn"><b>Обратите внимание</b><ul>${w.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
+    $('warnings').innerHTML = w.length ? `<div class="warn"><b>${icon('triangle-alert')}Обратите внимание</b><ul>${w.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
   }
 
   // ---------- Выгрузка ----------

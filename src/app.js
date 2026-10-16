@@ -3,6 +3,7 @@
   'use strict';
   const A = window.Anon;
   const $ = id => document.getElementById(id);
+  const icon = (name, cls = 'i') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"></use></svg>`;
   const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 
   const S = {
@@ -23,9 +24,10 @@
 
   // ---------- Уведомления ----------
   let toastTimer;
-  function toast(msg, ms = 3500) {
+  function toast(msg, ms = 3500, kind) {
     const t = $('toast');
-    t.textContent = msg;
+    kind = kind || (/^(ошибк|не удалось)/i.test(msg) ? 'error' : 'ok');
+    t.innerHTML = icon(kind === 'error' ? 'circle-alert' : 'circle-check') + `<span>${esc(msg)}</span>`;
     t.classList.remove('hidden');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => t.classList.add('hidden'), ms);
@@ -77,7 +79,7 @@
         S.sheetIndex = best;
         S.grid = A.gridFromWorksheet(S.wb.worksheets[best]);
       }
-      $('fileInfo').innerHTML = `<b>${esc(file.name)}</b> · ${(file.size / 1024).toFixed(0)} КБ`;
+      $('fileInfo').innerHTML = `${icon('file-spreadsheet')}<b>${esc(file.name)}</b> · ${(file.size / 1024).toFixed(0)} КБ`;
       if (!$('seed').value) newSeed();
       $('settingsInfo').textContent = '';
       setupSheet(true);
@@ -367,7 +369,7 @@
       const others = S.wb.worksheets.filter((_, i) => i !== S.sheetIndex).map(ws => `«${ws.name}»`).join(', ');
       w.push(`В книге есть другие листы (${others}) — они не анонимизируются и удаляются из результата.`);
     }
-    $('warnings').innerHTML = w.length ? `<div class="warn"><b>Обратите внимание</b><ul>${w.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
+    $('warnings').innerHTML = w.length ? `<div class="warn"><b>${icon('triangle-alert')}Обратите внимание</b><ul>${w.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
   }
 
   // ---------- Выгрузка ----------
