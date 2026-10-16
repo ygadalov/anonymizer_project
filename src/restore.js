@@ -154,7 +154,14 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
     toast('Готово к новому файлу и ключу');
   }
-  $('btnRClear').addEventListener('click', clearRestore);
+  $('btnRClear').addEventListener('click', async () => {
+    const ok = await window.RedactUI.confirm({
+      title: 'Очистить и начать заново?',
+      text: 'Будут убраны выбранный файл, ключ соответствий и предпросмотр. Сами файлы на компьютере не затрагиваются.',
+      confirm: 'Да, очистить',
+    });
+    if (ok) clearRestore();
+  });
 
   async function unlock() {
     if (!R.envelope) return;

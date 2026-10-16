@@ -132,7 +132,14 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
     toast('Готово к новому файлу. Общие параметры сохранены');
   }
-  $('btnClear').addEventListener('click', clearRedact);
+  $('btnClear').addEventListener('click', async () => {
+    const ok = await window.RedactUI.confirm({
+      title: 'Очистить и начать с другим файлом?',
+      text: 'Будут убраны загруженный файл, настройки столбцов и предпросмотр. Секретная фраза, коэффициент, сдвиг дат и флажки шага 3 сохранятся.',
+      confirm: 'Да, очистить',
+    });
+    if (ok) clearRedact();
+  });
 
   $('sheet').addEventListener('change', () => {
     S.sheetIndex = +$('sheet').value;

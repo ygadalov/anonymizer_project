@@ -462,6 +462,19 @@ select.dd-open { border-color: var(--border-strong); box-shadow: inset 0 0 0 1px
 }
 .tip.on { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .tip { transition: none; } }
+
+/* ---------- Диалог подтверждения (src/dialog.js) ---------- */
+dialog.confirm {
+  width: min(440px, calc(100vw - 2 * var(--space-4))); padding: var(--space-6); margin: auto;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-popover);
+}
+dialog.confirm::backdrop { background: color-mix(in srgb, var(--surface-sunken) 75%, transparent); }
+.confirm-head { display: flex; align-items: center; gap: var(--space-3); }
+.confirm-head .h2 { margin: 0; }
+.confirm-icon { color: var(--danger); }
+dialog.confirm p { margin: var(--space-3) 0 var(--space-6); }
+.confirm-actions { display: flex; justify-content: flex-end; gap: var(--space-3); flex-wrap: wrap; }
 </style>
 <script>
   // тема до отрисовки, чтобы не мигало: сохранённый выбор или системная
@@ -780,7 +793,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 // Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
-window.ANON_VERSION = '3.4';
+window.ANON_VERSION = '3.5';
 
 </script>
 <script>
@@ -2014,7 +2027,14 @@ window.ANON_VERSION = '3.4';
     window.scrollTo({ top: 0, behavior: 'smooth' });
     toast('Готово к новому файлу. Общие параметры сохранены');
   }
-  $('btnClear').addEventListener('click', clearRedact);
+  $('btnClear').addEventListener('click', async () => {
+    const ok = await window.RedactUI.confirm({
+      title: 'Очистить и начать с другим файлом?',
+      text: 'Будут убраны загруженный файл, настройки столбцов и предпросмотр. Секретная фраза, коэффициент, сдвиг дат и флажки шага 3 сохранятся.',
+      confirm: 'Да, очистить',
+    });
+    if (ok) clearRedact();
+  });
 
   $('sheet').addEventListener('change', () => {
     S.sheetIndex = +$('sheet').value;
@@ -2593,7 +2613,14 @@ window.ANON_VERSION = '3.4';
     window.scrollTo({ top: 0, behavior: 'smooth' });
     toast('Готово к новому файлу и ключу');
   }
-  $('btnRClear').addEventListener('click', clearRestore);
+  $('btnRClear').addEventListener('click', async () => {
+    const ok = await window.RedactUI.confirm({
+      title: 'Очистить и начать заново?',
+      text: 'Будут убраны выбранный файл, ключ соответствий и предпросмотр. Сами файлы на компьютере не затрагиваются.',
+      confirm: 'Да, очистить',
+    });
+    if (ok) clearRestore();
+  });
 
   async function unlock() {
     if (!R.envelope) return;
@@ -3024,6 +3051,55 @@ window.ANON_VERSION = '3.4';
   document.addEventListener('keydown', ev => { if (ev.key === 'Escape') hide(); }, true);
   window.addEventListener('scroll', hide, true);
   window.addEventListener('resize', hide);
+})();
+
+</script>
+<script>
+/*
+ * Диалог подтверждения необратимого действия (brand/BRAND.md, «Кнопки»: danger-solid — только здесь).
+ * RedactUI.confirm({ title, text, confirm }) → Promise<boolean>.
+ * Фокус по умолчанию — на «Отмене», чтобы случайный Enter ничего не стёр; Esc и щелчок мимо окна — отмена.
+ */
+(function () {
+  'use strict';
+  const { icon, esc } = window.RedactUI;
+
+  function confirmDialog({ title, text, confirm = 'Да', cancel = 'Отмена', iconName = 'eraser' }) {
+    return new Promise(resolve => {
+      const back = document.activeElement;
+      const dlg = document.createElement('dialog');
+      dlg.className = 'confirm';
+      dlg.setAttribute('aria-labelledby', 'confirmTitle');
+      dlg.setAttribute('aria-describedby', 'confirmText');
+      dlg.innerHTML = `
+        <div class="confirm-head">${icon(iconName, 'i i20 confirm-icon')}<h2 class="h2" id="confirmTitle">${esc(title)}</h2></div>
+        <p class="body muted" id="confirmText">${esc(text)}</p>
+        <div class="confirm-actions">
+          <button type="button" class="btn secondary" data-r="0">${esc(cancel)}</button>
+          <button type="button" class="btn danger-solid" data-r="1">${esc(confirm)}</button>
+        </div>`;
+      document.body.appendChild(dlg);
+      let done = false;
+      const finish = ok => {
+        if (done) return;
+        done = true;
+        dlg.close();
+        dlg.remove();
+        if (back && back.isConnected) back.focus();
+        resolve(ok);
+      };
+      dlg.addEventListener('click', ev => {
+        const b = ev.target.closest('button[data-r]');
+        if (b) finish(b.dataset.r === '1');
+        else if (ev.target === dlg) finish(false); // щелчок по подложке
+      });
+      dlg.addEventListener('cancel', ev => { ev.preventDefault(); finish(false); }); // Esc
+      dlg.showModal();
+      dlg.querySelector('[data-r="0"]').focus();
+    });
+  }
+
+  window.RedactUI.confirm = confirmDialog;
 })();
 
 </script>

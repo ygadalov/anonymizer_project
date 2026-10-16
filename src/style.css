@@ -263,3 +263,16 @@ select.dd-open { border-color: var(--border-strong); box-shadow: inset 0 0 0 1px
 }
 .tip.on { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .tip { transition: none; } }
+
+/* ---------- Диалог подтверждения (src/dialog.js) ---------- */
+dialog.confirm {
+  width: min(440px, calc(100vw - 2 * var(--space-4))); padding: var(--space-6); margin: auto;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-popover);
+}
+dialog.confirm::backdrop { background: color-mix(in srgb, var(--surface-sunken) 75%, transparent); }
+.confirm-head { display: flex; align-items: center; gap: var(--space-3); }
+.confirm-head .h2 { margin: 0; }
+.confirm-icon { color: var(--danger); }
+dialog.confirm p { margin: var(--space-3) 0 var(--space-6); }
+.confirm-actions { display: flex; justify-content: flex-end; gap: var(--space-3); flex-wrap: wrap; }
