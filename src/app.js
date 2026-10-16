@@ -149,9 +149,9 @@
     const m = cfg.method;
     const parts = [];
     if (m === 'pseudo') parts.push(`<label>префикс <input type="text" data-p="prefix" value="${esc(cfg.prefix || '')}"></label>`);
-    if (m === 'noise') parts.push(`<label>± <input type="number" data-p="pct" min="0" step="1" value="${esc(cfg.pct)}"> %</label>`);
+    if (m === 'noise') parts.push(`<label>шум, ± % <input type="number" data-p="pct" min="0" step="1" value="${esc(cfg.pct)}"></label>`);
     if (m === 'round') parts.push(`<label>шаг <input type="number" data-p="step" min="0" step="any" value="${esc(cfg.step)}"></label>`);
-    if (A.DICT_METHODS.has(m)) parts.push(`<label title="Столбцы с одинаковым именем словаря получают одинаковые замены для одинаковых значений">словарь <input type="text" data-p="group" value="${esc(cfg.group || col.letter)}" style="width:70px"></label>`);
+    if (A.DICT_METHODS.has(m)) parts.push(`<label title="Столбцы с одинаковым именем словаря получают одинаковые замены для одинаковых значений">словарь <input type="text" data-p="group" value="${esc(cfg.group || col.letter)}"></label>`);
     if (m === 'scale') parts.push('<span class="muted">K из шага 3</span>');
     if (m === 'shift' || m === 'smart') parts.push('<span class="muted">D из шага 3</span>');
     return `<div class="params">${parts.join('')}</div>`;
@@ -160,14 +160,14 @@
   function rowHtml(col) {
     const cfg = S.cols[col.c];
     const types = Object.entries(A.TYPE_NAMES).map(([k, n]) => `<option value="${k}"${k === cfg.type ? ' selected' : ''}>${n}${k === col.detected ? ' •' : ''}</option>`).join('');
-    const methods = A.METHODS[cfg.type].map(([k, n]) => `<option value="${k}"${k === cfg.method ? ' selected' : ''}>${n}</option>`).join('');
+    const methods = A.METHODS[cfg.type].map(([k, n]) => `<option value="${k}" title="${esc(A.METHOD_HINTS[k] || '')}"${k === cfg.method ? ' selected' : ''}>${n}</option>`).join('');
     const samples = col.samples.map(v => `<span title="${esc(fmt(v))}">${esc(fmt(v))}</span>`).join('');
     return `<tr data-c="${col.c}" class="${cfg.method !== 'keep' ? 'active' : ''}">
       <td class="colname"><b>${col.letter}</b>${esc(col.name)}</td>
       <td><select data-k="type" title="• — тип, определённый автоматически">${types}</select></td>
       <td class="samples">${samples}</td>
       <td class="r">${col.nonEmpty} / ${col.uniques}</td>
-      <td><select data-k="method">${methods}</select></td>
+      <td><select data-k="method" title="${esc(A.METHOD_HINTS[cfg.method] || '')}">${methods}</select></td>
       <td>${paramsHtml(col, cfg)}</td>
     </tr>`;
   }

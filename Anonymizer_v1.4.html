@@ -84,13 +84,17 @@ th { position: sticky; top: 0; background: var(--card); font-weight: 600; white-
 td.r, th.r { text-align: right; }
 .cols tr.active td { background: var(--accent-soft); }
 .cols .colname b { font-family: var(--mono); color: var(--muted); font-weight: 500; margin-right: 6px; }
-.cols .samples { color: var(--muted); max-width: 360px; font-size: 13px; }
-.cols .samples span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 360px; }
-.cols select { max-width: 270px; }
-.params { display: flex; flex-wrap: wrap; gap: 6px; }
-.params input[type=text] { width: 130px; }
-.params input[type=number] { width: 90px; }
-.params label { font-size: 13px; color: var(--muted); }
+.cols .samples { color: var(--muted); max-width: 300px; font-size: 13px; }
+.cols .samples span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
+.cols select { width: 100%; }
+.cols .c-type { min-width: 150px; width: 150px; }
+.cols .c-method { min-width: 240px; width: 22%; }
+.cols .c-params { min-width: 220px; width: 18%; }
+/* параметры: подпись слева, поле справа — всё остаётся внутри ячейки */
+.params { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 8px; align-items: center; }
+.params label { display: contents; font-size: 13px; color: var(--muted); }
+.params input { width: 100%; min-width: 0; }
+.params > span { grid-column: 1 / -1; }
 .preview td { white-space: nowrap; max-width: 320px; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
 .preview td .old { color: var(--muted); text-decoration: line-through; display: block; }
 .preview td .new { display: block; }
@@ -191,7 +195,7 @@ h1 { display: flex; align-items: center; gap: 10px; }
     <div class="table-scroll">
       <table class="cols" id="colsTable">
         <thead><tr>
-          <th>Столбец</th><th>Тип</th><th>Примеры значений</th><th class="r">Заполн. / уник.</th><th>Метод</th><th>Параметры</th>
+          <th>Столбец</th><th class="c-type">Тип</th><th>Примеры значений</th><th class="r">Заполн. / уник.</th><th class="c-method">Метод</th><th class="c-params">Параметры</th>
         </tr></thead>
         <tbody></tbody>
       </table>
@@ -309,7 +313,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 // Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
-window.ANON_VERSION = '1.3';
+window.ANON_VERSION = '1.4';
 
 </script>
 <script>
@@ -614,17 +618,17 @@ window.ANON_VERSION = '1.3';
   const METHODS = {
     text: [
       ['keep', 'Оставить'],
-      ['pseudo', 'Псевдоним с номером («Контрагент 017»)'],
-      ['fake', 'Вымышленное название («ТрансГарант»)'],
-      ['mask', 'Маска: случайные буквы/цифры'],
-      ['smart', 'Замена внутри текста (имена, даты, номера)'],
+      ['pseudo', 'Псевдоним с номером'],
+      ['fake', 'Вымышленное название'],
+      ['mask', 'Маска символов'],
+      ['smart', 'Замена внутри текста'],
       ['hash', 'Хэш-код'],
       ['clear', 'Очистить'],
     ],
     id: [
       ['keep', 'Оставить'],
-      ['digits', 'Случайные цифры (формат сохраняется)'],
-      ['mask', 'Маска: случайные буквы/цифры'],
+      ['digits', 'Случайные цифры'],
+      ['mask', 'Маска символов'],
       ['pseudo', 'Псевдоним с номером'],
       ['hash', 'Хэш-код'],
       ['clear', 'Очистить'],
@@ -644,6 +648,24 @@ window.ANON_VERSION = '1.3';
       ['drandom', 'Случайная дата в диапазоне столбца'],
       ['clear', 'Очистить'],
     ],
+  };
+  // Подсказки к методам (всплывают при наведении на список)
+  const METHOD_HINTS = {
+    keep: 'Значения не меняются',
+    pseudo: 'ОПТТРЕЙД ООО → Контрагент 017 ООО; одинаковые значения получают одинаковый номер',
+    fake: 'ОПТТРЕЙД ООО → ТРАНСГАРАНТ ООО',
+    mask: 'Каждая буква → случайная буква, цифра → цифра; длина и знаки сохраняются',
+    smart: 'В свободном тексте заменяются названия и коды из других столбцов, даты сдвигаются на D, номера из 3+ цифр меняются',
+    hash: 'Короткий код вида ID-3K9F2A7B',
+    digits: '000001658 → 000003708: цифры случайные, длина, разделители и ведущие нули сохраняются',
+    scale: 'Все числа умножаются на одно и то же K — доли и суммы сохраняются',
+    noise: 'Каждое число меняется на случайные ±N %',
+    round: 'Округление до шага, например до 1000',
+    random: 'Случайное число между минимумом и максимумом столбца',
+    shift: 'Все даты сдвигаются на одно и то же число дней D — интервалы сохраняются',
+    month: '15.03.2024 → 01.03.2024',
+    drandom: 'Случайная дата между минимальной и максимальной датой столбца',
+    clear: 'Ячейка становится пустой',
   };
   const TYPE_NAMES = { text: 'Текст', id: 'Код / ИНН', number: 'Число', date: 'Дата' };
   const DICT_METHODS = new Set(['pseudo', 'fake', 'mask', 'digits', 'hash']);
@@ -1030,7 +1052,7 @@ window.ANON_VERSION = '1.3';
     cyrb128, makeRng, randomSeed, factorFromSeed, shiftFromSeed,
     parseTextDate, formatTextDate, gridFromWorksheet, parseCsv, gridToCsv,
     detectHeaderRow, analyze, suggest, transform, applyToWorksheet, clearWorkbookMeta, clearNotes, repairXlsx, headerFooterText, clearHeaderFooter,
-    splitLegalForm, METHODS, TYPE_NAMES, DICT_METHODS, colLetter, isDate,
+    splitLegalForm, METHODS, METHOD_HINTS, TYPE_NAMES, DICT_METHODS, colLetter, isDate,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Anon = api;
@@ -1189,9 +1211,9 @@ window.ANON_VERSION = '1.3';
     const m = cfg.method;
     const parts = [];
     if (m === 'pseudo') parts.push(`<label>префикс <input type="text" data-p="prefix" value="${esc(cfg.prefix || '')}"></label>`);
-    if (m === 'noise') parts.push(`<label>± <input type="number" data-p="pct" min="0" step="1" value="${esc(cfg.pct)}"> %</label>`);
+    if (m === 'noise') parts.push(`<label>шум, ± % <input type="number" data-p="pct" min="0" step="1" value="${esc(cfg.pct)}"></label>`);
     if (m === 'round') parts.push(`<label>шаг <input type="number" data-p="step" min="0" step="any" value="${esc(cfg.step)}"></label>`);
-    if (A.DICT_METHODS.has(m)) parts.push(`<label title="Столбцы с одинаковым именем словаря получают одинаковые замены для одинаковых значений">словарь <input type="text" data-p="group" value="${esc(cfg.group || col.letter)}" style="width:70px"></label>`);
+    if (A.DICT_METHODS.has(m)) parts.push(`<label title="Столбцы с одинаковым именем словаря получают одинаковые замены для одинаковых значений">словарь <input type="text" data-p="group" value="${esc(cfg.group || col.letter)}"></label>`);
     if (m === 'scale') parts.push('<span class="muted">K из шага 3</span>');
     if (m === 'shift' || m === 'smart') parts.push('<span class="muted">D из шага 3</span>');
     return `<div class="params">${parts.join('')}</div>`;
@@ -1200,14 +1222,14 @@ window.ANON_VERSION = '1.3';
   function rowHtml(col) {
     const cfg = S.cols[col.c];
     const types = Object.entries(A.TYPE_NAMES).map(([k, n]) => `<option value="${k}"${k === cfg.type ? ' selected' : ''}>${n}${k === col.detected ? ' •' : ''}</option>`).join('');
-    const methods = A.METHODS[cfg.type].map(([k, n]) => `<option value="${k}"${k === cfg.method ? ' selected' : ''}>${n}</option>`).join('');
+    const methods = A.METHODS[cfg.type].map(([k, n]) => `<option value="${k}" title="${esc(A.METHOD_HINTS[k] || '')}"${k === cfg.method ? ' selected' : ''}>${n}</option>`).join('');
     const samples = col.samples.map(v => `<span title="${esc(fmt(v))}">${esc(fmt(v))}</span>`).join('');
     return `<tr data-c="${col.c}" class="${cfg.method !== 'keep' ? 'active' : ''}">
       <td class="colname"><b>${col.letter}</b>${esc(col.name)}</td>
       <td><select data-k="type" title="• — тип, определённый автоматически">${types}</select></td>
       <td class="samples">${samples}</td>
       <td class="r">${col.nonEmpty} / ${col.uniques}</td>
-      <td><select data-k="method">${methods}</select></td>
+      <td><select data-k="method" title="${esc(A.METHOD_HINTS[cfg.method] || '')}">${methods}</select></td>
       <td>${paramsHtml(col, cfg)}</td>
     </tr>`;
   }

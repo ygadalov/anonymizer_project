@@ -77,13 +77,17 @@ th { position: sticky; top: 0; background: var(--card); font-weight: 600; white-
 td.r, th.r { text-align: right; }
 .cols tr.active td { background: var(--accent-soft); }
 .cols .colname b { font-family: var(--mono); color: var(--muted); font-weight: 500; margin-right: 6px; }
-.cols .samples { color: var(--muted); max-width: 360px; font-size: 13px; }
-.cols .samples span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 360px; }
-.cols select { max-width: 270px; }
-.params { display: flex; flex-wrap: wrap; gap: 6px; }
-.params input[type=text] { width: 130px; }
-.params input[type=number] { width: 90px; }
-.params label { font-size: 13px; color: var(--muted); }
+.cols .samples { color: var(--muted); max-width: 300px; font-size: 13px; }
+.cols .samples span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
+.cols select { width: 100%; }
+.cols .c-type { min-width: 150px; width: 150px; }
+.cols .c-method { min-width: 240px; width: 22%; }
+.cols .c-params { min-width: 220px; width: 18%; }
+/* параметры: подпись слева, поле справа — всё остаётся внутри ячейки */
+.params { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 8px; align-items: center; }
+.params label { display: contents; font-size: 13px; color: var(--muted); }
+.params input { width: 100%; min-width: 0; }
+.params > span { grid-column: 1 / -1; }
 .preview td { white-space: nowrap; max-width: 320px; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
 .preview td .old { color: var(--muted); text-decoration: line-through; display: block; }
 .preview td .new { display: block; }

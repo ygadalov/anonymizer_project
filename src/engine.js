@@ -299,17 +299,17 @@
   const METHODS = {
     text: [
       ['keep', 'Оставить'],
-      ['pseudo', 'Псевдоним с номером («Контрагент 017»)'],
-      ['fake', 'Вымышленное название («ТрансГарант»)'],
-      ['mask', 'Маска: случайные буквы/цифры'],
-      ['smart', 'Замена внутри текста (имена, даты, номера)'],
+      ['pseudo', 'Псевдоним с номером'],
+      ['fake', 'Вымышленное название'],
+      ['mask', 'Маска символов'],
+      ['smart', 'Замена внутри текста'],
       ['hash', 'Хэш-код'],
       ['clear', 'Очистить'],
     ],
     id: [
       ['keep', 'Оставить'],
-      ['digits', 'Случайные цифры (формат сохраняется)'],
-      ['mask', 'Маска: случайные буквы/цифры'],
+      ['digits', 'Случайные цифры'],
+      ['mask', 'Маска символов'],
       ['pseudo', 'Псевдоним с номером'],
       ['hash', 'Хэш-код'],
       ['clear', 'Очистить'],
@@ -329,6 +329,24 @@
       ['drandom', 'Случайная дата в диапазоне столбца'],
       ['clear', 'Очистить'],
     ],
+  };
+  // Подсказки к методам (всплывают при наведении на список)
+  const METHOD_HINTS = {
+    keep: 'Значения не меняются',
+    pseudo: 'ОПТТРЕЙД ООО → Контрагент 017 ООО; одинаковые значения получают одинаковый номер',
+    fake: 'ОПТТРЕЙД ООО → ТРАНСГАРАНТ ООО',
+    mask: 'Каждая буква → случайная буква, цифра → цифра; длина и знаки сохраняются',
+    smart: 'В свободном тексте заменяются названия и коды из других столбцов, даты сдвигаются на D, номера из 3+ цифр меняются',
+    hash: 'Короткий код вида ID-3K9F2A7B',
+    digits: '000001658 → 000003708: цифры случайные, длина, разделители и ведущие нули сохраняются',
+    scale: 'Все числа умножаются на одно и то же K — доли и суммы сохраняются',
+    noise: 'Каждое число меняется на случайные ±N %',
+    round: 'Округление до шага, например до 1000',
+    random: 'Случайное число между минимумом и максимумом столбца',
+    shift: 'Все даты сдвигаются на одно и то же число дней D — интервалы сохраняются',
+    month: '15.03.2024 → 01.03.2024',
+    drandom: 'Случайная дата между минимальной и максимальной датой столбца',
+    clear: 'Ячейка становится пустой',
   };
   const TYPE_NAMES = { text: 'Текст', id: 'Код / ИНН', number: 'Число', date: 'Дата' };
   const DICT_METHODS = new Set(['pseudo', 'fake', 'mask', 'digits', 'hash']);
@@ -715,7 +733,7 @@
     cyrb128, makeRng, randomSeed, factorFromSeed, shiftFromSeed,
     parseTextDate, formatTextDate, gridFromWorksheet, parseCsv, gridToCsv,
     detectHeaderRow, analyze, suggest, transform, applyToWorksheet, clearWorkbookMeta, clearNotes, repairXlsx, headerFooterText, clearHeaderFooter,
-    splitLegalForm, METHODS, TYPE_NAMES, DICT_METHODS, colLetter, isDate,
+    splitLegalForm, METHODS, METHOD_HINTS, TYPE_NAMES, DICT_METHODS, colLetter, isDate,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Anon = api;
