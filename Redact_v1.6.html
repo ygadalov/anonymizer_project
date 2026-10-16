@@ -561,7 +561,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 // Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
-window.ANON_VERSION = '1.5';
+window.ANON_VERSION = '1.6';
 
 </script>
 <script>
@@ -1592,7 +1592,7 @@ window.ANON_VERSION = '1.5';
   }
   function collectSettings() {
     const p = {
-      app: 'Anonymizer',
+      app: 'Redact',
       appVersion: A.VERSION,
       format: 1,
       savedAt: new Date().toISOString(),
@@ -1649,7 +1649,7 @@ window.ANON_VERSION = '1.5';
   $('btnSaveProfile').addEventListener('click', () => {
     if (!S.an) return;
     const p = collectSettings();
-    download(new Blob([JSON.stringify(p, null, 2)], { type: 'application/json' }), `Anonymizer_settings_${baseName()}.json`);
+    download(new Blob([JSON.stringify(p, null, 2)], { type: 'application/json' }), `Redact_settings_${baseName()}.json`);
     toast(p.secret ? 'Настройки сохранены вместе с ключом — не передавайте этот файл вместе с данными' : 'Настройки сохранены');
   });
   // Загрузить настройки можно и до файла с данными — тогда они применятся при его загрузке

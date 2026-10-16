@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Собирает src/ в один автономный файл Anonymizer_vX.Y.html (работает офлайн, без установки)."""
+"""Собирает src/ в один автономный файл Redact_vX.Y.html (работает офлайн, без установки)."""
 import base64
 import pathlib
 import re
@@ -60,7 +60,7 @@ def main():
     m = re.search(r"ANON_VERSION\s*=\s*'([\d.]+)'", (SRC / 'version.js').read_text(encoding='utf-8'))
     if not m:
         raise SystemExit('src/version.js: не найдена версия')
-    out = ROOT / f'Anonymizer_v{m.group(1)}.html'
+    out = ROOT / f'Redact_v{m.group(1)}.html'
     out.write_text(html, encoding='utf-8')
     print(f'{out.name}: {out.stat().st_size / 1024:.0f} КБ')
 

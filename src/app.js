@@ -281,7 +281,7 @@
   }
   function collectSettings() {
     const p = {
-      app: 'Anonymizer',
+      app: 'Redact',
       appVersion: A.VERSION,
       format: 1,
       savedAt: new Date().toISOString(),
@@ -338,7 +338,7 @@
   $('btnSaveProfile').addEventListener('click', () => {
     if (!S.an) return;
     const p = collectSettings();
-    download(new Blob([JSON.stringify(p, null, 2)], { type: 'application/json' }), `Anonymizer_settings_${baseName()}.json`);
+    download(new Blob([JSON.stringify(p, null, 2)], { type: 'application/json' }), `Redact_settings_${baseName()}.json`);
     toast(p.secret ? 'Настройки сохранены вместе с ключом — не передавайте этот файл вместе с данными' : 'Настройки сохранены');
   });
   // Загрузить настройки можно и до файла с данными — тогда они применятся при его загрузке
