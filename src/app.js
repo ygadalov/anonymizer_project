@@ -617,6 +617,8 @@
     ];
     ws.getRow(1).font = { bold: true };
     ws.addRows(S.result.mapping);
+    // ФИО с инициалами, найденные внутри текста («Смирнов А. В.»)
+    ws.addRows((key.smartNames || []).map(([orig, repl]) => ({ dict: 'ФИО в тексте', columns: '', method: 'smart', orig, repl })));
     ws.autoFilter = 'A1:E1';
     const ps = wb.addWorksheet('Параметры');
     ps.columns = [{ header: 'Параметр', key: 'k', width: 34 }, { header: 'Значение', key: 'v', width: 40 }];

@@ -6,7 +6,10 @@ const assert = require('node:assert');
 const A = require('../src/engine.js');
 
 const FORMS = ['ООО', 'АО', 'ПАО', 'ИП'];
-const WORDS = ['СИНЕРГИЯ', 'ОПТТРЕЙД', 'ПРОМЕТЕЙ', 'АГРО-ТЕХНИК', 'МЦОЗ', 'ВЕКТОР', 'ГРАНИТ', 'УРАЛСНАБ', 'ДОНЗЕРНО', 'ТРАНСЛАЙН'];
+// названия выдуманы; «трудные» формы нарочно: дефис, аббревиатура
+const WORDS = ['ВЕРЕСКОВ', 'НОРДЛИНИЯ', 'КВАРЦЕВИК', 'ПЛЕСКОВ-СТРОЙ', 'ЗКТМ', 'ОЗЕРОТЕХ', 'АЛМАРИНО', 'ГРЕЙНОЛЬ', 'ТЕПЛОВЕСТ', 'ЛУГОРАН'];
+// ИП: в столбце полное ФИО, в тексте договора — с инициалами в разных написаниях
+const PERSONS = [['Тестов Пётр Сергеевич', 'Тестов П. С.'], ['Образцова Анна Ильинична', 'А.И. Образцова'], ['Примеров Олег Юрьевич', 'О. Ю. Примеров']];
 const pad = (n, w) => String(n).padStart(w, '0');
 
 // Синтетическая выгрузка в духе 1С: шапка в 3-й строке, итог внизу, «трудные» случаи нарочно
@@ -21,7 +24,8 @@ function makeGrid(n = 240) {
     const k = i % 37;
     const word = WORDS[k % WORDS.length] + (k >= WORDS.length ? ' ' + k : '');
     // ОПФ в конце, в начале и в середине названия
-    const name = k % 5 === 0 ? `${FORMS[k % 4]} ${word}` : k % 7 === 0 ? `${word} ООО ТЗК` : `${word} ${FORMS[k % 4]}`;
+    const person = k % 9 === 4 ? PERSONS[(k / 9 | 0) % PERSONS.length] : null;
+    const name = person ? `ИП ${person[0]}` : k % 5 === 0 ? `${FORMS[k % 4]} ${word}` : k % 7 === 0 ? `${word} ООО ТЗК` : `${word} ${FORMS[k % 4]}`;
     const amount = [0.01, 0.02, 400316, 400315.99, 15.8, 274800][i % 6] + (i % 6 > 3 ? i : 0);
     total += amount;
     const d = 1 + (i % 28), m = 1 + (i % 12);
@@ -32,7 +36,7 @@ function makeGrid(n = 240) {
       { v: pad(k * 13, 9) },                                                        // код с ведущими нулями
       { v: name + (i % 11 === 0 ? ' ' : '') },                                      // пробел в конце
       { v: '00/' + pad(k * 13, 6) },                                                // формат как у кодов контрагентов
-      { v: `ТЛС/${word.split(' ')[0]}-2013/ЦО${pad(i, 6)} от ${pad(d, 2)}.${pad(m, 2)}.2015 аренда` },
+      { v: person ? `Услуги ИП ${person[1]} № ${pad(i, 4)} от ${pad(d, 2)}.${pad(m, 2)}.2015` : `ДГВ/${word.split(' ')[0]}-2013/ЦО${pad(i, 6)} от ${pad(d, 2)}.${pad(m, 2)}.2015 аренда` },
       { v: amount },
       { v: Math.round(amount * 92.5 * 100) / 100 },
       i % 2 ? { v: `${pad(d, 2)}.${pad(m, 2)}.2017` } : { v: new Date(Date.UTC(2017, m - 1, d, 23, 59, 59)) },
@@ -161,4 +165,18 @@ test('книга из двух листов: общий псевдоним и т
       assert.strictEqual(val(got), val(orig), `${sh.name}, строка ${r}, «${c.name}»`);
     }
   }
+});
+
+test('ФИО с инициалами в тексте заменяются и возвращаются как были', () => {
+  const grid = makeGrid(60);
+  const { an, key, anon } = anonymize(grid, 'initials', 0);
+  const textCol = an.columns.find(c => c.name === 'Договор').c;
+  const rows = an.dataRows.filter(r => anon.rows[r][textCol]);
+  const texts = rows.map(r => String(anon.rows[r][textCol].v));
+  for (const [, short] of PERSONS) assert.ok(!texts.some(t => t.includes(short)), `«${short}» осталось в тексте`);
+  assert.ok(texts.some(t => /Услуги ИП Контрагент \d{3} [А-Я]\. [А-Я]\./.test(t)), 'замена с инициалами');
+  assert.ok(texts.some(t => /Услуги ИП [А-Я]\.[А-Я]\. Контрагент \d{3} /.test(t)), 'замена с инициалами впереди');
+  assert.strictEqual(key.smartNames.length, PERSONS.length);
+  const back = restore(anon, key);
+  for (const r of rows) assert.strictEqual(back.changes.get(r + ':' + textCol), grid.rows[r][textCol].v);
 });

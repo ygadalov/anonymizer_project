@@ -79,7 +79,7 @@
   <div class="values">
     <div class="value"><svg class="i i20" aria-hidden="true"><use href="#i-shield-check"></use></svg>
       <b>Персональные данные не уходят</b>
-      <span>ФИО индивидуальных предпринимателей и физлиц, ИНН, номера договоров заменяются и в столбцах, и внутри текста.</span></div>
+      <span>ФИО индивидуальных предпринимателей и физлиц, ИНН, номера договоров заменяются и в столбцах, и внутри текста — даже в форме «Иванов И. И.».</span></div>
     <div class="value"><svg class="i i20" aria-hidden="true"><use href="#i-lock"></use></svg>
       <b>Коммерческая тайна закрыта</b>
       <span>Не видно, с кем вы работаете и на какие суммы: контрагенты становятся псевдонимами, суммы — масштабированными.</span></div>
@@ -91,16 +91,16 @@
   <div class="demo">
     <div class="demo-head">
       <span class="caption muted">Исходная выгрузка</span>
-      <span class="legend small"><span class="rv rv-detected">ОПТТРЕЙД</span> найдено</span>
+      <span class="legend small"><span class="rv rv-detected">ВЕРЕСКОВ</span> найдено</span>
     </div>
     <div class="table-scroll">
       <table class="data">
         <thead><tr><th>Контрагент</th><th>ИНН</th><th class="text">Договор</th><th class="num">Сумма, руб</th><th>Дата</th></tr></thead>
         <tbody>
-          <tr><td><span class="rv rv-detected">ОПТТРЕЙД</span> <span class="rv">ООО</span></td><td><span class="rv rv-detected">7714820365</span></td><td class="text"><span class="rv">Поставка <span class="rv-detected">ОПТТРЕЙД</span> № <span class="rv-detected">154</span> от <span class="rv-detected">12.03.2025</span></span></td><td class="num"><span class="rv rv-detected">400 316,00</span></td><td><span class="rv rv-detected">12.03.2025</span></td></tr>
-          <tr><td><span class="rv">АО</span> <span class="rv rv-detected">ПРОМЕТЕЙ</span></td><td><span class="rv rv-detected">5032119874</span></td><td class="text"><span class="rv">Аренда склада № <span class="rv-detected">2210</span> от <span class="rv-detected">01.02.2025</span></span></td><td class="num"><span class="rv rv-detected">274 800,00</span></td><td><span class="rv rv-detected">01.02.2025</span></td></tr>
-          <tr><td><span class="rv">ИП</span> <span class="rv rv-detected">Смирнов Андрей Викторович</span></td><td><span class="rv rv-detected">770412345678</span></td><td class="text"><span class="rv">Услуги ИП <span class="rv-detected">Смирнов Андрей Викторович</span> № 77 от <span class="rv-detected">28.04.2025</span></span></td><td class="num"><span class="rv rv-detected">15 850,40</span></td><td><span class="rv rv-detected">28.04.2025</span></td></tr>
-          <tr><td><span class="rv rv-detected">ОПТТРЕЙД</span> <span class="rv">ООО</span></td><td><span class="rv rv-detected">7714820365</span></td><td class="text"><span class="rv">Поставка <span class="rv-detected">ОПТТРЕЙД</span> № <span class="rv-detected">169</span> от <span class="rv-detected">03.06.2025</span></span></td><td class="num"><span class="rv rv-detected">128 540,00</span></td><td><span class="rv rv-detected">03.06.2025</span></td></tr>
+          <tr><td><span class="rv rv-detected">ВЕРЕСКОВ</span> <span class="rv">ООО</span></td><td><span class="rv rv-detected">7748214918</span></td><td class="text"><span class="rv">Поставка <span class="rv-detected">ВЕРЕСКОВ</span> № <span class="rv-detected">154</span> от <span class="rv-detected">12.03.2025</span></span></td><td class="num"><span class="rv rv-detected">400 316,00</span></td><td><span class="rv rv-detected">12.03.2025</span></td></tr>
+          <tr><td><span class="rv">АО</span> <span class="rv rv-detected">НОРДЛИНИЯ</span></td><td><span class="rv rv-detected">7720019233</span></td><td class="text"><span class="rv">Аренда склада № <span class="rv-detected">2210</span> от <span class="rv-detected">01.02.2025</span></span></td><td class="num"><span class="rv rv-detected">274 800,00</span></td><td><span class="rv rv-detected">01.02.2025</span></td></tr>
+          <tr><td><span class="rv">ИП</span> <span class="rv rv-detected">Мирошев Глеб Аркадьевич</span></td><td><span class="rv rv-detected">507915252187</span></td><td class="text"><span class="rv">Услуги ИП <span class="rv-detected">Мирошев Г. А.</span> № 77 от <span class="rv-detected">28.04.2025</span></span></td><td class="num"><span class="rv rv-detected">15 850,40</span></td><td><span class="rv rv-detected">28.04.2025</span></td></tr>
+          <tr><td><span class="rv rv-detected">ВЕРЕСКОВ</span> <span class="rv">ООО</span></td><td><span class="rv rv-detected">7748214918</span></td><td class="text"><span class="rv">Поставка <span class="rv-detected">ВЕРЕСКОВ</span> № <span class="rv-detected">169</span> от <span class="rv-detected">03.06.2025</span></span></td><td class="num"><span class="rv rv-detected">128 540,00</span></td><td><span class="rv rv-detected">03.06.2025</span></td></tr>
           <tr class="total"><td>Итого</td><td></td><td></td><td class="num"><span class="rv">819 506,40</span></td><td></td></tr>
         </tbody>
       </table>
@@ -116,16 +116,17 @@
       <table class="data">
         <thead><tr><th>Контрагент</th><th>ИНН</th><th class="text">Договор</th><th class="num">Сумма, руб</th><th>Дата</th></tr></thead>
         <tbody>
-          <tr><td><span class="rv rv-token">Контрагент 002</span> <span class="rv">ООО</span></td><td><span class="rv rv-token">9727303280</span></td><td class="text"><span class="rv">Поставка <span class="rv-token">Контрагент 002</span> № <span class="rv-token">643</span> от <span class="rv-token">28.11.2025</span></span></td><td class="num"><span class="rv rv-token">546 271,21</span></td><td><span class="rv rv-token">28.11.2025</span></td></tr>
-          <tr><td><span class="rv">АО</span> <span class="rv rv-token">Контрагент 003</span></td><td><span class="rv rv-token">3971311929</span></td><td class="text"><span class="rv">Аренда склада № <span class="rv-token">7280</span> от <span class="rv-token">20.10.2025</span></span></td><td class="num"><span class="rv rv-token">374 992,08</span></td><td><span class="rv rv-token">20.10.2025</span></td></tr>
-          <tr><td><span class="rv">ИП</span> <span class="rv rv-token">Контрагент 001</span></td><td><span class="rv rv-token">427047729170</span></td><td class="text"><span class="rv">Услуги ИП <span class="rv-token">Контрагент 001</span> № 77 от <span class="rv-token">14.01.2026</span></span></td><td class="num"><span class="rv rv-token">21 629,46</span></td><td><span class="rv rv-token">14.01.2026</span></td></tr>
-          <tr><td><span class="rv rv-token">Контрагент 002</span> <span class="rv">ООО</span></td><td><span class="rv rv-token">9727303280</span></td><td class="text"><span class="rv">Поставка <span class="rv-token">Контрагент 002</span> № <span class="rv-token">115</span> от <span class="rv-token">19.02.2026</span></span></td><td class="num"><span class="rv rv-token">175 405,68</span></td><td><span class="rv rv-token">19.02.2026</span></td></tr>
+          <tr><td><span class="rv rv-token">Контрагент 002</span> <span class="rv">ООО</span></td><td><span class="rv rv-token">3997591650</span></td><td class="text"><span class="rv">Поставка <span class="rv-token">Контрагент 002</span> № <span class="rv-token">643</span> от <span class="rv-token">28.11.2025</span></span></td><td class="num"><span class="rv rv-token">546 271,21</span></td><td><span class="rv rv-token">28.11.2025</span></td></tr>
+          <tr><td><span class="rv">АО</span> <span class="rv rv-token">Контрагент 003</span></td><td><span class="rv rv-token">7777653972</span></td><td class="text"><span class="rv">Аренда склада № <span class="rv-token">7280</span> от <span class="rv-token">20.10.2025</span></span></td><td class="num"><span class="rv rv-token">374 992,08</span></td><td><span class="rv rv-token">20.10.2025</span></td></tr>
+          <tr><td><span class="rv">ИП</span> <span class="rv rv-token">Контрагент 001</span></td><td><span class="rv rv-token">217477968564</span></td><td class="text"><span class="rv">Услуги ИП <span class="rv-token">Контрагент 001 В. Г.</span> № 77 от <span class="rv-token">14.01.2026</span></span></td><td class="num"><span class="rv rv-token">21 629,46</span></td><td><span class="rv rv-token">14.01.2026</span></td></tr>
+          <tr><td><span class="rv rv-token">Контрагент 002</span> <span class="rv">ООО</span></td><td><span class="rv rv-token">3997591650</span></td><td class="text"><span class="rv">Поставка <span class="rv-token">Контрагент 002</span> № <span class="rv-token">115</span> от <span class="rv-token">19.02.2026</span></span></td><td class="num"><span class="rv rv-token">175 405,68</span></td><td><span class="rv rv-token">19.02.2026</span></td></tr>
           <tr class="total"><td>Итого</td><td></td><td></td><td class="num"><span class="rv">1 118 298,43</span></td><td></td></tr>
         </tbody>
       </table>
     </div>
-    <p class="demo-note small muted">Настоящий результат Redact на этих строках. Один и тот же покупатель стал одним
-      псевдонимом и в столбце, и внутри названия договора. Все суммы умножены на одно число, поэтому «Итого» по-прежнему
+    <p class="demo-note small muted">Названия, ФИО и ИНН выдуманы, а замены — настоящий результат Redact на этих строках. Один и тот же
+      покупатель стал одним псевдонимом и в столбце, и внутри названия договора; ФИО предпринимателя найдено в тексте
+      и с инициалами. Все суммы умножены на одно число, поэтому «Итого» по-прежнему
       равно сумме строк. Даты сдвинуты на одинаковое число дней, а форма организации (ООО, АО, ИП) осталась на месте.</p>
   </div>
 </div></section>
@@ -142,7 +143,7 @@
     <div class="tile"><svg class="i i20" aria-hidden="true"><use href="#i-users"></use></svg><b>Одна компания — один псевдоним</b>
       <span>На всех листах книги и в каждой выгрузке с той же секретной фразой. Можно сравнивать месяц к месяцу.</span></div>
     <div class="tile"><svg class="i i20" aria-hidden="true"><use href="#i-text-search"></use></svg><b>Названия в тексте тоже</b>
-      <span>«Договор», «Комментарий», «Документ расчётов»: находит названия и ИНН из других столбцов, меняет номера и даты.</span></div>
+      <span>«Договор», «Комментарий», «Документ расчётов»: находит названия, ФИО (и с инициалами) и ИНН из других столбцов, меняет номера и даты.</span></div>
     <div class="tile"><svg class="i i20" aria-hidden="true"><use href="#i-table-properties"></use></svg><b>Книга остаётся книгой</b>
       <span>Форматы чисел, ширина столбцов, объединённые ячейки и формулы на месте. Выгрузки 1С читаются как есть.</span></div>
     <div class="tile"><svg class="i i20" aria-hidden="true"><use href="#i-wand-sparkles"></use></svg><b>Методы — по названиям</b>
@@ -165,7 +166,7 @@
   <div class="reply">
     <span class="caption muted">Комментарий в ответном файле</span>
     <p class="reply-row"><span class="rv"><span class="rv-token">Контрагент 002 ООО</span>: просрочка 92 дня, резерв 50%</span></p>
-    <p class="reply-row"><svg class="i rv-arrow" aria-hidden="true"><use href="#i-undo-2"></use></svg><span class="rv">ОПТТРЕЙД ООО: просрочка 92 дня, резерв 50%</span></p>
+    <p class="reply-row"><svg class="i rv-arrow" aria-hidden="true"><use href="#i-undo-2"></use></svg><span class="rv">ВЕРЕСКОВ ООО: просрочка 92 дня, резерв 50%</span></p>
   </div>
 </div></section>
 

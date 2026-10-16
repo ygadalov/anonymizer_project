@@ -595,7 +595,7 @@ dialog.confirm p { margin: var(--space-3) 0 var(--space-6); }
       <div class="field">
         <label class="caption" for="seed">Секретная фраза</label>
         <span class="inline"><input class="mono-input" type="text" id="seed" spellcheck="false"><button class="btn secondary icon-only" id="btnSeed" title="Новая случайная фраза" aria-label="Новая случайная фраза"><svg class="i i20" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
-        <small class="small muted">От неё зависят замены: с той же фразой «ОПТТРЕЙД» и через месяц станет «Контрагент 017». Держите её в секрете.</small>
+        <small class="small muted">От неё зависят замены: с той же фразой «ВЕРЕСКОВ» и через месяц станет «Контрагент 017». Держите её в секрете.</small>
       </div>
       <div class="field">
         <label class="caption" for="factor">Коэффициент для сумм</label>
@@ -804,7 +804,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 // Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
-window.ANON_VERSION = '3.7';
+window.ANON_VERSION = '3.8';
 
 </script>
 <script>
@@ -1152,10 +1152,10 @@ window.ANON_VERSION = '3.7';
   // Подсказки к методам (всплывают при наведении на список)
   const METHOD_HINTS = {
     keep: 'Значения не меняются',
-    pseudo: 'ОПТТРЕЙД ООО → Контрагент 017 ООО; одинаковые значения получают одинаковый номер',
-    fake: 'ОПТТРЕЙД ООО → ТРАНСГАРАНТ ООО',
+    pseudo: 'ВЕРЕСКОВ ООО → Контрагент 017 ООО; одинаковые значения получают одинаковый номер',
+    fake: 'ВЕРЕСКОВ ООО → ТРАНСГАРАНТ ООО',
     mask: 'Каждая буква → случайная буква, цифра → цифра; длина и знаки сохраняются',
-    smart: 'В свободном тексте заменяются названия и коды из других столбцов, даты сдвигаются (сдвиг дат — в шаге 3), номера из трёх и более цифр меняются',
+    smart: 'В свободном тексте заменяются названия и коды из других столбцов (ФИО — и с инициалами: «Иванов И. И.»), даты сдвигаются (сдвиг дат — в шаге 3), номера из трёх и более цифр меняются',
     hash: 'Короткий код вида ID-3K9F2A7B',
     digits: '000001658 → 000003708: цифры случайные, длина, разделители и ведущие нули сохраняются',
     scale: 'Все числа умножаются на один коэффициент (шаг 3) — доли и итоги сохраняются, а сами суммы скрыты',
@@ -1205,7 +1205,7 @@ window.ANON_VERSION = '3.7';
     const lead = [], tail = [];
     while (tokens.length > 1 && LEGAL_FORMS.has(clean(tokens[0]))) lead.push(clean(tokens.shift()));
     while (tokens.length > 1 && LEGAL_FORMS.has(clean(tokens[tokens.length - 1]))) tail.unshift(clean(tokens.pop()));
-    // ОПФ в середине («СИНЕРГИЯ ООО ТЗК») переносим в конец
+    // ОПФ в середине («ВЕРЕСКОВ ООО ТЗК») переносим в конец
     if (!lead.length && !tail.length) {
       const i = tokens.findIndex((t, k) => k > 0 && LEGAL_FORMS.has(clean(t)));
       if (i > 0) tail.push(clean(tokens[i]));
@@ -1250,6 +1250,25 @@ window.ANON_VERSION = '3.7';
     return 'ID-' + (h[0].toString(36).toUpperCase() + h[1].toString(36).toUpperCase()).slice(0, 8).padStart(8, '0');
   }
   const escapeRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  // ФИО: «Смирнов Андрей Викторович» (с отчеством) или «ИП Смирнов Андрей» — для поиска сокращённой формы в тексте
+  const RE_NAME_WORD = /^[А-ЯЁ][А-ЯЁа-яё]+(?:-[А-ЯЁ][А-ЯЁа-яё]+)?$/;
+  const RE_PATRONYMIC = /(?:ович|евич|ич|овна|евна|ична|инична|оглы|кызы)$/i;
+  function personName(name) {
+    const f = splitLegalForm(name);
+    const words = f.core.split(/\s+/);
+    if (words.length < 2 || words.length > 3 || !words.every(w => RE_NAME_WORD.test(w))) return null;
+    const ip = /(^|\s)ИП(\s|$)/.test(f.lead + ' ' + f.tail);
+    if (!(words.length === 3 ? (ip || RE_PATRONYMIC.test(words[2])) : ip)) return null;
+    return { surname: words[0], initials: words.slice(1).map(w => w[0]) };
+  }
+  // Сокращённые формы: «Смирнов А. В.», «Смирнов А.В.», «А. В. Смирнов», «А.В. Смирнов»
+  function initialsForms(surname, initials) {
+    const spaced = initials.map(i => i + '.').join(' '), tight = initials.map(i => i + '.').join('');
+    const forms = [[`${surname} ${spaced}`, 'after', ' '], [`${spaced} ${surname}`, 'before', ' ']];
+    if (initials.length > 1) forms.push([`${surname} ${tight}`, 'after', ''], [`${tight} ${surname}`, 'before', '']);
+    return forms;
+  }
 
   // ---------- Преобразование ----------
   /*
@@ -1314,7 +1333,7 @@ window.ANON_VERSION = '3.7';
       }
     }
     // Слова, значения и номера исходной книги: замена не должна совпасть ни с одним из них,
-    // иначе при возврате настоящее значение примут за замену («УРАЛСНАБ» в данных и такое же вымышленное название)
+    // иначе при возврате настоящее значение примут за замену («ЛУГОРАН» в данных и такое же вымышленное название)
     const forbidden = new Set();
     if (groups.size) {
       for (const sh of sheets) for (const r of sh.an.dataRows) for (let c = 1; c <= sh.grid.maxCol; c++) {
@@ -1367,19 +1386,39 @@ window.ANON_VERSION = '3.7';
 
     // 2. Словарь для «замены внутри текста»: исходные имена/коды из других столбцов → их замены
     const cross = new Map();
+    const initialsMap = new Map();   // сокращённые ФИО → замены (идут в ключ, чтобы вернуть их один в один)
     for (const g of groups.values()) {
       for (const [o, n] of g.map) {
         const digitsOnly = /^[\d\s/.\-]+$/.test(o);
         if (o.length >= (digitsOnly ? 5 : 4)) cross.set(o, n);
         if (g.method === 'pseudo' || g.method === 'fake') {
-          // название без ОПФ тоже может встречаться в тексте («... с Синергия ООО ТЗК»)
+          // название без ОПФ тоже может встречаться в тексте («... с Вересков ООО ТЗК»)
           const core = splitLegalForm(o).core;
           if (core.length >= 4 && core !== o && !cross.has(core)) cross.set(core, splitLegalForm(n).core);
+          // ФИО в тексте часто пишут с инициалами: «ИП Смирнов А. В.». Замена — псевдоним со случайными инициалами
+          // («Контрагент 001 Е. Н.»): так она отличается от замены полного ФИО и по ключу возвращается именно сокращённая форма
+          const person = personName(o);
+          if (person) {
+            const rnd = makeRng(seed, 'initials', o);
+            const letters = 'АБВГДЕЖЗИКЛМНОПРСТУФЭЮЯ';
+            let fake;
+            do { fake = person.initials.map(() => pick(rnd, letters)); } while (fake.join('') === person.initials.join('').toUpperCase());
+            const replCore = splitLegalForm(n).core;
+            for (const [form, side, sep] of initialsForms(person.surname, person.initials.map(x => x.toUpperCase()))) {
+              if (cross.has(form)) continue;
+              const fi = fake.map(x => x + '.').join(sep);
+              const repl = side === 'after' ? `${replCore} ${fi}` : `${fi} ${replCore}`;
+              cross.set(form, repl);
+              initialsMap.set(form, repl);
+            }
+          }
         }
       }
     }
     const crossRe = cross.size ? new RegExp([...cross.keys()].sort((a, b) => b.length - a.length).map(escapeRe).join('|'), 'gi') : null;
     const crossLower = new Map([...cross].map(([k, v]) => [k.toLowerCase(), v]));
+    const initialsLower = new Map([...initialsMap.keys()].map(k => [k.toLowerCase(), k]));
+    const usedInitials = new Set();
     const smartDigits = new Map();
     // замены номеров не должны совпадать с заменами из групп — иначе при возврате их не различить
     const smartDigitsUsed = new Set([...groups.values()].flatMap(g => [...g.map.values()]));
@@ -1392,7 +1431,11 @@ window.ANON_VERSION = '3.7';
       const parts = [];
       const hold = x => { parts.push(x); return '' + (parts.length - 1) + ''; };
       let t = s;
-      if (crossRe) t = t.replace(crossRe, m => hold(crossLower.get(m.toLowerCase()) ?? m));
+      if (crossRe) t = t.replace(crossRe, m => {
+        const k = m.toLowerCase();
+        if (initialsLower.has(k)) usedInitials.add(initialsLower.get(k));
+        return hold(crossLower.get(k) ?? m);
+      });
       t = t.replace(RE_DATE_IN_TEXT, (m, d, sep, mo, y) => {
         if (+mo < 1 || +mo > 12 || +d < 1 || +d > 31) return m;
         const info = { kind: 'dmy', sep, dPad: d.length === 2, mPad: mo.length === 2, yLen: 4, rest: '' };
@@ -1516,6 +1559,8 @@ window.ANON_VERSION = '3.7';
       // для ключа соответствий
       groups: [...groups.values()].map(g => ({ name: g.name, method: g.method, prefix: g.prefix, columns: g.cols, pairs: [...g.map] })),
       smartDigits: [...smartDigits],
+      // в ключ — только сокращённые формы, которые действительно встретились в тексте
+      smartNames: [...initialsMap].filter(([o]) => usedInitials.has(o)),
       numberMap,
     };
   }
@@ -1611,7 +1656,7 @@ window.ANON_VERSION = '3.7';
   /*
    * Машиночитаемый ключ: всё, что нужно, чтобы вернуть обезличенный файл (или присланный в ответ) к исходным данным.
    * { app, kind: 'redact-key', format, factor, shiftDays, columns[], dictionaries[{name, method, prefix, pairs[[исходное, замена]]}],
-   *   smartDigits[[исходное, замена]], numbers{столбец: [[новое, исходное]]} }
+   *   smartDigits[[исходное, замена]], smartNames[[ФИО с инициалами, замена]], numbers{столбец: [[новое, исходное]]} }
    */
   const KEY_FORMAT = 1;
   // какой обратный шаг подходит для метода обезличивания; остальные методы необратимы
@@ -1654,6 +1699,7 @@ window.ANON_VERSION = '3.7';
       })),
       dictionaries: result.groups.map(g => ({ name: g.name, method: g.method, prefix: g.prefix || '', columns: g.columns, pairs: g.pairs })),
       smartDigits: result.smartDigits,
+      smartNames: result.smartNames || [],
       numbers,
     };
   }
@@ -1759,13 +1805,18 @@ window.ANON_VERSION = '3.7';
         m.set(String(r), String(o));
         add(String(r), String(o));
         if (d.method === 'pseudo' || d.method === 'fake') {
-          // название без ОПФ: «Контрагент 047» → «ОПТТРЕЙД»
+          // название без ОПФ: «Контрагент 047» → «ВЕРЕСКОВ»
           const rc = splitLegalForm(r).core, oc = splitLegalForm(o).core;
           if (rc !== String(r) && rc.length >= 4) add(rc, oc);
         }
       }
       byDict.set(d.method + '␟' + d.name, m);
     }
+    // сокращённые ФИО из текста: «Контрагент 001 Е. Н.» → «Смирнов А. В.». Ищутся отдельным первым проходом:
+    // иначе в «ИП Контрагент 001 Е. Н.» раньше найдётся «ИП Контрагент 001» и инициалы останутся
+    const names = new Map((key.smartNames || []).map(([o, r]) => [String(r), String(o)]));
+    for (const [r, o] of names) add(r, o);
+    const reNames = names.size ? new RegExp(`(?<![\\p{L}\\p{N}])(?:${[...names.keys()].sort((a, b) => b.length - a.length).map(escapeRe).join('|')})(?![\\p{L}\\p{N}])`, 'gu') : null;
     for (const k of ambiguous) global.delete(k);
     const lower = new Map();
     for (const [k, v] of global) if (!lower.has(k.toLowerCase())) lower.set(k.toLowerCase(), v);
@@ -1792,7 +1843,7 @@ window.ANON_VERSION = '3.7';
       for (const [, r] of d.pairs.slice(0, 50)) { const m = /^(.+?) \d{3,}$/.exec(splitLegalForm(r).core); if (m) prefixes.add(m[1]); }
     }
     const leftoverRe = prefixes.size ? new RegExp(`(?<![\\p{L}\\p{N}])(?:${[...prefixes].map(escapeRe).join('|')}) \\d{3,}(?!\\p{N})`, 'u') : null;
-    return { key, global, lower, re, byDict, revDigits, numbers, colByName, colBySheet, keySheets, ambiguous: ambiguous.size, leftoverRe };
+    return { key, global, lower, re, reNames, names, byDict, revDigits, numbers, colByName, colBySheet, keySheets, ambiguous: ambiguous.size, leftoverRe };
   }
 
   // Столбец присланного файла ↔ столбец ключа — только по названию: в ответном файле столбцы могут быть
@@ -1818,6 +1869,7 @@ window.ANON_VERSION = '3.7';
     const lookup = (dictMap, s) => (dictMap && dictMap.has(s)) ? dictMap.get(s) : prep.global.get(s);
 
     function replaceNames(s, hold) {
+      if (prep.reNames) s = s.replace(prep.reNames, m => { const o = prep.names.get(m); return hold ? hold(o) : o; });
       if (!prep.re) return s;
       return s.replace(prep.re, m => {
         const o = prep.global.get(m) ?? prep.lower.get(m.toLowerCase());
@@ -2574,6 +2626,8 @@ window.ANON_VERSION = '3.7';
     ];
     ws.getRow(1).font = { bold: true };
     ws.addRows(S.result.mapping);
+    // ФИО с инициалами, найденные внутри текста («Смирнов А. В.»)
+    ws.addRows((key.smartNames || []).map(([orig, repl]) => ({ dict: 'ФИО в тексте', columns: '', method: 'smart', orig, repl })));
     ws.autoFilter = 'A1:E1';
     const ps = wb.addWorksheet('Параметры');
     ps.columns = [{ header: 'Параметр', key: 'k', width: 34 }, { header: 'Значение', key: 'v', width: 40 }];
