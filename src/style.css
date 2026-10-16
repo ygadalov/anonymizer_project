@@ -65,7 +65,9 @@ b, strong { font-weight: 500; }
 .btn.secondary { background: var(--surface); border-color: var(--border); }
 .btn.ghost { background: transparent; }
 .btn.danger { background: var(--surface); color: var(--danger); border-color: var(--danger); }
-.btn.secondary:hover, .btn.ghost:hover, .btn.danger:hover { background: var(--surface-sunken); }
+.btn.secondary:hover, .btn.ghost:hover { background: var(--surface-sunken); }
+/* у опасной кнопки — красноватая заливка из токена danger (без новых цветов), чтобы действие читалось сразу */
+.btn.danger:hover { background: color-mix(in srgb, var(--danger) 10%, var(--surface)); }
 .btn.icon-only { width: 40px; padding: 0; }
 .btn:disabled { opacity: 0.4; cursor: default; }
 
