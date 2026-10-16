@@ -678,6 +678,30 @@
       cell.value = nv;
     }
   }
+  // Колонтитулы: текст из ExcelJS (&L, &C, &R — секции; &P, &N, &D… — поля) в читаемом виде
+  const HF_KEYS = ['oddHeader', 'oddFooter', 'evenHeader', 'evenFooter', 'firstHeader', 'firstFooter'];
+  function headerFooterText(ws) {
+    const hf = ws.headerFooter || {};
+    const out = [];
+    for (const k of HF_KEYS) {
+      if (!hf[k]) continue;
+      const t = String(hf[k])
+        .replace(/&"[^"]*"/g, '')          // шрифт
+        .replace(/&\d+/g, '')              // размер шрифта
+        .replace(/&[LCR]/g, ' ')            // секции
+        .replace(/&[PN]/g, '#').replace(/&[DT]/g, '…').replace(/&[AFZG]/g, '')
+        .replace(/&[BIUESXYKH]/g, '').replace(/&&/g, '&')
+        .replace(/\s+/g, ' ').trim();
+      if (t) out.push(t);
+    }
+    return out;
+  }
+  function clearHeaderFooter(ws) {
+    // Текст колонтитулов удаляется полностью; картинки-подложки в колонтитулах ExcelJS при записи не сохраняет
+    const hf = ws.headerFooter || {};
+    ws.headerFooter = { differentFirst: false, differentOddEven: false };
+    for (const k of HF_KEYS) if (hf[k]) ws.headerFooter[k] = '';
+  }
   function clearNotes(ws) {
     ws.eachRow({ includeEmpty: false }, row => row.eachCell({ includeEmpty: false }, cell => { if (cell.note) cell.note = undefined; }));
   }
@@ -690,7 +714,7 @@
     VERSION: root.ANON_VERSION || 'dev',
     cyrb128, makeRng, randomSeed, factorFromSeed, shiftFromSeed,
     parseTextDate, formatTextDate, gridFromWorksheet, parseCsv, gridToCsv,
-    detectHeaderRow, analyze, suggest, transform, applyToWorksheet, clearWorkbookMeta, clearNotes, repairXlsx,
+    detectHeaderRow, analyze, suggest, transform, applyToWorksheet, clearWorkbookMeta, clearNotes, repairXlsx, headerFooterText, clearHeaderFooter,
     splitLegalForm, METHODS, TYPE_NAMES, DICT_METHODS, colLetter, isDate,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

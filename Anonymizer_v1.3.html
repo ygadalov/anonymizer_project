@@ -223,6 +223,7 @@ h1 { display: flex; align-items: center; gap: 10px; }
       <label class="chk"><input type="checkbox" id="keepForm" checked> Сохранять ОПФ в названиях (ООО, АО, ИП…)</label>
       <label class="chk"><input type="checkbox" id="clearMeta" checked> Очистить свойства файла (автор, компания)</label>
       <label class="chk"><input type="checkbox" id="clearNotes" checked> Удалить примечания ячеек</label>
+      <label class="chk"><input type="checkbox" id="clearHF" checked> Очистить колонтитулы</label>
       <label class="chk"><input type="checkbox" id="profileWithKey"> Включать ключ, K и D в файл настроек</label>
     </div>
   </section>
@@ -308,7 +309,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 // Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
-window.ANON_VERSION = '1.2';
+window.ANON_VERSION = '1.3';
 
 </script>
 <script>
@@ -992,6 +993,30 @@ window.ANON_VERSION = '1.2';
       cell.value = nv;
     }
   }
+  // Колонтитулы: текст из ExcelJS (&L, &C, &R — секции; &P, &N, &D… — поля) в читаемом виде
+  const HF_KEYS = ['oddHeader', 'oddFooter', 'evenHeader', 'evenFooter', 'firstHeader', 'firstFooter'];
+  function headerFooterText(ws) {
+    const hf = ws.headerFooter || {};
+    const out = [];
+    for (const k of HF_KEYS) {
+      if (!hf[k]) continue;
+      const t = String(hf[k])
+        .replace(/&"[^"]*"/g, '')          // шрифт
+        .replace(/&\d+/g, '')              // размер шрифта
+        .replace(/&[LCR]/g, ' ')            // секции
+        .replace(/&[PN]/g, '#').replace(/&[DT]/g, '…').replace(/&[AFZG]/g, '')
+        .replace(/&[BIUESXYKH]/g, '').replace(/&&/g, '&')
+        .replace(/\s+/g, ' ').trim();
+      if (t) out.push(t);
+    }
+    return out;
+  }
+  function clearHeaderFooter(ws) {
+    // Текст колонтитулов удаляется полностью; картинки-подложки в колонтитулах ExcelJS при записи не сохраняет
+    const hf = ws.headerFooter || {};
+    ws.headerFooter = { differentFirst: false, differentOddEven: false };
+    for (const k of HF_KEYS) if (hf[k]) ws.headerFooter[k] = '';
+  }
   function clearNotes(ws) {
     ws.eachRow({ includeEmpty: false }, row => row.eachCell({ includeEmpty: false }, cell => { if (cell.note) cell.note = undefined; }));
   }
@@ -1004,7 +1029,7 @@ window.ANON_VERSION = '1.2';
     VERSION: root.ANON_VERSION || 'dev',
     cyrb128, makeRng, randomSeed, factorFromSeed, shiftFromSeed,
     parseTextDate, formatTextDate, gridFromWorksheet, parseCsv, gridToCsv,
-    detectHeaderRow, analyze, suggest, transform, applyToWorksheet, clearWorkbookMeta, clearNotes, repairXlsx,
+    detectHeaderRow, analyze, suggest, transform, applyToWorksheet, clearWorkbookMeta, clearNotes, repairXlsx, headerFooterText, clearHeaderFooter,
     splitLegalForm, METHODS, TYPE_NAMES, DICT_METHODS, colLetter, isDate,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
@@ -1236,7 +1261,7 @@ window.ANON_VERSION = '1.2';
   $('btnSeed').addEventListener('click', () => { newSeed(); schedulePreview(); });
   $('btnFactor').addEventListener('click', () => { $('factor').value = A.factorFromSeed(A.randomSeed()); schedulePreview(); });
   $('btnShift').addEventListener('click', () => { $('shiftDays').value = A.shiftFromSeed(A.randomSeed()); schedulePreview(); });
-  ['seed', 'factor', 'shiftDays', 'keepForm'].forEach(id => $(id).addEventListener('change', schedulePreview));
+  ['seed', 'factor', 'shiftDays', 'keepForm', 'clearHF'].forEach(id => $(id).addEventListener('change', schedulePreview));
 
   function config() {
     return {
@@ -1299,6 +1324,7 @@ window.ANON_VERSION = '1.2';
         keepForm: $('keepForm').checked,
         clearMeta: $('clearMeta').checked,
         clearNotes: $('clearNotes').checked,
+        clearHF: $('clearHF').checked,
       },
       columns: settingsColumns(),
     };
@@ -1307,7 +1333,7 @@ window.ANON_VERSION = '1.2';
   }
   function applyOptions(p) {
     const o = p.options || p; // формат ранней версии хранил флаги в корне
-    for (const id of ['keepTotals', 'keepForm', 'clearMeta', 'clearNotes']) if (typeof o[id] === 'boolean') $(id).checked = o[id];
+    for (const id of ['keepTotals', 'keepForm', 'clearMeta', 'clearNotes', 'clearHF']) if (typeof o[id] === 'boolean') $(id).checked = o[id];
     const sec = p.secret || (p.seed ? p : null);
     if (sec && sec.seed) {
       $('seed').value = sec.seed;
@@ -1394,6 +1420,12 @@ window.ANON_VERSION = '1.2';
       table.innerHTML = head + `<tbody>${body}</tbody>`;
     }
     const w = [...S.loadNotes, ...warnings];
+    if (S.kind === 'xlsx') {
+      const hf = A.headerFooterText(S.wb.worksheets[S.sheetIndex]);
+      if (hf.length) w.push($('clearHF').checked
+        ? `Колонтитулы содержат текст («${hf.join('», «').slice(0, 150)}») — он будет удалён.`
+        : `Колонтитулы содержат текст («${hf.join('», «').slice(0, 150)}») и останутся в файле — включите «Очистить колонтитулы» на шаге 3.`);
+    }
     if (S.kind === 'xlsx' && S.wb.worksheets.length > 1) {
       const others = S.wb.worksheets.filter((_, i) => i !== S.sheetIndex).map(ws => `«${ws.name}»`).join(', ');
       w.push(`В книге есть другие листы (${others}) — они не анонимизируются и удаляются из результата.`);
@@ -1435,6 +1467,7 @@ window.ANON_VERSION = '1.2';
         A.applyToWorksheet(ws, changes);
         if ($('clearMeta').checked) A.clearWorkbookMeta(wb);
         if ($('clearNotes').checked) A.clearNotes(ws);
+        if ($('clearHF').checked) A.clearHeaderFooter(ws);
         wb.calcProperties = { ...(wb.calcProperties || {}), fullCalcOnLoad: true };
         const out = await wb.xlsx.writeBuffer();
         download(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), baseName() + '_anon.xlsx');

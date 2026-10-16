@@ -221,7 +221,7 @@
   $('btnSeed').addEventListener('click', () => { newSeed(); schedulePreview(); });
   $('btnFactor').addEventListener('click', () => { $('factor').value = A.factorFromSeed(A.randomSeed()); schedulePreview(); });
   $('btnShift').addEventListener('click', () => { $('shiftDays').value = A.shiftFromSeed(A.randomSeed()); schedulePreview(); });
-  ['seed', 'factor', 'shiftDays', 'keepForm'].forEach(id => $(id).addEventListener('change', schedulePreview));
+  ['seed', 'factor', 'shiftDays', 'keepForm', 'clearHF'].forEach(id => $(id).addEventListener('change', schedulePreview));
 
   function config() {
     return {
@@ -284,6 +284,7 @@
         keepForm: $('keepForm').checked,
         clearMeta: $('clearMeta').checked,
         clearNotes: $('clearNotes').checked,
+        clearHF: $('clearHF').checked,
       },
       columns: settingsColumns(),
     };
@@ -292,7 +293,7 @@
   }
   function applyOptions(p) {
     const o = p.options || p; // формат ранней версии хранил флаги в корне
-    for (const id of ['keepTotals', 'keepForm', 'clearMeta', 'clearNotes']) if (typeof o[id] === 'boolean') $(id).checked = o[id];
+    for (const id of ['keepTotals', 'keepForm', 'clearMeta', 'clearNotes', 'clearHF']) if (typeof o[id] === 'boolean') $(id).checked = o[id];
     const sec = p.secret || (p.seed ? p : null);
     if (sec && sec.seed) {
       $('seed').value = sec.seed;
@@ -379,6 +380,12 @@
       table.innerHTML = head + `<tbody>${body}</tbody>`;
     }
     const w = [...S.loadNotes, ...warnings];
+    if (S.kind === 'xlsx') {
+      const hf = A.headerFooterText(S.wb.worksheets[S.sheetIndex]);
+      if (hf.length) w.push($('clearHF').checked
+        ? `Колонтитулы содержат текст («${hf.join('», «').slice(0, 150)}») — он будет удалён.`
+        : `Колонтитулы содержат текст («${hf.join('», «').slice(0, 150)}») и останутся в файле — включите «Очистить колонтитулы» на шаге 3.`);
+    }
     if (S.kind === 'xlsx' && S.wb.worksheets.length > 1) {
       const others = S.wb.worksheets.filter((_, i) => i !== S.sheetIndex).map(ws => `«${ws.name}»`).join(', ');
       w.push(`В книге есть другие листы (${others}) — они не анонимизируются и удаляются из результата.`);
@@ -420,6 +427,7 @@
         A.applyToWorksheet(ws, changes);
         if ($('clearMeta').checked) A.clearWorkbookMeta(wb);
         if ($('clearNotes').checked) A.clearNotes(ws);
+        if ($('clearHF').checked) A.clearHeaderFooter(ws);
         wb.calcProperties = { ...(wb.calcProperties || {}), fullCalcOnLoad: true };
         const out = await wb.xlsx.writeBuffer();
         download(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), baseName() + '_anon.xlsx');
