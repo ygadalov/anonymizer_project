@@ -594,6 +594,74 @@
     return { changes, mapping, stats: { changed, columns: active.length }, warnings };
   }
 
+  // ---------- Починка «нестандартных» xlsx (например, выгрузок из 1С) ----------
+  /*
+   * ExcelJS падает на некоторых файлах, которые Excel открывает без проблем. Известный случай —
+   * рисунок листа (xl/drawings/drawingN.xml), записанный без префикса пространства имён:
+   * <wsDr xmlns="..."> вместо <xdr:wsDr ...>. Такой рисунок отвязываем от листа и удаляем.
+   * Возвращает { buffer, notes } — исправленный файл и список того, что было изменено.
+   */
+  async function repairXlsx(buffer, JSZip) {
+    const zip = await JSZip.loadAsync(buffer);
+    const notes = [];
+    const text = async name => (await zip.file(name).async('string')).replace(/^\uFEFF/, '');
+    const relsOf = name => name.replace(/([^/]+)$/, '_rels/$1.rels');
+    const resolve = (base, target) => {
+      if (target.startsWith('/')) return target.slice(1);
+      const parts = base.split('/').slice(0, -1);
+      for (const seg of target.split('/')) {
+        if (seg === '..') parts.pop();
+        else if (seg !== '.') parts.push(seg);
+      }
+      return parts.join('/');
+    };
+    const removed = new Set();
+    for (const sheet of Object.keys(zip.files).filter(n => /^xl\/worksheets\/[^/]+\.xml$/.test(n))) {
+      const relsName = relsOf(sheet);
+      if (!zip.file(relsName)) continue;
+      let rels = await text(relsName);
+      let sheetXml = null;
+      const re = /<Relationship\b[^>]*\/>/g;
+      for (const rel of rels.match(re) || []) {
+        if (!/relationships\/drawing"/.test(rel)) continue;
+        const id = (/\bId="([^"]+)"/.exec(rel) || [])[1];
+        const target = (/\bTarget="([^"]+)"/.exec(rel) || [])[1];
+        if (!id || !target) continue;
+        const drawing = resolve(sheet, target);
+        let ok = false, anchors = 0;
+        if (zip.file(drawing)) {
+          const xml = await text(drawing);
+          const root = /<(?!\?|!)([\w:.-]+)/.exec(xml);
+          ok = !!root && root[1] === 'xdr:wsDr';
+          anchors = (xml.match(/Anchor\b/g) || []).length / 2;
+        }
+        if (ok) continue;
+        if (sheetXml === null) sheetXml = await text(sheet);
+        sheetXml = sheetXml.replace(new RegExp(`<drawing\\b[^>]*r:id="${id}"[^>]*/>`), '');
+        rels = rels.replace(rel, '');
+        removed.add(drawing);
+        notes.push(anchors > 0
+          ? `Рисунки на листе (${drawing}) записаны в нестандартном формате и удалены — данные не затронуты.`
+          : `Пустой нестандартный рисунок (${drawing}) удалён — данные не затронуты.`);
+      }
+      if (sheetXml !== null) {
+        zip.file(sheet, sheetXml);
+        zip.file(relsName, rels);
+      }
+    }
+    if (removed.size) {
+      for (const d of removed) {
+        zip.remove(d);
+        zip.remove(relsOf(d));
+      }
+      let ct = await text('[Content_Types].xml');
+      for (const d of removed) ct = ct.replace(new RegExp(`<Override\\b[^>]*PartName="/${d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*/>`), '');
+      zip.file('[Content_Types].xml', ct);
+    }
+    const out = await zip.generateAsync({ type: 'arraybuffer', compression: 'DEFLATE' });
+    return { buffer: out, notes };
+  }
+
   // ---------- Запись в книгу ExcelJS ----------
   function applyToWorksheet(ws, changes) {
     for (const [key, nv] of changes) {
@@ -622,7 +690,7 @@
     VERSION: root.ANON_VERSION || 'dev',
     cyrb128, makeRng, randomSeed, factorFromSeed, shiftFromSeed,
     parseTextDate, formatTextDate, gridFromWorksheet, parseCsv, gridToCsv,
-    detectHeaderRow, analyze, suggest, transform, applyToWorksheet, clearWorkbookMeta, clearNotes,
+    detectHeaderRow, analyze, suggest, transform, applyToWorksheet, clearWorkbookMeta, clearNotes, repairXlsx,
     splitLegalForm, METHODS, TYPE_NAMES, DICT_METHODS, colLetter, isDate,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

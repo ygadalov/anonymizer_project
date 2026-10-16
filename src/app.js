@@ -8,6 +8,7 @@
 
   const S = {
     pending: null,    // настройки, загруженные до файла с данными
+    loadNotes: [],    // что пришлось исправить в файле при чтении
     kind: null,       // 'xlsx' | 'csv'
     fileName: '',
     buffer: null,     // исходный файл — для записи результата в «чистую» копию книги
@@ -54,6 +55,7 @@
       const buf = await file.arrayBuffer();
       S.fileName = file.name;
       S.buffer = buf;
+      S.loadNotes = [];
       if (ext === 'xls') throw new Error('Формат .xls (Excel 97–2003) не поддерживается. Откройте файл в Excel и сохраните как .xlsx.');
       if (ext === 'csv' || ext === 'txt') {
         S.kind = 'csv';
@@ -68,7 +70,18 @@
       } else {
         S.kind = 'xlsx';
         S.wb = new ExcelJS.Workbook();
-        await S.wb.xlsx.load(buf);
+        try {
+          await S.wb.xlsx.load(buf);
+        } catch (e) {
+          // Файл может быть «нестандартным» (так бывает с выгрузками из 1С) — чиним и читаем ещё раз
+          console.warn('Повторное чтение после починки файла:', e);
+          const fixed = await A.repairXlsx(buf, JSZip);
+          if (!fixed.notes.length) throw e;
+          S.wb = new ExcelJS.Workbook();
+          await S.wb.xlsx.load(fixed.buffer);
+          S.buffer = fixed.buffer;
+          S.loadNotes = fixed.notes;
+        }
         if (!S.wb.worksheets.length) throw new Error('В книге нет листов.');
         $('sheet').innerHTML = S.wb.worksheets.map((ws, i) => `<option value="${i}">${esc(ws.name)}${ws.state && ws.state !== 'visible' ? ' (скрытый)' : ''}</option>`).join('');
         $('sheet').disabled = S.wb.worksheets.length < 2;
@@ -79,7 +92,8 @@
         S.sheetIndex = best;
         S.grid = A.gridFromWorksheet(S.wb.worksheets[best]);
       }
-      $('fileInfo').innerHTML = `${icon('file-spreadsheet')}<b>${esc(file.name)}</b> · ${(file.size / 1024).toFixed(0)} КБ`;
+      $('fileInfo').innerHTML = `${icon('file-spreadsheet')}<b>${esc(file.name)}</b> · ${(file.size / 1024).toFixed(0)} КБ` +
+        (S.loadNotes.length ? ' · файл автоматически исправлен при чтении (подробности в шаге 4)' : '');
       if (!$('seed').value) newSeed();
       $('settingsInfo').textContent = '';
       setupSheet(true);
@@ -364,7 +378,7 @@
       }).join('')}</tr>`).join('');
       table.innerHTML = head + `<tbody>${body}</tbody>`;
     }
-    const w = [...warnings];
+    const w = [...S.loadNotes, ...warnings];
     if (S.kind === 'xlsx' && S.wb.worksheets.length > 1) {
       const others = S.wb.worksheets.filter((_, i) => i !== S.sheetIndex).map(ws => `«${ws.name}»`).join(', ');
       w.push(`В книге есть другие листы (${others}) — они не анонимизируются и удаляются из результата.`);
