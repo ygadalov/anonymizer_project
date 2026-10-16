@@ -582,7 +582,7 @@
 
   // ---------- Для внешней передачи ----------
   // Тот же файл, но без возможности вернуть данные: одноразовые секретная фраза, коэффициент и сдвиг дат
-  // нигде не сохраняются и ключ не создаётся. Денежные столбцы, оставленные как есть, тоже умножаются;
+  // нигде не сохраняются и ключ не создаётся. Денежные столбцы и даты, оставленные как есть, тоже умножаются и сдвигаются;
   // свойства файла, примечания, колонтитулы и листы без методов удаляются независимо от флажков шага 3.
   $('btnExternal').addEventListener('click', async () => {
     if (!S.an) return;
@@ -590,13 +590,14 @@
     if (!S.result.stats.columns) { toast('Не удалось обезличить: не выбран метод ни для одного столбца', 6000, 'error'); return; }
     const sheets = usedSheets();
     const plan = sheets.map(st => ({ st, ...A.externalColumns(st.an, st.cols) }));
-    const scaled = plan.flatMap(p => p.scaled.map(n => sheets.length > 1 ? `${p.st.name} · ${n}` : n));
+    const named = list => plan.flatMap(p => p[list].map(n => sheets.length > 1 ? `${p.st.name} · ${n}` : n));
+    const listOf = names => `${names.slice(0, 6).map(n => `«${n}»`).join(', ')}${names.length > 6 ? ` и ещё ${names.length - 6}` : ''}`;
+    const scaled = named('scaled'), shifted = named('shifted');
     const leaks = S.result.leaks.length;
     const items = [
       'Секретная фраза, коэффициент для сумм и сдвиг дат — одноразовые: они нигде не показываются и не сохраняются. Псевдонимы будут другими, чем в файлах с вашей фразой.',
-      scaled.length
-        ? `Суммы, оставленные на шаге 2 как есть, тоже будут умножены: ${scaled.slice(0, 6).map(n => `«${n}»`).join(', ')}${scaled.length > 6 ? ` и ещё ${scaled.length - 6}` : ''}.`
-        : null,
+      scaled.length ? `Суммы, оставленные на шаге 2 как есть, тоже будут умножены: ${listOf(scaled)}.` : null,
+      shifted.length ? `Даты, оставленные на шаге 2 как есть, тоже будут сдвинуты: ${listOf(shifted)}.` : null,
       'Свойства файла, примечания и колонтитулы очищаются, листы без методов удаляются.',
       leaks ? `В предпросмотре есть предупреждения об утечке (${leaks}) — проверьте их до выгрузки.` : null,
     ].filter(Boolean);

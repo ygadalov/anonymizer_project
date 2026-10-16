@@ -395,18 +395,23 @@
     const n = String(col.name || '').toLowerCase();
     return col.detected === 'number' && RE_MONEY.test(n) && !RE_NOT_MONEY.test(n);
   }
-  // Настройки столбцов для внешней передачи: копия, в которой оставленные как есть денежные столбцы умножаются.
-  // Возвращает { columns, scaled: [названия столбцов, которые добавились] }
+  // Настройки столбцов для внешней передачи: копия, в которой оставленные как есть денежные столбцы умножаются,
+  // а столбцы дат сдвигаются (по точной дате документа и сумме контрагента тоже можно узнать).
+  // Возвращает { columns, scaled: [названия добавленных денежных], shifted: [названия добавленных дат] }
   function externalColumns(an, columns) {
-    const out = {}, scaled = [];
+    const out = {}, scaled = [], shifted = [];
     for (const col of an.columns) {
       const cfg = columns[col.c] || { type: col.detected, method: 'keep' };
-      if ((!cfg.method || cfg.method === 'keep') && isMoneyColumn(col)) {
+      const kept = !cfg.method || cfg.method === 'keep';
+      if (kept && isMoneyColumn(col)) {
         out[col.c] = { ...cfg, type: 'number', method: 'scale' };
         scaled.push(col.name);
+      } else if (kept && col.detected === 'date') {
+        out[col.c] = { ...cfg, type: 'date', method: 'shift' };
+        shifted.push(col.name);
       } else out[col.c] = cfg;
     }
-    return { columns: out, scaled };
+    return { columns: out, scaled, shifted };
   }
 
   // ---------- Генераторы замен ----------

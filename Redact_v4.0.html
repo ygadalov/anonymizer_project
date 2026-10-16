@@ -809,7 +809,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 // Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
-window.ANON_VERSION = '3.9';
+window.ANON_VERSION = '4.0';
 
 </script>
 <script>
@@ -1210,18 +1210,23 @@ window.ANON_VERSION = '3.9';
     const n = String(col.name || '').toLowerCase();
     return col.detected === 'number' && RE_MONEY.test(n) && !RE_NOT_MONEY.test(n);
   }
-  // Настройки столбцов для внешней передачи: копия, в которой оставленные как есть денежные столбцы умножаются.
-  // Возвращает { columns, scaled: [названия столбцов, которые добавились] }
+  // Настройки столбцов для внешней передачи: копия, в которой оставленные как есть денежные столбцы умножаются,
+  // а столбцы дат сдвигаются (по точной дате документа и сумме контрагента тоже можно узнать).
+  // Возвращает { columns, scaled: [названия добавленных денежных], shifted: [названия добавленных дат] }
   function externalColumns(an, columns) {
-    const out = {}, scaled = [];
+    const out = {}, scaled = [], shifted = [];
     for (const col of an.columns) {
       const cfg = columns[col.c] || { type: col.detected, method: 'keep' };
-      if ((!cfg.method || cfg.method === 'keep') && isMoneyColumn(col)) {
+      const kept = !cfg.method || cfg.method === 'keep';
+      if (kept && isMoneyColumn(col)) {
         out[col.c] = { ...cfg, type: 'number', method: 'scale' };
         scaled.push(col.name);
+      } else if (kept && col.detected === 'date') {
+        out[col.c] = { ...cfg, type: 'date', method: 'shift' };
+        shifted.push(col.name);
       } else out[col.c] = cfg;
     }
-    return { columns: out, scaled };
+    return { columns: out, scaled, shifted };
   }
 
   // ---------- Генераторы замен ----------
@@ -2620,7 +2625,7 @@ window.ANON_VERSION = '3.9';
 
   // ---------- Для внешней передачи ----------
   // Тот же файл, но без возможности вернуть данные: одноразовые секретная фраза, коэффициент и сдвиг дат
-  // нигде не сохраняются и ключ не создаётся. Денежные столбцы, оставленные как есть, тоже умножаются;
+  // нигде не сохраняются и ключ не создаётся. Денежные столбцы и даты, оставленные как есть, тоже умножаются и сдвигаются;
   // свойства файла, примечания, колонтитулы и листы без методов удаляются независимо от флажков шага 3.
   $('btnExternal').addEventListener('click', async () => {
     if (!S.an) return;
@@ -2628,13 +2633,14 @@ window.ANON_VERSION = '3.9';
     if (!S.result.stats.columns) { toast('Не удалось обезличить: не выбран метод ни для одного столбца', 6000, 'error'); return; }
     const sheets = usedSheets();
     const plan = sheets.map(st => ({ st, ...A.externalColumns(st.an, st.cols) }));
-    const scaled = plan.flatMap(p => p.scaled.map(n => sheets.length > 1 ? `${p.st.name} · ${n}` : n));
+    const named = list => plan.flatMap(p => p[list].map(n => sheets.length > 1 ? `${p.st.name} · ${n}` : n));
+    const listOf = names => `${names.slice(0, 6).map(n => `«${n}»`).join(', ')}${names.length > 6 ? ` и ещё ${names.length - 6}` : ''}`;
+    const scaled = named('scaled'), shifted = named('shifted');
     const leaks = S.result.leaks.length;
     const items = [
       'Секретная фраза, коэффициент для сумм и сдвиг дат — одноразовые: они нигде не показываются и не сохраняются. Псевдонимы будут другими, чем в файлах с вашей фразой.',
-      scaled.length
-        ? `Суммы, оставленные на шаге 2 как есть, тоже будут умножены: ${scaled.slice(0, 6).map(n => `«${n}»`).join(', ')}${scaled.length > 6 ? ` и ещё ${scaled.length - 6}` : ''}.`
-        : null,
+      scaled.length ? `Суммы, оставленные на шаге 2 как есть, тоже будут умножены: ${listOf(scaled)}.` : null,
+      shifted.length ? `Даты, оставленные на шаге 2 как есть, тоже будут сдвинуты: ${listOf(shifted)}.` : null,
       'Свойства файла, примечания и колонтитулы очищаются, листы без методов удаляются.',
       leaks ? `В предпросмотре есть предупреждения об утечке (${leaks}) — проверьте их до выгрузки.` : null,
     ].filter(Boolean);
