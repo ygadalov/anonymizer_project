@@ -180,3 +180,19 @@ test('ФИО с инициалами в тексте заменяются и в�
   const back = restore(anon, key);
   for (const r of rows) assert.strictEqual(back.changes.get(r + ':' + textCol), grid.rows[r][textCol].v);
 });
+
+test('внешняя передача: денежные столбцы умножаются, счётчики и ставки — нет', () => {
+  const money = ['Сумма', 'Сумма Итого, руб', 'Резерв руб.', 'Просроченная задолженность', 'ПДЗ 1-5 дней', 'Цена, руб'];
+  const other = ['Кол-во дней отсрочки', 'Кол во дней просрочки', 'Дни', 'Ставка НДС, %', 'Курс', 'Процент резерва'];
+  for (const name of money) assert.ok(A.isMoneyColumn({ name, detected: 'number' }), name);
+  for (const name of other) assert.ok(!A.isMoneyColumn({ name, detected: 'number' }), name);
+  assert.ok(!A.isMoneyColumn({ name: 'Сумма прописью', detected: 'text' }));
+  const grid = makeGrid(20);
+  const an = A.analyze(grid, A.detectHeaderRow(grid));
+  const cols = {};
+  for (const c of an.columns) cols[c.c] = A.suggest(c);
+  const { columns, scaled } = A.externalColumns(an, cols);
+  assert.deepStrictEqual(scaled, ['Сумма', 'Сумма, руб']);
+  assert.strictEqual(columns[an.columns.find(c => c.name === 'Дни').c].method, 'keep');
+  assert.strictEqual(cols[an.columns.find(c => c.name === 'Сумма').c].method, 'keep', 'исходные настройки не меняются');
+});

@@ -278,3 +278,7 @@ dialog.confirm::backdrop { background: color-mix(in srgb, var(--surface-sunken) 
 .confirm-icon { color: var(--danger); }
 dialog.confirm p { margin: var(--space-3) 0 var(--space-6); }
 .confirm-actions { display: flex; justify-content: flex-end; gap: var(--space-3); flex-wrap: wrap; }
+/* пояснения списком (диалог «Для внешней передачи») — окно шире, текст над списком ближе к нему */
+dialog.confirm:has(.confirm-list) { width: min(560px, calc(100vw - 2 * var(--space-4))); }
+dialog.confirm p:has(+ .confirm-list) { margin-bottom: var(--space-3); }
+.confirm-list { margin: 0 0 var(--space-6); padding-left: var(--space-6); color: var(--ink-muted); display: grid; gap: var(--space-2); }

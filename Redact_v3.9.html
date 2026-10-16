@@ -477,6 +477,10 @@ dialog.confirm::backdrop { background: color-mix(in srgb, var(--surface-sunken) 
 .confirm-icon { color: var(--danger); }
 dialog.confirm p { margin: var(--space-3) 0 var(--space-6); }
 .confirm-actions { display: flex; justify-content: flex-end; gap: var(--space-3); flex-wrap: wrap; }
+/* пояснения списком (диалог «Для внешней передачи») — окно шире, текст над списком ближе к нему */
+dialog.confirm:has(.confirm-list) { width: min(560px, calc(100vw - 2 * var(--space-4))); }
+dialog.confirm p:has(+ .confirm-list) { margin-bottom: var(--space-3); }
+.confirm-list { margin: 0 0 var(--space-6); padding-left: var(--space-6); color: var(--ink-muted); display: grid; gap: var(--space-2); }
 </style>
 <script>
   // тема до отрисовки, чтобы не мигало: сохранённый выбор или системная
@@ -624,6 +628,7 @@ dialog.confirm p { margin: var(--space-3) 0 var(--space-6); }
     <div class="row-controls toolbar">
       <button class="btn secondary" id="btnPreview"><svg class="i i20" aria-hidden="true"><use href="#i-eye"></use></svg>Обновить предпросмотр</button>
       <span class="spacer"></span>
+      <button class="btn danger" id="btnExternal" title="Одноразовые параметры и без ключа соответствий: восстановить данные по этому файлу будет нельзя"><svg class="i i20" aria-hidden="true"><use href="#i-shield-check"></use></svg>Для внешней передачи</button>
       <button class="btn primary" id="btnDownload"><svg class="i i20" aria-hidden="true"><use href="#i-download"></use></svg>Обезличить и скачать</button>
     </div>
     <div id="previewStats" class="small muted"></div>
@@ -804,7 +809,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 // Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
-window.ANON_VERSION = '3.8';
+window.ANON_VERSION = '3.9';
 
 </script>
 <script>
@@ -1193,6 +1198,30 @@ window.ANON_VERSION = '3.8';
     if (/^(договор|документ|основание|комментар|описание|назначение)/.test(n) && col.detected === 'text')
       return { ...base, type: 'text', method: 'smart' };
     return { ...base, type: col.detected, method: 'keep' };
+  }
+
+  // ---------- Внешняя передача ----------
+  // Денежные столбцы по названию: при выгрузке для внешней передачи они умножаются на коэффициент, даже если
+  // на шаге 2 оставлены как есть — по точным суммам контрагента можно узнать и без ключа
+  const RE_MONEY = /сумм|руб|₽|стоим|цен[аы]|задолж|долг|резерв|пдз|оплат|выручк|сальдо|остат|оборот|плат[её]ж|дебет|кредит|ндс|аванс|выплат|доход|расход|прибыл|затрат|amount|sum\b|total|balance|price|cost|revenue/;
+  // счётчики и ставки: «Кол-во дней просрочки», «Ставка НДС, %» (но «ПДЗ 1-5 дней» — сумма)
+  const RE_NOT_MONEY = /^(кол|количеств|дн|день|дней|срок|ставк|курс|номер|№|код|год|месяц)|%|процент/;
+  function isMoneyColumn(col) {
+    const n = String(col.name || '').toLowerCase();
+    return col.detected === 'number' && RE_MONEY.test(n) && !RE_NOT_MONEY.test(n);
+  }
+  // Настройки столбцов для внешней передачи: копия, в которой оставленные как есть денежные столбцы умножаются.
+  // Возвращает { columns, scaled: [названия столбцов, которые добавились] }
+  function externalColumns(an, columns) {
+    const out = {}, scaled = [];
+    for (const col of an.columns) {
+      const cfg = columns[col.c] || { type: col.detected, method: 'keep' };
+      if ((!cfg.method || cfg.method === 'keep') && isMoneyColumn(col)) {
+        out[col.c] = { ...cfg, type: 'number', method: 'scale' };
+        scaled.push(col.name);
+      } else out[col.c] = cfg;
+    }
+    return { columns: out, scaled };
   }
 
   // ---------- Генераторы замен ----------
@@ -1998,7 +2027,7 @@ window.ANON_VERSION = '3.8';
     REVERSE_OF, RESTORE_ACTIONS, RESTORE_HINTS,
     plural, cyrb128, makeRng, randomSeed, factorFromSeed, shiftFromSeed,
     parseTextDate, formatTextDate, gridFromWorksheet, parseCsv, gridToCsv,
-    detectHeaderRow, analyze, suggest, transform, applyToWorksheet, clearWorkbookMeta, clearNotes, repairXlsx, normalizeFontBooleans, headerFooterText, clearHeaderFooter,
+    detectHeaderRow, analyze, suggest, isMoneyColumn, externalColumns, transform, applyToWorksheet, clearWorkbookMeta, clearNotes, repairXlsx, normalizeFontBooleans, headerFooterText, clearHeaderFooter,
     splitLegalForm, METHODS, METHOD_HINTS, TYPE_NAMES, DICT_METHODS, colLetter, isDate,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
@@ -2539,6 +2568,38 @@ window.ANON_VERSION = '3.8';
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
   }
 
+  // Запись результата: result — из transformBook; opt.keep — листы, которые попадут в файл;
+  // opt.clean — что очистить (свойства, примечания, колонтитулы); suffix — окончание имени файла
+  async function writeResult(result, { keep, clean, suffix }) {
+    if (S.kind === 'csv') {
+      const text = A.gridToCsv(S.grid, result.bySheet[S.sheets[0].name].changes, S.csv.delim, S.csv.decSep);
+      download(new Blob([text], { type: 'text/csv;charset=utf-8' }), baseName() + suffix + '.csv');
+      return;
+    }
+    // Пишем в свежую копию исходной книги — так сохраняется всё оформление
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(S.buffer);
+    // листы с методами обезличиваются; остальные удаляются или остаются как есть (флажок на шаге 3)
+    const names = new Set(keep.map(st => st.name));
+    const drop = wb.worksheets.filter(ws => !names.has(ws.name));
+    if (drop.length) {
+      drop.forEach(x => wb.removeWorksheet(x.id));
+      wb.definedNames.model = []; // имена могли ссылаться на удалённые листы
+    }
+    for (const ws of wb.worksheets) {
+      A.applyToWorksheet(ws, result.bySheet[ws.name] ? result.bySheet[ws.name].changes : new Map());
+      if (clean.notes) A.clearNotes(ws);
+      if (clean.hf) A.clearHeaderFooter(ws);
+    }
+    if (clean.meta) A.clearWorkbookMeta(wb);
+    wb.calcProperties = { ...(wb.calcProperties || {}), fullCalcOnLoad: true };
+    // ExcelJS ссылается на тему оформления, даже если в исходной книге её не было, но сам файл темы не пишет —
+    // Excel тогда предлагает «восстановить» книгу. Без своей темы записывается стандартная.
+    if (!wb._themes || !Object.keys(wb._themes).length) wb._themes = undefined;
+    const out = await wb.xlsx.writeBuffer();
+    download(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), baseName() + suffix + '.xlsx');
+  }
+
   $('btnDownload').addEventListener('click', async () => {
     if (!S.an) return;
     const btn = $('btnDownload');
@@ -2546,34 +2607,51 @@ window.ANON_VERSION = '3.8';
     try {
       runPreview();
       if (!S.result.stats.columns) { toast('Не удалось обезличить: не выбран метод ни для одного столбца', 6000, 'error'); return; }
-      if (S.kind === 'csv') {
-        const text = A.gridToCsv(S.grid, S.result.bySheet[S.sheets[0].name].changes, S.csv.delim, S.csv.decSep);
-        download(new Blob([text], { type: 'text/csv;charset=utf-8' }), baseName() + '_redact.csv');
-      } else {
-        // Пишем в свежую копию исходной книги — так сохраняется всё оформление
-        const wb = new ExcelJS.Workbook();
-        await wb.xlsx.load(S.buffer);
-        // листы с методами обезличиваются; остальные удаляются или остаются как есть (флажок на шаге 3)
-        const keep = new Set(resultSheets().map(st => st.name));
-        const drop = wb.worksheets.filter(ws => !keep.has(ws.name));
-        if (drop.length) {
-          drop.forEach(x => wb.removeWorksheet(x.id));
-          wb.definedNames.model = []; // имена могли ссылаться на удалённые листы
-        }
-        for (const ws of wb.worksheets) {
-          A.applyToWorksheet(ws, S.result.bySheet[ws.name].changes);
-          if ($('clearNotes').checked) A.clearNotes(ws);
-          if ($('clearHF').checked) A.clearHeaderFooter(ws);
-        }
-        if ($('clearMeta').checked) A.clearWorkbookMeta(wb);
-        wb.calcProperties = { ...(wb.calcProperties || {}), fullCalcOnLoad: true };
-        // ExcelJS ссылается на тему оформления, даже если в исходной книге её не было, но сам файл темы не пишет —
-        // Excel тогда предлагает «восстановить» книгу. Без своей темы записывается стандартная.
-        if (!wb._themes || !Object.keys(wb._themes).length) wb._themes = undefined;
-        const out = await wb.xlsx.writeBuffer();
-        download(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), baseName() + '_redact.xlsx');
-      }
+      await writeResult(S.result, {
+        keep: resultSheets(), suffix: '_redact',
+        clean: { meta: $('clearMeta').checked, notes: $('clearNotes').checked, hf: $('clearHF').checked },
+      });
       toast(`Обезличено ячеек: ${S.result.stats.changed.toLocaleString('ru-RU')}. Файл сохранён в «Загрузки»`);
+    } catch (e) {
+      console.error(e);
+      toast('Не удалось сохранить файл: ' + e.message, 7000);
+    } finally { btn.disabled = false; }
+  });
+
+  // ---------- Для внешней передачи ----------
+  // Тот же файл, но без возможности вернуть данные: одноразовые секретная фраза, коэффициент и сдвиг дат
+  // нигде не сохраняются и ключ не создаётся. Денежные столбцы, оставленные как есть, тоже умножаются;
+  // свойства файла, примечания, колонтитулы и листы без методов удаляются независимо от флажков шага 3.
+  $('btnExternal').addEventListener('click', async () => {
+    if (!S.an) return;
+    runPreview();
+    if (!S.result.stats.columns) { toast('Не удалось обезличить: не выбран метод ни для одного столбца', 6000, 'error'); return; }
+    const sheets = usedSheets();
+    const plan = sheets.map(st => ({ st, ...A.externalColumns(st.an, st.cols) }));
+    const scaled = plan.flatMap(p => p.scaled.map(n => sheets.length > 1 ? `${p.st.name} · ${n}` : n));
+    const leaks = S.result.leaks.length;
+    const items = [
+      'Секретная фраза, коэффициент для сумм и сдвиг дат — одноразовые: они нигде не показываются и не сохраняются. Псевдонимы будут другими, чем в файлах с вашей фразой.',
+      scaled.length
+        ? `Суммы, оставленные на шаге 2 как есть, тоже будут умножены: ${scaled.slice(0, 6).map(n => `«${n}»`).join(', ')}${scaled.length > 6 ? ` и ещё ${scaled.length - 6}` : ''}.`
+        : null,
+      'Свойства файла, примечания и колонтитулы очищаются, листы без методов удаляются.',
+      leaks ? `В предпросмотре есть предупреждения об утечке (${leaks}) — проверьте их до выгрузки.` : null,
+    ].filter(Boolean);
+    const ok = await window.RedactUI.confirm({
+      title: 'Скачать без ключа для внешней передачи?',
+      text: 'Ключа соответствий не будет. Восстановить исходные данные по этому файлу будет нельзя, в том числе вам.',
+      items, confirm: 'Да, скачать без ключа', iconName: 'shield-check',
+    });
+    if (!ok) return;
+    const btn = $('btnExternal');
+    btn.disabled = true;
+    try {
+      const once = A.randomSeed();
+      const cfg = { ...config(), seed: once, factor: A.factorFromSeed(A.randomSeed()), shiftDays: A.shiftFromSeed(A.randomSeed()) };
+      const result = A.transformBook(plan.map(p => ({ name: p.st.name, grid: p.st.grid, an: p.st.an, columns: p.columns })), cfg);
+      await writeResult(result, { keep: sheets, suffix: '_external', clean: { meta: true, notes: true, hf: true } });
+      toast(`Файл для внешней передачи сохранён: обезличено ячеек ${result.stats.changed.toLocaleString('ru-RU')}. Ключа нет — данные по нему не восстановить`, 6000);
     } catch (e) {
       console.error(e);
       toast('Не удалось сохранить файл: ' + e.message, 7000);
@@ -3292,14 +3370,14 @@ window.ANON_VERSION = '3.8';
 <script>
 /*
  * Диалог подтверждения необратимого действия (brand/BRAND.md, «Кнопки»: danger-solid — только здесь).
- * RedactUI.confirm({ title, text, confirm }) → Promise<boolean>.
+ * RedactUI.confirm({ title, text, items, confirm, iconName }) → Promise<boolean>; items — список пояснений под текстом.
  * Фокус по умолчанию — на «Отмене», чтобы случайный Enter ничего не стёр; Esc и щелчок мимо окна — отмена.
  */
 (function () {
   'use strict';
   const { icon, esc } = window.RedactUI;
 
-  function confirmDialog({ title, text, confirm = 'Да', cancel = 'Отмена', iconName = 'eraser' }) {
+  function confirmDialog({ title, text, items = [], confirm = 'Да', cancel = 'Отмена', iconName = 'eraser' }) {
     return new Promise(resolve => {
       const back = document.activeElement;
       const dlg = document.createElement('dialog');
@@ -3309,6 +3387,7 @@ window.ANON_VERSION = '3.8';
       dlg.innerHTML = `
         <div class="confirm-head">${icon(iconName, 'i i20 confirm-icon')}<h2 class="h2" id="confirmTitle">${esc(title)}</h2></div>
         <p class="body muted" id="confirmText">${esc(text)}</p>
+        ${items.length ? `<ul class="confirm-list small">${items.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
         <div class="confirm-actions">
           <button type="button" class="btn secondary" data-r="0">${esc(cancel)}</button>
           <button type="button" class="btn danger-solid" data-r="1">${esc(confirm)}</button>

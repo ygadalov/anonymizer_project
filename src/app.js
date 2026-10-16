@@ -530,6 +530,38 @@
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
   }
 
+  // Запись результата: result — из transformBook; opt.keep — листы, которые попадут в файл;
+  // opt.clean — что очистить (свойства, примечания, колонтитулы); suffix — окончание имени файла
+  async function writeResult(result, { keep, clean, suffix }) {
+    if (S.kind === 'csv') {
+      const text = A.gridToCsv(S.grid, result.bySheet[S.sheets[0].name].changes, S.csv.delim, S.csv.decSep);
+      download(new Blob([text], { type: 'text/csv;charset=utf-8' }), baseName() + suffix + '.csv');
+      return;
+    }
+    // Пишем в свежую копию исходной книги — так сохраняется всё оформление
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(S.buffer);
+    // листы с методами обезличиваются; остальные удаляются или остаются как есть (флажок на шаге 3)
+    const names = new Set(keep.map(st => st.name));
+    const drop = wb.worksheets.filter(ws => !names.has(ws.name));
+    if (drop.length) {
+      drop.forEach(x => wb.removeWorksheet(x.id));
+      wb.definedNames.model = []; // имена могли ссылаться на удалённые листы
+    }
+    for (const ws of wb.worksheets) {
+      A.applyToWorksheet(ws, result.bySheet[ws.name] ? result.bySheet[ws.name].changes : new Map());
+      if (clean.notes) A.clearNotes(ws);
+      if (clean.hf) A.clearHeaderFooter(ws);
+    }
+    if (clean.meta) A.clearWorkbookMeta(wb);
+    wb.calcProperties = { ...(wb.calcProperties || {}), fullCalcOnLoad: true };
+    // ExcelJS ссылается на тему оформления, даже если в исходной книге её не было, но сам файл темы не пишет —
+    // Excel тогда предлагает «восстановить» книгу. Без своей темы записывается стандартная.
+    if (!wb._themes || !Object.keys(wb._themes).length) wb._themes = undefined;
+    const out = await wb.xlsx.writeBuffer();
+    download(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), baseName() + suffix + '.xlsx');
+  }
+
   $('btnDownload').addEventListener('click', async () => {
     if (!S.an) return;
     const btn = $('btnDownload');
@@ -537,34 +569,51 @@
     try {
       runPreview();
       if (!S.result.stats.columns) { toast('Не удалось обезличить: не выбран метод ни для одного столбца', 6000, 'error'); return; }
-      if (S.kind === 'csv') {
-        const text = A.gridToCsv(S.grid, S.result.bySheet[S.sheets[0].name].changes, S.csv.delim, S.csv.decSep);
-        download(new Blob([text], { type: 'text/csv;charset=utf-8' }), baseName() + '_redact.csv');
-      } else {
-        // Пишем в свежую копию исходной книги — так сохраняется всё оформление
-        const wb = new ExcelJS.Workbook();
-        await wb.xlsx.load(S.buffer);
-        // листы с методами обезличиваются; остальные удаляются или остаются как есть (флажок на шаге 3)
-        const keep = new Set(resultSheets().map(st => st.name));
-        const drop = wb.worksheets.filter(ws => !keep.has(ws.name));
-        if (drop.length) {
-          drop.forEach(x => wb.removeWorksheet(x.id));
-          wb.definedNames.model = []; // имена могли ссылаться на удалённые листы
-        }
-        for (const ws of wb.worksheets) {
-          A.applyToWorksheet(ws, S.result.bySheet[ws.name].changes);
-          if ($('clearNotes').checked) A.clearNotes(ws);
-          if ($('clearHF').checked) A.clearHeaderFooter(ws);
-        }
-        if ($('clearMeta').checked) A.clearWorkbookMeta(wb);
-        wb.calcProperties = { ...(wb.calcProperties || {}), fullCalcOnLoad: true };
-        // ExcelJS ссылается на тему оформления, даже если в исходной книге её не было, но сам файл темы не пишет —
-        // Excel тогда предлагает «восстановить» книгу. Без своей темы записывается стандартная.
-        if (!wb._themes || !Object.keys(wb._themes).length) wb._themes = undefined;
-        const out = await wb.xlsx.writeBuffer();
-        download(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), baseName() + '_redact.xlsx');
-      }
+      await writeResult(S.result, {
+        keep: resultSheets(), suffix: '_redact',
+        clean: { meta: $('clearMeta').checked, notes: $('clearNotes').checked, hf: $('clearHF').checked },
+      });
       toast(`Обезличено ячеек: ${S.result.stats.changed.toLocaleString('ru-RU')}. Файл сохранён в «Загрузки»`);
+    } catch (e) {
+      console.error(e);
+      toast('Не удалось сохранить файл: ' + e.message, 7000);
+    } finally { btn.disabled = false; }
+  });
+
+  // ---------- Для внешней передачи ----------
+  // Тот же файл, но без возможности вернуть данные: одноразовые секретная фраза, коэффициент и сдвиг дат
+  // нигде не сохраняются и ключ не создаётся. Денежные столбцы, оставленные как есть, тоже умножаются;
+  // свойства файла, примечания, колонтитулы и листы без методов удаляются независимо от флажков шага 3.
+  $('btnExternal').addEventListener('click', async () => {
+    if (!S.an) return;
+    runPreview();
+    if (!S.result.stats.columns) { toast('Не удалось обезличить: не выбран метод ни для одного столбца', 6000, 'error'); return; }
+    const sheets = usedSheets();
+    const plan = sheets.map(st => ({ st, ...A.externalColumns(st.an, st.cols) }));
+    const scaled = plan.flatMap(p => p.scaled.map(n => sheets.length > 1 ? `${p.st.name} · ${n}` : n));
+    const leaks = S.result.leaks.length;
+    const items = [
+      'Секретная фраза, коэффициент для сумм и сдвиг дат — одноразовые: они нигде не показываются и не сохраняются. Псевдонимы будут другими, чем в файлах с вашей фразой.',
+      scaled.length
+        ? `Суммы, оставленные на шаге 2 как есть, тоже будут умножены: ${scaled.slice(0, 6).map(n => `«${n}»`).join(', ')}${scaled.length > 6 ? ` и ещё ${scaled.length - 6}` : ''}.`
+        : null,
+      'Свойства файла, примечания и колонтитулы очищаются, листы без методов удаляются.',
+      leaks ? `В предпросмотре есть предупреждения об утечке (${leaks}) — проверьте их до выгрузки.` : null,
+    ].filter(Boolean);
+    const ok = await window.RedactUI.confirm({
+      title: 'Скачать без ключа для внешней передачи?',
+      text: 'Ключа соответствий не будет. Восстановить исходные данные по этому файлу будет нельзя, в том числе вам.',
+      items, confirm: 'Да, скачать без ключа', iconName: 'shield-check',
+    });
+    if (!ok) return;
+    const btn = $('btnExternal');
+    btn.disabled = true;
+    try {
+      const once = A.randomSeed();
+      const cfg = { ...config(), seed: once, factor: A.factorFromSeed(A.randomSeed()), shiftDays: A.shiftFromSeed(A.randomSeed()) };
+      const result = A.transformBook(plan.map(p => ({ name: p.st.name, grid: p.st.grid, an: p.st.an, columns: p.columns })), cfg);
+      await writeResult(result, { keep: sheets, suffix: '_external', clean: { meta: true, notes: true, hf: true } });
+      toast(`Файл для внешней передачи сохранён: обезличено ячеек ${result.stats.changed.toLocaleString('ru-RU')}. Ключа нет — данные по нему не восстановить`, 6000);
     } catch (e) {
       console.error(e);
       toast('Не удалось сохранить файл: ' + e.message, 7000);

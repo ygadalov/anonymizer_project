@@ -1,13 +1,13 @@
 /*
  * Диалог подтверждения необратимого действия (brand/BRAND.md, «Кнопки»: danger-solid — только здесь).
- * RedactUI.confirm({ title, text, confirm }) → Promise<boolean>.
+ * RedactUI.confirm({ title, text, items, confirm, iconName }) → Promise<boolean>; items — список пояснений под текстом.
  * Фокус по умолчанию — на «Отмене», чтобы случайный Enter ничего не стёр; Esc и щелчок мимо окна — отмена.
  */
 (function () {
   'use strict';
   const { icon, esc } = window.RedactUI;
 
-  function confirmDialog({ title, text, confirm = 'Да', cancel = 'Отмена', iconName = 'eraser' }) {
+  function confirmDialog({ title, text, items = [], confirm = 'Да', cancel = 'Отмена', iconName = 'eraser' }) {
     return new Promise(resolve => {
       const back = document.activeElement;
       const dlg = document.createElement('dialog');
@@ -17,6 +17,7 @@
       dlg.innerHTML = `
         <div class="confirm-head">${icon(iconName, 'i i20 confirm-icon')}<h2 class="h2" id="confirmTitle">${esc(title)}</h2></div>
         <p class="body muted" id="confirmText">${esc(text)}</p>
+        ${items.length ? `<ul class="confirm-list small">${items.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
         <div class="confirm-actions">
           <button type="button" class="btn secondary" data-r="0">${esc(cancel)}</button>
           <button type="button" class="btn danger-solid" data-r="1">${esc(confirm)}</button>

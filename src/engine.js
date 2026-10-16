@@ -385,6 +385,30 @@
     return { ...base, type: col.detected, method: 'keep' };
   }
 
+  // ---------- Внешняя передача ----------
+  // Денежные столбцы по названию: при выгрузке для внешней передачи они умножаются на коэффициент, даже если
+  // на шаге 2 оставлены как есть — по точным суммам контрагента можно узнать и без ключа
+  const RE_MONEY = /сумм|руб|₽|стоим|цен[аы]|задолж|долг|резерв|пдз|оплат|выручк|сальдо|остат|оборот|плат[её]ж|дебет|кредит|ндс|аванс|выплат|доход|расход|прибыл|затрат|amount|sum\b|total|balance|price|cost|revenue/;
+  // счётчики и ставки: «Кол-во дней просрочки», «Ставка НДС, %» (но «ПДЗ 1-5 дней» — сумма)
+  const RE_NOT_MONEY = /^(кол|количеств|дн|день|дней|срок|ставк|курс|номер|№|код|год|месяц)|%|процент/;
+  function isMoneyColumn(col) {
+    const n = String(col.name || '').toLowerCase();
+    return col.detected === 'number' && RE_MONEY.test(n) && !RE_NOT_MONEY.test(n);
+  }
+  // Настройки столбцов для внешней передачи: копия, в которой оставленные как есть денежные столбцы умножаются.
+  // Возвращает { columns, scaled: [названия столбцов, которые добавились] }
+  function externalColumns(an, columns) {
+    const out = {}, scaled = [];
+    for (const col of an.columns) {
+      const cfg = columns[col.c] || { type: col.detected, method: 'keep' };
+      if ((!cfg.method || cfg.method === 'keep') && isMoneyColumn(col)) {
+        out[col.c] = { ...cfg, type: 'number', method: 'scale' };
+        scaled.push(col.name);
+      } else out[col.c] = cfg;
+    }
+    return { columns: out, scaled };
+  }
+
   // ---------- Генераторы замен ----------
   const LEGAL_FORMS = new Set(['ООО', 'ОАО', 'ЗАО', 'АО', 'ПАО', 'НАО', 'ИП', 'АНО', 'ФГУП', 'ГУП', 'МУП', 'ФГБУ', 'ГБУ', 'МБУ',
     'ТОО', 'ЧУП', 'СПК', 'КФХ', 'ГК', 'ТД', 'НКО', 'LLC', 'LTD', 'LTD.', 'GMBH', 'OU', 'OÜ', 'AG', 'SA', 'S.A.', 'INC', 'INC.',
@@ -1188,7 +1212,7 @@
     REVERSE_OF, RESTORE_ACTIONS, RESTORE_HINTS,
     plural, cyrb128, makeRng, randomSeed, factorFromSeed, shiftFromSeed,
     parseTextDate, formatTextDate, gridFromWorksheet, parseCsv, gridToCsv,
-    detectHeaderRow, analyze, suggest, transform, applyToWorksheet, clearWorkbookMeta, clearNotes, repairXlsx, normalizeFontBooleans, headerFooterText, clearHeaderFooter,
+    detectHeaderRow, analyze, suggest, isMoneyColumn, externalColumns, transform, applyToWorksheet, clearWorkbookMeta, clearNotes, repairXlsx, normalizeFontBooleans, headerFooterText, clearHeaderFooter,
     splitLegalForm, METHODS, METHOD_HINTS, TYPE_NAMES, DICT_METHODS, colLetter, isDate,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
