@@ -59,6 +59,14 @@ def inline(name):
     # логотип и фавикон бренда — из brand/logo, встраиваются как есть
     html = re.sub(r'((?:src|href)=")([^"]+\.svg)"', svg_asset, html)
     html = re.sub(r'<script src="([^"]+)"></script>', js, html)
+
+    # библиотеки для фонового потока: текст встраивается, но на странице не выполняется (type="text/x-worker")
+    def worker_lib(m):
+        code = (SRC / m.group(2)).resolve().read_text(encoding='utf-8')
+        if '</script' in code.lower():
+            raise SystemExit(f'{m.group(2)}: содержит </script — встроить нельзя')
+        return f'<script type="text/x-worker" id="{m.group(1)}">\n' + code + '\n</script>'
+    html = re.sub(r'<script type="text/x-worker" id="([^"]+)" src="([^"]+)"></script>', worker_lib, html)
     return html
 
 

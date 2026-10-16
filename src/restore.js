@@ -50,11 +50,11 @@
     try {
       const buf = await file.arrayBuffer();
       const e = ext(file.name);
-      if (e === 'xls') throw new Error('формат .xls не поддерживается. Пересохраните файл в .xlsx');
+      const xls = window.RedactXls.isXls(buf, file.name);
       R.fileName = file.name;
       R.buffer = buf;
       R.notes = [];
-      if (e === 'csv' || e === 'txt') {
+      if (!xls && (e === 'csv' || e === 'txt')) {
         R.kind = 'csv';
         let text = new TextDecoder('utf-8').decode(buf);
         if (text.includes('�')) text = new TextDecoder('windows-1251').decode(buf);
@@ -66,9 +66,12 @@
         $('rSheet').disabled = true;
       } else {
         R.kind = 'xlsx';
-        const fixed = await A.repairXlsx(buf, JSZip);
+        // .xls (Excel 97–2003) сначала преобразуется в .xlsx
+        const conv = xls ? await window.RedactXls.toXlsx(buf) : null;
+        if (conv) R.buffer = conv.buffer;
+        const fixed = await A.repairXlsx(R.buffer, JSZip);
         if (fixed.changed) R.buffer = fixed.buffer;
-        R.notes = fixed.notes;
+        R.notes = [...(conv ? conv.notes : []), ...fixed.notes];
         R.wb = new ExcelJS.Workbook();
         await R.wb.xlsx.load(R.buffer);
         if (!R.wb.worksheets.length) throw new Error('в книге нет листов');

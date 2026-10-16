@@ -67,8 +67,8 @@
       S.fileName = file.name;
       S.buffer = buf;
       S.loadNotes = [];
-      if (ext === 'xls') throw new Error('Формат .xls (Excel 97–2003) не поддерживается. Откройте файл в Excel и сохраните как .xlsx.');
-      if (ext === 'csv' || ext === 'txt') {
+      const xls = window.RedactXls.isXls(buf, file.name);
+      if (!xls && (ext === 'csv' || ext === 'txt')) {
         S.kind = 'csv';
         let text = new TextDecoder('utf-8').decode(buf);
         if (text.includes('�')) text = new TextDecoder('windows-1251').decode(buf);
@@ -79,10 +79,13 @@
         S.sheetIndex = 0;
       } else {
         S.kind = 'xlsx';
+        // .xls (Excel 97–2003) сначала преобразуется в .xlsx — дальше всё как с обычной книгой
+        const conv = xls ? await window.RedactXls.toXlsx(buf) : null;
+        if (conv) S.buffer = conv.buffer;
         // Файл заранее приводится к виду, который ExcelJS читает без потерь (выгрузки из 1С и т.п.)
-        const fixed = await A.repairXlsx(buf, JSZip);
+        const fixed = await A.repairXlsx(S.buffer, JSZip);
         if (fixed.changed) S.buffer = fixed.buffer;
-        S.loadNotes = fixed.notes;
+        S.loadNotes = [...(conv ? conv.notes : []), ...fixed.notes];
         S.wb = new ExcelJS.Workbook();
         await S.wb.xlsx.load(S.buffer);
         if (!S.wb.worksheets.length) throw new Error('В книге нет листов.');
@@ -95,7 +98,7 @@
         S.sheetIndex = best;
       }
       $('fileInfo').innerHTML = `${icon('file-spreadsheet', 'i i20')}<b>${esc(file.name)}</b><span class="muted">${(file.size / 1024).toFixed(0)} КБ` +
-        (S.loadNotes.length ? ' · файл исправлен при чтении, подробности в шаге 4' : '') + '</span>';
+        (xls ? ' · преобразован из .xls в .xlsx, подробности в шаге 4' : S.loadNotes.length ? ' · файл исправлен при чтении, подробности в шаге 4' : '') + '</span>';
       if (!$('seed').value) newSeed();
       $('settingsInfo').textContent = '';
       $('btnClear').classList.remove('hidden');
