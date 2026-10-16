@@ -111,6 +111,15 @@
   const RE_ID = /^[A-Za-zА-Яа-яЁё]{0,5}[-/.]?\d[\d/.\-]*$/;
   const isIdLike = v => (typeof v === 'string' && v.length >= 3 && v.length <= 30 && RE_ID.test(v.trim()));
 
+  // Склонение по числу: plural(5, 'ячейка', 'ячейки', 'ячеек') → 'ячеек'
+  function plural(n, one, few, many) {
+    const a = Math.abs(n) % 100, b = a % 10;
+    if (a > 10 && a < 20) return many;
+    if (b === 1) return one;
+    if (b >= 2 && b <= 4) return few;
+    return many;
+  }
+
   // ---------- Чтение листа ----------
   function plainValue(v) {
     if (v === null || v === undefined) return { v: null, f: false };
@@ -594,7 +603,7 @@
         const same = (isDate(nv) && isDate(v)) ? nv.getTime() === v.getTime() : nv === v;
         if (!same || cell.f || cell.rich) { changes.set(r + ':' + col.c, nv); changed++; }
       }
-      if (skippedType) warnings.push(`«${col.name}»: ${skippedType} знач. не подходят под тип «${TYPE_NAMES[cfg.type] || cfg.type}» и оставлены без изменений.`);
+      if (skippedType) warnings.push(`«${col.name}»: ${skippedType} ${plural(skippedType, 'значение не подходит', 'значения не подходят', 'значений не подходят')} под тип «${TYPE_NAMES[cfg.type] || cfg.type}» и ${plural(skippedType, 'оставлено', 'оставлены', 'оставлены')} без изменений.`);
     }
 
     // 4. Предупреждения об утечках: исходные значения в столбцах, которые оставлены как есть
@@ -607,7 +616,7 @@
           const cell = cellAt(r, col.c);
           if (cell && typeof cell.v === 'string' && leakRe.test(cell.v)) { hits++; if (!example) example = cell.v; }
         }
-        if (hits) leaks.push(`Столбец «${col.name}» не обезличивается, но в ${hits} ячейк. есть исходные значения из других столбцов (например: «${String(example).slice(0, 80)}»). Выберите для него метод «Замена внутри текста».`);
+        if (hits) leaks.push(`Столбец «${col.name}» не обезличивается, но в ${hits} ${plural(hits, 'ячейке', 'ячейках', 'ячейках')} есть исходные значения из других столбцов (например: «${String(example).slice(0, 80)}»). Выберите для него метод «Замена внутри текста».`);
       }
     }
     return { changes, mapping, stats: { changed, columns: active.length }, warnings, leaks };
@@ -750,7 +759,7 @@
 
   const api = {
     VERSION: root.ANON_VERSION || 'dev',
-    cyrb128, makeRng, randomSeed, factorFromSeed, shiftFromSeed,
+    plural, cyrb128, makeRng, randomSeed, factorFromSeed, shiftFromSeed,
     parseTextDate, formatTextDate, gridFromWorksheet, parseCsv, gridToCsv,
     detectHeaderRow, analyze, suggest, transform, applyToWorksheet, clearWorkbookMeta, clearNotes, repairXlsx, normalizeFontBooleans, headerFooterText, clearHeaderFooter,
     splitLegalForm, METHODS, METHOD_HINTS, TYPE_NAMES, DICT_METHODS, colLetter, isDate,

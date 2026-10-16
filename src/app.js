@@ -320,7 +320,7 @@
     renderColumns(); rememberLayout(); schedulePreview();
     $('settingsInfo').innerHTML = `Настройки <b>${esc(name)}</b> применены: столбцов ${hit} из ${S.an.columns.length}` +
       (missing.length ? `. <span class="text-danger">Нет в файле: ${missing.map(esc).join(', ')}</span>` : '');
-    toast(`Настройки применены: ${hit} из ${S.an.columns.length} столбцов`);
+    toast(`Настройки применены: ${hit} из ${S.an.columns.length} ${A.plural(S.an.columns.length, 'столбца', 'столбцов', 'столбцов')}`);
   }
   async function readSettingsFile(f) {
     const p = JSON.parse(await f.text());
@@ -364,7 +364,7 @@
     const active = S.an.columns.filter(col => S.cols[col.c].method !== 'keep');
     const { changes, mapping, warnings, stats } = S.result;
     $('previewStats').textContent = active.length
-      ? `Будет обезличено ячеек: ${stats.changed.toLocaleString('ru-RU')} в ${stats.columns} столбц. · уникальных замен: ${mapping.length.toLocaleString('ru-RU')} · ${ms} мс`
+      ? `Будет обезличено ячеек: ${stats.changed.toLocaleString('ru-RU')} в ${stats.columns} ${A.plural(stats.columns, 'столбце', 'столбцах', 'столбцах')} · уникальных замен: ${mapping.length.toLocaleString('ru-RU')} · ${ms} мс`
       : 'Столбцы для обезличивания не выбраны. Выберите метод хотя бы для одного столбца на шаге 2.';
     const table = $('previewTable');
     $('legend').classList.toggle('hidden', !active.length);
