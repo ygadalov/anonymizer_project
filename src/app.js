@@ -374,6 +374,7 @@
       ? `Будет обезличено ячеек: ${stats.changed.toLocaleString('ru-RU')} в ${stats.columns} столбц. · уникальных замен: ${mapping.length.toLocaleString('ru-RU')} · ${ms} мс`
       : 'Столбцы для обезличивания не выбраны. Выберите метод хотя бы для одного столбца на шаге 2.';
     const table = $('previewTable');
+    $('legend').classList.toggle('hidden', !active.length);
     if (!active.length) { table.innerHTML = ''; }
     else {
       const rows = S.an.dataRows.filter(r => active.some(col => changes.has(r + ':' + col.c))).slice(0, 15);

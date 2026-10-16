@@ -80,7 +80,7 @@
     <div class="small muted" id="rowsInfo"></div>
     <div class="row-controls toolbar">
       <button class="btn secondary" id="btnAuto" title="Подобрать методы по названиям столбцов"><svg class="i i20" aria-hidden="true"><use href="#i-wand-sparkles"></use></svg>Подобрать методы</button>
-      <button class="btn danger" id="btnReset"><svg class="i i20" aria-hidden="true"><use href="#i-rotate-ccw"></use></svg>Сбросить методы</button>
+      <button class="btn secondary" id="btnReset"><svg class="i i20" aria-hidden="true"><use href="#i-rotate-ccw"></use></svg>Сбросить методы</button>
       <span class="spacer"></span>
       <button class="btn ghost" id="btnSaveProfile" title="Методы по столбцам, строка заголовков, лист и флажки"><svg class="i i20" aria-hidden="true"><use href="#i-save"></use></svg>Сохранить настройки</button>
       <label class="btn ghost"><svg class="i i20" aria-hidden="true"><use href="#i-folder-open"></use></svg>Загрузить настройки<input type="file" id="profileFile" accept=".json,application/json" hidden></label>
@@ -135,6 +135,11 @@
       <button class="btn primary" id="btnDownload"><svg class="i i20" aria-hidden="true"><use href="#i-download"></use></svg>Обезличить и скачать</button>
     </div>
     <div id="previewStats" class="small muted"></div>
+    <div id="legend" class="legend small muted hidden">
+      <span class="item"><span class="rv rv-detected-strong">найдено</span>исходное значение</span>
+      <span class="item"><span class="rv rv-token">замена</span>новое значение</span>
+      <span class="item"><span class="rv rv-redacted" style="width:6ch" role="img" aria-label="Скрыто"></span>очищено</span>
+    </div>
     <div class="table-scroll"><table class="data preview" id="previewTable"></table></div>
     <div id="warnings"></div>
   </section>
