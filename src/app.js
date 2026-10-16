@@ -4,6 +4,7 @@
   const A = window.Anon;
   const $ = id => document.getElementById(id);
   const icon = (name, cls = 'i') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"></use></svg>`;
+  const KEY_SHEET = 'redact-key';
   const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 
   const S = {
@@ -457,10 +458,40 @@
     } finally { btn.disabled = false; }
   });
 
+  // ---------- Ключ соответствий ----------
+  // Без пароля — таблица Excel (листы для чтения + скрытый лист с ключом для восстановления).
+  // С паролем — зашифрованный файл .redactkey (AES-256-GCM, ключ из пароля через PBKDF2).
   $('btnKey').addEventListener('click', async () => {
     if (!S.an) return;
-    runPreview();
-    const cfg = config();
+    const pass = $('keyPass').value, pass2 = $('keyPass2').value;
+    if (pass && pass.length < 8) { toast('Не удалось сохранить ключ: пароль должен быть не короче 8 символов', 6000, 'error'); return; }
+    if (pass !== pass2) { toast('Не удалось сохранить ключ: пароль и повтор не совпадают', 6000, 'error'); return; }
+    const btn = $('btnKey');
+    btn.disabled = true;
+    try {
+      runPreview();
+      const cfg = config();
+      const key = A.buildKey({
+        an: S.an, config: cfg, result: S.result, sourceFile: S.fileName, appVersion: A.VERSION,
+        sheet: S.kind === 'xlsx' ? S.wb.worksheets[S.sheetIndex].name : null,
+      });
+      key.seed = cfg.seed;
+      if (pass) {
+        const env = await A.encryptKey(key, pass);
+        download(new Blob([JSON.stringify(env)], { type: 'application/json' }), baseName() + '_KEY.redactkey');
+        toast('Ключ сохранён и зашифрован паролем. Без пароля его не открыть — запомните или сохраните пароль отдельно', 6000);
+      } else {
+        const out = await keyWorkbook(key, cfg).xlsx.writeBuffer();
+        download(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), baseName() + '_KEY.xlsx');
+        toast('Ключ соответствий сохранён без пароля. Храните его отдельно от обезличенного файла', 5000);
+      }
+    } catch (e) {
+      console.error(e);
+      toast('Не удалось сохранить ключ: ' + e.message, 7000, 'error');
+    } finally { btn.disabled = false; }
+  });
+
+  function keyWorkbook(key, cfg) {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('Соответствия');
     ws.columns = [
@@ -484,8 +515,14 @@
       { k: 'Сдвиг дат D, дней (исходная = анонимная − D)', v: cfg.shiftDays },
       ...S.an.columns.filter(col => S.cols[col.c].method !== 'keep').map(col => ({ k: `${col.letter} · ${col.name}`, v: A.METHODS[S.cols[col.c].type].find(([k]) => k === S.cols[col.c].method)[1] })),
     ]);
-    const out = await wb.xlsx.writeBuffer();
-    download(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), baseName() + '_KEY.xlsx');
-    toast('Ключ соответствий сохранён. Храните его отдельно от обезличенного файла', 5000);
-  });
+    // ключ для восстановления: JSON частями (в ячейке Excel не больше 32 767 символов), лист скрыт
+    const ks = wb.addWorksheet(KEY_SHEET, { state: 'veryHidden' });
+    const json = JSON.stringify(key);
+    ks.getCell(1, 1).value = 'redact-key';
+    for (let i = 0, row = 2; i < json.length; i += 30000, row++) ks.getCell(row, 1).value = json.slice(i, i + 30000);
+    return wb;
+  }
+
+  // общие помощники для режима восстановления (restore.js)
+  window.RedactUI = { $, icon, esc, fmt, toast, download, store, KEY_SHEET };
 })();
