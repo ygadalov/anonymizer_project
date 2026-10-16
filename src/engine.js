@@ -619,6 +619,7 @@
   }
 
   const api = {
+    VERSION: root.ANON_VERSION || 'dev',
     cyrb128, makeRng, randomSeed, factorFromSeed, shiftFromSeed,
     parseTextDate, formatTextDate, gridFromWorksheet, parseCsv, gridToCsv,
     detectHeaderRow, analyze, suggest, transform, applyToWorksheet, clearWorkbookMeta, clearNotes,

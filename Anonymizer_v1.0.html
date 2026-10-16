@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Анонимайзер таблиц</title>
+<title>Anonymizer</title>
 <style>
 :root {
   --bg: #f5f6f8;
@@ -109,12 +109,17 @@ td.r, th.r { text-align: right; }
   position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text); color: var(--bg);
   padding: 10px 16px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.2); max-width: 90vw; z-index: 10;
 }
+.settings-line { margin: 12px 0 0; }
+.settings-info { margin-top: 10px; }
+.settings-info:empty { display: none; }
+.warn-text { color: #c0392b; }
+.ver { font-size: 13px; font-weight: 500; color: var(--muted); border: 1px solid var(--border); border-radius: 10px; padding: 1px 8px; vertical-align: middle; }
 </style>
 </head>
 <body>
 <header class="top">
   <div class="wrap">
-    <h1>Анонимайзер таблиц</h1>
+    <h1>Анонимайзер таблиц <span class="ver" id="appVersion"></span></h1>
     <p class="sub">Excel / CSV → выбор столбцов → файл со скрытыми данными. Всё обрабатывается в браузере, файл никуда не отправляется.</p>
   </div>
 </header>
@@ -129,6 +134,10 @@ td.r, th.r { text-align: right; }
       <span class="drop-hint">.xlsx, .xlsm, .csv (старый .xls сначала пересохраните в .xlsx)</span>
     </label>
     <div id="fileInfo" class="muted"></div>
+    <div class="row-controls settings-line">
+      <label class="btn ghost">📂 Загрузить настройки (JSON)<input type="file" id="profileFile1" accept=".json,application/json" hidden></label>
+      <span class="muted" id="pendingInfo">Есть сохранённые настройки? Загрузите их до или после файла с данными.</span>
+    </div>
   </section>
 
   <!-- Шаг 2 -->
@@ -144,8 +153,8 @@ td.r, th.r { text-align: right; }
       <button class="btn" id="btnAuto" title="Подобрать методы по названиям столбцов">Автовыбор по названиям</button>
       <button class="btn ghost" id="btnReset">Сбросить всё на «Оставить»</button>
       <span class="spacer"></span>
-      <button class="btn ghost" id="btnSaveProfile">Сохранить профиль</button>
-      <label class="btn ghost">Загрузить профиль<input type="file" id="profileFile" accept=".json" hidden></label>
+      <button class="btn ghost" id="btnSaveProfile" title="Методы по столбцам, строка заголовков, лист и флажки">💾 Сохранить настройки (JSON)</button>
+      <label class="btn ghost">📂 Загрузить настройки (JSON)<input type="file" id="profileFile" accept=".json,application/json" hidden></label>
     </div>
     <div class="table-scroll">
       <table class="cols" id="colsTable">
@@ -155,6 +164,7 @@ td.r, th.r { text-align: right; }
         <tbody></tbody>
       </table>
     </div>
+    <div id="settingsInfo" class="muted settings-info"></div>
   </section>
 
   <!-- Шаг 3 -->
@@ -181,7 +191,7 @@ td.r, th.r { text-align: right; }
       <label class="chk"><input type="checkbox" id="keepForm" checked> Сохранять ОПФ в названиях (ООО, АО, ИП…)</label>
       <label class="chk"><input type="checkbox" id="clearMeta" checked> Очистить свойства файла (автор, компания)</label>
       <label class="chk"><input type="checkbox" id="clearNotes" checked> Удалить примечания ячеек</label>
-      <label class="chk"><input type="checkbox" id="profileWithKey"> Сохранять ключ, K и D в профиле</label>
+      <label class="chk"><input type="checkbox" id="profileWithKey"> Включать ключ, K и D в файл настроек</label>
     </div>
   </section>
 
@@ -248,6 +258,11 @@ https://github.com/nodeca/pako/blob/main/LICENSE
  * @copyright Louis-Dominique Dubeau
  */function n(e){return e>=65&&e<=90||95===e||e>=97&&e<=122||e>=192&&e<=214||e>=216&&e<=246||e>=248&&e<=767||e>=880&&e<=893||e>=895&&e<=8191||e>=8204&&e<=8205||e>=8304&&e<=8591||e>=11264&&e<=12271||e>=12289&&e<=55295||e>=63744&&e<=64975||e>=65008&&e<=65533||e>=65536&&e<=983039}Object.defineProperty(r,"__esModule",{value:!0}),r.NC_NAME_START_CHAR="A-Z_a-z\xc0-\xd6\xd8-\xf6\xf8-\u02ff\u0370-\u037d\u037f-\u1fff\u200c-\u200d\u2070-\u218f\u2c00-\u2fef\u3001-\ud7ff\uf900-\ufdcf\ufdf0-\ufffd\ud800\udc00-\udb7f\udfff",r.NC_NAME_CHAR="-"+r.NC_NAME_START_CHAR+".0-9\xb7\u0300-\u036f\u203f-\u2040",r.NC_NAME_START_CHAR_RE=new RegExp("^["+r.NC_NAME_START_CHAR+"]$","u"),r.NC_NAME_CHAR_RE=new RegExp("^["+r.NC_NAME_CHAR+"]$","u"),r.NC_NAME_RE=new RegExp("^["+r.NC_NAME_START_CHAR+"]["+r.NC_NAME_CHAR+"]*$","u"),r.isNCNameStartChar=n,r.isNCNameChar=function(e){return n(e)||45===e||46===e||e>=48&&e<=57||183===e||e>=768&&e<=879||e>=8255&&e<=8256}},{}]},{},[15])(15)}));
 //# sourceMappingURL=exceljs.min.js.map
+</script>
+<script>
+// Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
+window.ANON_VERSION = '1.0';
+
 </script>
 <script>
 /*
@@ -871,6 +886,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   }
 
   const api = {
+    VERSION: root.ANON_VERSION || 'dev',
     cyrb128, makeRng, randomSeed, factorFromSeed, shiftFromSeed,
     parseTextDate, formatTextDate, gridFromWorksheet, parseCsv, gridToCsv,
     detectHeaderRow, analyze, suggest, transform, applyToWorksheet, clearWorkbookMeta, clearNotes,
@@ -890,6 +906,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 
   const S = {
+    pending: null,    // настройки, загруженные до файла с данными
     kind: null,       // 'xlsx' | 'csv'
     fileName: '',
     buffer: null,     // исходный файл — для записи результата в «чистую» копию книги
@@ -901,6 +918,8 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     cols: {},         // настройки по номеру столбца
     result: null,
   };
+
+  $('appVersion').textContent = 'v' + A.VERSION;
 
   // ---------- Уведомления ----------
   let toastTimer;
@@ -960,8 +979,10 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       }
       $('fileInfo').innerHTML = `<b>${esc(file.name)}</b> · ${(file.size / 1024).toFixed(0)} КБ`;
       if (!$('seed').value) newSeed();
+      $('settingsInfo').textContent = '';
       setupSheet(true);
       ['step2', 'step3', 'step4'].forEach(id => $(id).classList.remove('hidden'));
+      if (S.pending) { applySettings(S.pending.p, S.pending.name); }
     } catch (e) {
       console.error(e);
       $('fileInfo').textContent = '';
@@ -988,7 +1009,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     S.cols = {};
     const saved = store.get(layoutKey());
     for (const col of S.an.columns) S.cols[col.c] = A.suggest(col);
-    if (saved && saved.columns) applyProfileColumns(saved.columns, false);
+    if (saved && saved.columns) applySettingsColumns(saved.columns);
     const tot = S.an.totalsRows.size;
     $('rowsInfo').textContent = `Строк данных: ${S.an.dataRows.length - tot}${tot ? `, строк итогов: ${tot}` : ''} · столбцов: ${S.an.columns.length}` + (saved ? ' · применены настройки, сохранённые для этой структуры' : '');
     renderColumns();
@@ -1097,54 +1118,119 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     };
   }
 
-  // ---------- Профили ----------
-  function profileColumns() {
+  // ---------- Файл настроек (JSON) ----------
+  const COL_KEYS = ['type', 'method', 'prefix', 'pct', 'step', 'group'];
+  function settingsColumns() {
     const out = {};
-    for (const col of S.an.columns) out[col.name] = { ...S.cols[col.c] };
+    for (const col of S.an.columns) {
+      const cfg = S.cols[col.c];
+      const item = { letter: col.letter };
+      for (const k of COL_KEYS) if (cfg[k] !== undefined && cfg[k] !== '') item[k] = cfg[k];
+      out[col.name] = item;
+    }
     return out;
   }
-  function applyProfileColumns(columns, report) {
+  // Столбцы сопоставляются по названию, а если названия нет в файле — по букве столбца
+  function applySettingsColumns(columns) {
+    const names = new Set(S.an.columns.map(c => c.name));
+    const byLetter = {};
+    for (const [name, item] of Object.entries(columns)) if (!names.has(name) && item.letter) byLetter[item.letter] = name;
+    const used = new Set();
     let hit = 0;
     for (const col of S.an.columns) {
-      const p = columns[col.name];
-      if (!p) continue;
-      hit++;
-      const cfg = { ...S.cols[col.c], ...p };
+      const name = columns[col.name] ? col.name : byLetter[col.letter];
+      if (!name) continue;
+      const item = columns[name];
+      const cfg = { ...S.cols[col.c] };
+      for (const k of COL_KEYS) if (item[k] !== undefined) cfg[k] = item[k];
       if (!A.METHODS[cfg.type] || !A.METHODS[cfg.type].some(([k]) => k === cfg.method)) continue;
       S.cols[col.c] = cfg;
+      used.add(name);
+      hit++;
     }
-    if (report) toast(`Профиль применён: совпало столбцов ${hit} из ${S.an.columns.length}`);
+    return { hit, missing: Object.keys(columns).filter(n => !used.has(n)) };
   }
   function rememberLayout() {
     const k = layoutKey();
-    if (k) store.set(k, { columns: profileColumns() });
+    if (k) store.set(k, { columns: settingsColumns() });
   }
-  $('btnSaveProfile').addEventListener('click', () => {
+  function collectSettings() {
     const p = {
-      app: 'anonymizer', version: 1,
+      app: 'Anonymizer',
+      appVersion: A.VERSION,
+      format: 1,
+      savedAt: new Date().toISOString(),
+      sourceFile: S.fileName,
+      sheet: S.kind === 'xlsx' ? S.wb.worksheets[S.sheetIndex].name : null,
       headerRow: S.an.headerRow,
-      keepTotals: $('keepTotals').checked,
-      keepForm: $('keepForm').checked,
-      columns: profileColumns(),
+      options: {
+        keepTotals: $('keepTotals').checked,
+        keepForm: $('keepForm').checked,
+        clearMeta: $('clearMeta').checked,
+        clearNotes: $('clearNotes').checked,
+      },
+      columns: settingsColumns(),
     };
-    if ($('profileWithKey').checked) Object.assign(p, { seed: $('seed').value, factor: +$('factor').value, shiftDays: +$('shiftDays').value });
-    download(new Blob([JSON.stringify(p, null, 2)], { type: 'application/json' }), baseName() + '_profile.json');
+    if ($('profileWithKey').checked) p.secret = { seed: $('seed').value, factor: +$('factor').value, shiftDays: +$('shiftDays').value };
+    return p;
+  }
+  function applyOptions(p) {
+    const o = p.options || p; // формат ранней версии хранил флаги в корне
+    for (const id of ['keepTotals', 'keepForm', 'clearMeta', 'clearNotes']) if (typeof o[id] === 'boolean') $(id).checked = o[id];
+    const sec = p.secret || (p.seed ? p : null);
+    if (sec && sec.seed) {
+      $('seed').value = sec.seed;
+      if (sec.factor !== undefined) $('factor').value = sec.factor;
+      if (sec.shiftDays !== undefined) $('shiftDays').value = sec.shiftDays;
+    }
+  }
+  // Применить настройки к загруженному файлу
+  function applySettings(p, name) {
+    applyOptions(p);
+    if (S.kind === 'xlsx' && p.sheet) {
+      const i = S.wb.worksheets.findIndex(ws => ws.name === p.sheet);
+      if (i >= 0 && i !== S.sheetIndex) {
+        S.sheetIndex = i;
+        $('sheet').value = String(i);
+        S.grid = A.gridFromWorksheet(S.wb.worksheets[i]);
+        setupSheet(true);
+      }
+    }
+    if (p.headerRow && p.headerRow !== S.an.headerRow && p.headerRow <= S.grid.maxRow) setupSheet(false, p.headerRow);
+    const { hit, missing } = applySettingsColumns(p.columns || {});
+    renderColumns(); rememberLayout(); schedulePreview();
+    $('settingsInfo').innerHTML = `Настройки <b>${esc(name)}</b> применены: столбцов ${hit} из ${S.an.columns.length}` +
+      (missing.length ? `. <span class="warn-text">Нет в файле: ${missing.map(esc).join(', ')}</span>` : '');
+    toast(`Настройки применены: ${hit} из ${S.an.columns.length} столбцов`);
+  }
+  async function readSettingsFile(f) {
+    const p = JSON.parse(await f.text());
+    if (!p || typeof p !== 'object' || !p.columns) throw new Error('это не файл настроек анонимайзера (нет раздела columns)');
+    return p;
+  }
+
+  $('btnSaveProfile').addEventListener('click', () => {
+    if (!S.an) return;
+    const p = collectSettings();
+    download(new Blob([JSON.stringify(p, null, 2)], { type: 'application/json' }), `Anonymizer_settings_${baseName()}.json`);
+    toast(p.secret ? 'Настройки сохранены вместе с ключом — не передавайте этот файл вместе с данными' : 'Настройки сохранены');
   });
-  $('profileFile').addEventListener('change', async ev => {
-    const f = ev.target.files[0];
-    ev.target.value = '';
-    if (!f) return;
-    try {
-      const p = JSON.parse(await f.text());
-      if (!p.columns) throw new Error('нет раздела columns');
-      if (p.headerRow && p.headerRow !== S.an.headerRow) setupSheet(false, p.headerRow);
-      if (typeof p.keepTotals === 'boolean') $('keepTotals').checked = p.keepTotals;
-      if (typeof p.keepForm === 'boolean') $('keepForm').checked = p.keepForm;
-      if (p.seed) { $('seed').value = p.seed; $('factor').value = p.factor; $('shiftDays').value = p.shiftDays; }
-      applyProfileColumns(p.columns, true);
-      renderColumns(); rememberLayout(); schedulePreview();
-    } catch (e) { toast('Не удалось прочитать профиль: ' + e.message, 6000); }
-  });
+  // Загрузить настройки можно и до файла с данными — тогда они применятся при его загрузке
+  for (const id of ['profileFile', 'profileFile1']) {
+    $(id).addEventListener('change', async ev => {
+      const f = ev.target.files[0];
+      ev.target.value = '';
+      if (!f) return;
+      try {
+        const p = await readSettingsFile(f);
+        if (S.an) applySettings(p, f.name);
+        else {
+          S.pending = { p, name: f.name };
+          $('pendingInfo').innerHTML = `Загружены настройки <b>${esc(f.name)}</b> — применятся к файлу с данными.`;
+        }
+      } catch (e) { toast('Не удалось прочитать настройки: ' + e.message, 6000); }
+    });
+  }
 
   // ---------- Предпросмотр ----------
   let previewTimer;

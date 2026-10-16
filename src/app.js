@@ -6,6 +6,7 @@
   const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 
   const S = {
+    pending: null,    // настройки, загруженные до файла с данными
     kind: null,       // 'xlsx' | 'csv'
     fileName: '',
     buffer: null,     // исходный файл — для записи результата в «чистую» копию книги
@@ -17,6 +18,8 @@
     cols: {},         // настройки по номеру столбца
     result: null,
   };
+
+  $('appVersion').textContent = 'v' + A.VERSION;
 
   // ---------- Уведомления ----------
   let toastTimer;
@@ -76,8 +79,10 @@
       }
       $('fileInfo').innerHTML = `<b>${esc(file.name)}</b> · ${(file.size / 1024).toFixed(0)} КБ`;
       if (!$('seed').value) newSeed();
+      $('settingsInfo').textContent = '';
       setupSheet(true);
       ['step2', 'step3', 'step4'].forEach(id => $(id).classList.remove('hidden'));
+      if (S.pending) { applySettings(S.pending.p, S.pending.name); }
     } catch (e) {
       console.error(e);
       $('fileInfo').textContent = '';
@@ -104,7 +109,7 @@
     S.cols = {};
     const saved = store.get(layoutKey());
     for (const col of S.an.columns) S.cols[col.c] = A.suggest(col);
-    if (saved && saved.columns) applyProfileColumns(saved.columns, false);
+    if (saved && saved.columns) applySettingsColumns(saved.columns);
     const tot = S.an.totalsRows.size;
     $('rowsInfo').textContent = `Строк данных: ${S.an.dataRows.length - tot}${tot ? `, строк итогов: ${tot}` : ''} · столбцов: ${S.an.columns.length}` + (saved ? ' · применены настройки, сохранённые для этой структуры' : '');
     renderColumns();
@@ -213,54 +218,119 @@
     };
   }
 
-  // ---------- Профили ----------
-  function profileColumns() {
+  // ---------- Файл настроек (JSON) ----------
+  const COL_KEYS = ['type', 'method', 'prefix', 'pct', 'step', 'group'];
+  function settingsColumns() {
     const out = {};
-    for (const col of S.an.columns) out[col.name] = { ...S.cols[col.c] };
+    for (const col of S.an.columns) {
+      const cfg = S.cols[col.c];
+      const item = { letter: col.letter };
+      for (const k of COL_KEYS) if (cfg[k] !== undefined && cfg[k] !== '') item[k] = cfg[k];
+      out[col.name] = item;
+    }
     return out;
   }
-  function applyProfileColumns(columns, report) {
+  // Столбцы сопоставляются по названию, а если названия нет в файле — по букве столбца
+  function applySettingsColumns(columns) {
+    const names = new Set(S.an.columns.map(c => c.name));
+    const byLetter = {};
+    for (const [name, item] of Object.entries(columns)) if (!names.has(name) && item.letter) byLetter[item.letter] = name;
+    const used = new Set();
     let hit = 0;
     for (const col of S.an.columns) {
-      const p = columns[col.name];
-      if (!p) continue;
-      hit++;
-      const cfg = { ...S.cols[col.c], ...p };
+      const name = columns[col.name] ? col.name : byLetter[col.letter];
+      if (!name) continue;
+      const item = columns[name];
+      const cfg = { ...S.cols[col.c] };
+      for (const k of COL_KEYS) if (item[k] !== undefined) cfg[k] = item[k];
       if (!A.METHODS[cfg.type] || !A.METHODS[cfg.type].some(([k]) => k === cfg.method)) continue;
       S.cols[col.c] = cfg;
+      used.add(name);
+      hit++;
     }
-    if (report) toast(`Профиль применён: совпало столбцов ${hit} из ${S.an.columns.length}`);
+    return { hit, missing: Object.keys(columns).filter(n => !used.has(n)) };
   }
   function rememberLayout() {
     const k = layoutKey();
-    if (k) store.set(k, { columns: profileColumns() });
+    if (k) store.set(k, { columns: settingsColumns() });
   }
-  $('btnSaveProfile').addEventListener('click', () => {
+  function collectSettings() {
     const p = {
-      app: 'anonymizer', version: 1,
+      app: 'Anonymizer',
+      appVersion: A.VERSION,
+      format: 1,
+      savedAt: new Date().toISOString(),
+      sourceFile: S.fileName,
+      sheet: S.kind === 'xlsx' ? S.wb.worksheets[S.sheetIndex].name : null,
       headerRow: S.an.headerRow,
-      keepTotals: $('keepTotals').checked,
-      keepForm: $('keepForm').checked,
-      columns: profileColumns(),
+      options: {
+        keepTotals: $('keepTotals').checked,
+        keepForm: $('keepForm').checked,
+        clearMeta: $('clearMeta').checked,
+        clearNotes: $('clearNotes').checked,
+      },
+      columns: settingsColumns(),
     };
-    if ($('profileWithKey').checked) Object.assign(p, { seed: $('seed').value, factor: +$('factor').value, shiftDays: +$('shiftDays').value });
-    download(new Blob([JSON.stringify(p, null, 2)], { type: 'application/json' }), baseName() + '_profile.json');
+    if ($('profileWithKey').checked) p.secret = { seed: $('seed').value, factor: +$('factor').value, shiftDays: +$('shiftDays').value };
+    return p;
+  }
+  function applyOptions(p) {
+    const o = p.options || p; // формат ранней версии хранил флаги в корне
+    for (const id of ['keepTotals', 'keepForm', 'clearMeta', 'clearNotes']) if (typeof o[id] === 'boolean') $(id).checked = o[id];
+    const sec = p.secret || (p.seed ? p : null);
+    if (sec && sec.seed) {
+      $('seed').value = sec.seed;
+      if (sec.factor !== undefined) $('factor').value = sec.factor;
+      if (sec.shiftDays !== undefined) $('shiftDays').value = sec.shiftDays;
+    }
+  }
+  // Применить настройки к загруженному файлу
+  function applySettings(p, name) {
+    applyOptions(p);
+    if (S.kind === 'xlsx' && p.sheet) {
+      const i = S.wb.worksheets.findIndex(ws => ws.name === p.sheet);
+      if (i >= 0 && i !== S.sheetIndex) {
+        S.sheetIndex = i;
+        $('sheet').value = String(i);
+        S.grid = A.gridFromWorksheet(S.wb.worksheets[i]);
+        setupSheet(true);
+      }
+    }
+    if (p.headerRow && p.headerRow !== S.an.headerRow && p.headerRow <= S.grid.maxRow) setupSheet(false, p.headerRow);
+    const { hit, missing } = applySettingsColumns(p.columns || {});
+    renderColumns(); rememberLayout(); schedulePreview();
+    $('settingsInfo').innerHTML = `Настройки <b>${esc(name)}</b> применены: столбцов ${hit} из ${S.an.columns.length}` +
+      (missing.length ? `. <span class="warn-text">Нет в файле: ${missing.map(esc).join(', ')}</span>` : '');
+    toast(`Настройки применены: ${hit} из ${S.an.columns.length} столбцов`);
+  }
+  async function readSettingsFile(f) {
+    const p = JSON.parse(await f.text());
+    if (!p || typeof p !== 'object' || !p.columns) throw new Error('это не файл настроек анонимайзера (нет раздела columns)');
+    return p;
+  }
+
+  $('btnSaveProfile').addEventListener('click', () => {
+    if (!S.an) return;
+    const p = collectSettings();
+    download(new Blob([JSON.stringify(p, null, 2)], { type: 'application/json' }), `Anonymizer_settings_${baseName()}.json`);
+    toast(p.secret ? 'Настройки сохранены вместе с ключом — не передавайте этот файл вместе с данными' : 'Настройки сохранены');
   });
-  $('profileFile').addEventListener('change', async ev => {
-    const f = ev.target.files[0];
-    ev.target.value = '';
-    if (!f) return;
-    try {
-      const p = JSON.parse(await f.text());
-      if (!p.columns) throw new Error('нет раздела columns');
-      if (p.headerRow && p.headerRow !== S.an.headerRow) setupSheet(false, p.headerRow);
-      if (typeof p.keepTotals === 'boolean') $('keepTotals').checked = p.keepTotals;
-      if (typeof p.keepForm === 'boolean') $('keepForm').checked = p.keepForm;
-      if (p.seed) { $('seed').value = p.seed; $('factor').value = p.factor; $('shiftDays').value = p.shiftDays; }
-      applyProfileColumns(p.columns, true);
-      renderColumns(); rememberLayout(); schedulePreview();
-    } catch (e) { toast('Не удалось прочитать профиль: ' + e.message, 6000); }
-  });
+  // Загрузить настройки можно и до файла с данными — тогда они применятся при его загрузке
+  for (const id of ['profileFile', 'profileFile1']) {
+    $(id).addEventListener('change', async ev => {
+      const f = ev.target.files[0];
+      ev.target.value = '';
+      if (!f) return;
+      try {
+        const p = await readSettingsFile(f);
+        if (S.an) applySettings(p, f.name);
+        else {
+          S.pending = { p, name: f.name };
+          $('pendingInfo').innerHTML = `Загружены настройки <b>${esc(f.name)}</b> — применятся к файлу с данными.`;
+        }
+      } catch (e) { toast('Не удалось прочитать настройки: ' + e.message, 6000); }
+    });
+  }
 
   // ---------- Предпросмотр ----------
   let previewTimer;

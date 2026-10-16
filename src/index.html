@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Анонимайзер таблиц</title>
+<title>Anonymizer</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="top">
   <div class="wrap">
-    <h1>Анонимайзер таблиц</h1>
+    <h1>Анонимайзер таблиц <span class="ver" id="appVersion"></span></h1>
     <p class="sub">Excel / CSV → выбор столбцов → файл со скрытыми данными. Всё обрабатывается в браузере, файл никуда не отправляется.</p>
   </div>
 </header>
@@ -24,6 +24,10 @@
       <span class="drop-hint">.xlsx, .xlsm, .csv (старый .xls сначала пересохраните в .xlsx)</span>
     </label>
     <div id="fileInfo" class="muted"></div>
+    <div class="row-controls settings-line">
+      <label class="btn ghost">📂 Загрузить настройки (JSON)<input type="file" id="profileFile1" accept=".json,application/json" hidden></label>
+      <span class="muted" id="pendingInfo">Есть сохранённые настройки? Загрузите их до или после файла с данными.</span>
+    </div>
   </section>
 
   <!-- Шаг 2 -->
@@ -39,8 +43,8 @@
       <button class="btn" id="btnAuto" title="Подобрать методы по названиям столбцов">Автовыбор по названиям</button>
       <button class="btn ghost" id="btnReset">Сбросить всё на «Оставить»</button>
       <span class="spacer"></span>
-      <button class="btn ghost" id="btnSaveProfile">Сохранить профиль</button>
-      <label class="btn ghost">Загрузить профиль<input type="file" id="profileFile" accept=".json" hidden></label>
+      <button class="btn ghost" id="btnSaveProfile" title="Методы по столбцам, строка заголовков, лист и флажки">💾 Сохранить настройки (JSON)</button>
+      <label class="btn ghost">📂 Загрузить настройки (JSON)<input type="file" id="profileFile" accept=".json,application/json" hidden></label>
     </div>
     <div class="table-scroll">
       <table class="cols" id="colsTable">
@@ -50,6 +54,7 @@
         <tbody></tbody>
       </table>
     </div>
+    <div id="settingsInfo" class="muted settings-info"></div>
   </section>
 
   <!-- Шаг 3 -->
@@ -76,7 +81,7 @@
       <label class="chk"><input type="checkbox" id="keepForm" checked> Сохранять ОПФ в названиях (ООО, АО, ИП…)</label>
       <label class="chk"><input type="checkbox" id="clearMeta" checked> Очистить свойства файла (автор, компания)</label>
       <label class="chk"><input type="checkbox" id="clearNotes" checked> Удалить примечания ячеек</label>
-      <label class="chk"><input type="checkbox" id="profileWithKey"> Сохранять ключ, K и D в профиле</label>
+      <label class="chk"><input type="checkbox" id="profileWithKey"> Включать ключ, K и D в файл настроек</label>
     </div>
   </section>
 
@@ -98,6 +103,7 @@
 <div id="toast" class="toast hidden"></div>
 
 <script src="../vendor/exceljs.min.js"></script>
+<script src="version.js"></script>
 <script src="engine.js"></script>
 <script src="app.js"></script>
 </body>
