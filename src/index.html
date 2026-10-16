@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Анонимайзер таблиц</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <h1>Анонимайзер таблиц</h1>
+    <p class="sub">Excel / CSV → выбор столбцов → файл со скрытыми данными. Всё обрабатывается в браузере, файл никуда не отправляется.</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- Шаг 1 -->
+  <section class="card" id="step1">
+    <h2><span class="num">1</span> Загрузите файл</h2>
+    <label class="drop" id="drop">
+      <input type="file" id="file" accept=".xlsx,.xlsm,.csv,.txt" hidden>
+      <span class="drop-main">Перетащите файл сюда или нажмите для выбора</span>
+      <span class="drop-hint">.xlsx, .xlsm, .csv (старый .xls сначала пересохраните в .xlsx)</span>
+    </label>
+    <div id="fileInfo" class="muted"></div>
+  </section>
+
+  <!-- Шаг 2 -->
+  <section class="card hidden" id="step2">
+    <h2><span class="num">2</span> Структура и выбор столбцов</h2>
+    <div class="row-controls">
+      <label>Лист <select id="sheet"></select></label>
+      <label>Строка заголовков <input type="number" id="headerRow" min="1" step="1"></label>
+      <label class="chk"><input type="checkbox" id="keepTotals" checked> Не трогать строки «Итого/Всего» (кроме K и округления)</label>
+      <span class="muted" id="rowsInfo"></span>
+    </div>
+    <div class="row-controls">
+      <button class="btn" id="btnAuto" title="Подобрать методы по названиям столбцов">Автовыбор по названиям</button>
+      <button class="btn ghost" id="btnReset">Сбросить всё на «Оставить»</button>
+      <span class="spacer"></span>
+      <button class="btn ghost" id="btnSaveProfile">Сохранить профиль</button>
+      <label class="btn ghost">Загрузить профиль<input type="file" id="profileFile" accept=".json" hidden></label>
+    </div>
+    <div class="table-scroll">
+      <table class="cols" id="colsTable">
+        <thead><tr>
+          <th>Столбец</th><th>Тип</th><th>Примеры значений</th><th class="r">Заполн. / уник.</th><th>Метод</th><th>Параметры</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Шаг 3 -->
+  <section class="card hidden" id="step3">
+    <h2><span class="num">3</span> Общие параметры</h2>
+    <div class="grid3">
+      <label class="field">
+        <span>Секретный ключ</span>
+        <span class="inline"><input type="text" id="seed" spellcheck="false"><button class="btn small ghost" id="btnSeed" title="Новый случайный ключ">🎲</button></span>
+        <small>Один и тот же ключ → одни и те же замены (удобно для ежемесячных выгрузок). Не передавайте ключ вместе с файлом.</small>
+      </label>
+      <label class="field">
+        <span>Коэффициент K для чисел</span>
+        <span class="inline"><input type="number" id="factor" step="0.0001"><button class="btn small ghost" id="btnFactor" title="Случайный K">🎲</button></span>
+        <small>Все числа с методом «K» умножаются на одно число — пропорции, доли и суммы сохраняются.</small>
+      </label>
+      <label class="field">
+        <span>Сдвиг дат D, дней</span>
+        <span class="inline"><input type="number" id="shiftDays" step="1"><button class="btn small ghost" id="btnShift" title="Случайный сдвиг">🎲</button></span>
+        <small>Все даты сдвигаются одинаково — сроки, просрочка и интервалы сохраняются.</small>
+      </label>
+    </div>
+    <div class="row-controls">
+      <label class="chk"><input type="checkbox" id="keepForm" checked> Сохранять ОПФ в названиях (ООО, АО, ИП…)</label>
+      <label class="chk"><input type="checkbox" id="clearMeta" checked> Очистить свойства файла (автор, компания)</label>
+      <label class="chk"><input type="checkbox" id="clearNotes" checked> Удалить примечания ячеек</label>
+      <label class="chk"><input type="checkbox" id="profileWithKey"> Сохранять ключ, K и D в профиле</label>
+    </div>
+  </section>
+
+  <!-- Шаг 4 -->
+  <section class="card hidden" id="step4">
+    <h2><span class="num">4</span> Предпросмотр и выгрузка</h2>
+    <div class="row-controls">
+      <button class="btn" id="btnPreview">Обновить предпросмотр</button>
+      <span class="spacer"></span>
+      <button class="btn primary" id="btnDownload">Скачать анонимизированный файл</button>
+      <button class="btn ghost" id="btnKey" title="Таблица соответствий «было → стало». Храните отдельно!">Скачать ключ соответствий</button>
+    </div>
+    <div id="previewStats" class="muted"></div>
+    <div class="table-scroll"><table class="preview" id="previewTable"></table></div>
+    <div id="warnings"></div>
+  </section>
+</main>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="../vendor/exceljs.min.js"></script>
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
