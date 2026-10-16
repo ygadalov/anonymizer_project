@@ -1,0 +1,142 @@
+/* Redact — страница проекта (src/landing.html → index.html).
+   Все цвета, отступы, скругления и шрифты — только токены из brand/tokens.css (см. brand/BRAND.md):
+   монохром, рамки вместо теней, маркер highlight — только на найденных данных в демо. */
+
+* { box-sizing: border-box; }
+b, strong { font-weight: 500; }
+.muted { color: var(--ink-muted); }
+.spacer { flex: 1; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 var(--space-4); }
+
+/* ---------- Шапка: логотип из файла, 40px (BRAND.md, «Шапка приложения») ---------- */
+.top { background: var(--surface); border-bottom: 1px solid var(--border); }
+.top-row { display: flex; align-items: center; gap: var(--space-3); min-height: 64px; }
+.brand { display: inline-flex; align-items: center; text-decoration: none; }
+.logo { display: block; height: 40px; width: auto; }
+.logo-dark { display: none; }
+[data-theme="dark"] .logo-light { display: none; }
+[data-theme="dark"] .logo-dark { display: block; }
+.chip {
+  color: var(--ink-muted); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 2px var(--space-2); background: var(--surface-sunken);
+}
+.when-dark { display: none; }
+[data-theme="dark"] .when-dark { display: block; }
+[data-theme="dark"] .when-light { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .logo-light { display: none; }
+  :root:not([data-theme="light"]) .logo-dark { display: block; }
+  :root:not([data-theme="light"]) .when-dark { display: block; }
+  :root:not([data-theme="light"]) .when-light { display: none; }
+}
+
+/* ---------- Иконки (Lucide, обводка 1.75) и кнопки (brand/components/Button.md) ---------- */
+.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.i.i20 { width: 20px; height: 20px; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  height: 40px; padding: 0 var(--space-4); border-radius: var(--radius-md);
+  font: 500 15px/22px var(--font-sans); cursor: pointer; white-space: nowrap; text-decoration: none;
+  border: 1px solid transparent; background: transparent; color: var(--ink);
+}
+.btn.primary { background: var(--ink); color: var(--paper); }
+.btn.primary:hover { opacity: 0.88; }
+.btn.secondary { background: var(--surface); border-color: var(--border); }
+.btn.secondary:hover, .btn.ghost:hover { background: var(--surface-sunken); }
+.btn.icon-only { width: 40px; padding: 0; }
+
+/* ---------- Первый экран: ценность ---------- */
+.hero { padding: var(--space-12) 0 0; }
+.eyebrow { margin: 0 0 var(--space-3); color: var(--ink-muted); text-transform: uppercase; }
+.hero h1 { margin: 0; max-width: 820px; font: 600 36px/44px var(--font-sans); letter-spacing: -0.5px; text-wrap: balance; }
+.lead { margin: var(--space-4) 0 0; max-width: 760px; font: 400 17px/26px var(--font-sans); color: var(--ink-muted); }
+
+.values { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); margin-top: var(--space-8); }
+.value, .tile {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-6) var(--space-6);
+}
+.value .i, .tile .i { display: block; margin: var(--space-1) 0 var(--space-3); }
+.value b, .tile b { display: block; font: 500 15px/22px var(--font-sans); margin-bottom: var(--space-1); }
+.value span, .tile span { display: block; font: 400 13px/18px var(--font-sans); color: var(--ink-muted); }
+
+/* ---------- Демо «было → стало» (RedactedValue: найдено — highlight-soft, замена — токен) ---------- */
+.demo {
+  margin-top: var(--space-8); background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: var(--space-6);
+}
+.demo-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; margin-bottom: var(--space-2); }
+.legend { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--ink-muted); }
+.demo-arrow { display: flex; justify-content: center; color: var(--ink-muted); margin: var(--space-4) 0; transform: rotate(90deg); }
+.demo-note { margin: var(--space-4) 0 0; max-width: 820px; }
+.table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-md); }
+table.data { border-collapse: collapse; width: 100%; background: var(--surface); }
+table.data th, table.data td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+table.data th { background: var(--surface-sunken); font: 500 12px/16px var(--font-sans); letter-spacing: 0.4px; color: var(--ink-muted); }
+table.data td { height: 44px; }
+table.data tbody tr:last-child td { border-bottom: 0; }
+table.data .num { text-align: right; }
+table.data tr.total td { font: 500 15px/22px var(--font-sans); }
+.rv { font: 400 14px/20px var(--font-mono); border-radius: var(--radius-bar); color: var(--ink); }
+.rv-detected { background: var(--highlight-soft); color: var(--ink); padding: 0 var(--space-1); border-radius: var(--radius-bar); }
+.rv-token { background: var(--surface-sunken); border: 1px solid var(--border); padding: 0 var(--space-1); border-radius: var(--radius-bar); }
+.rv-arrow { color: var(--ink-muted); }
+
+/* ---------- Разделы ---------- */
+.sec { padding: var(--space-12) 0 0; }
+.sec h2 { margin: 0 0 var(--space-2); font: 600 24px/32px var(--font-sans); }
+.note { margin: 0 0 var(--space-6); max-width: 680px; color: var(--ink-muted); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-3); }
+.flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+.step {
+  display: inline-grid !important; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+  background: var(--ink); color: var(--paper) !important; font: 600 13px/1 var(--font-sans) !important;
+  margin: var(--space-1) 0 var(--space-3);
+}
+
+.reply {
+  margin-top: var(--space-3); background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: var(--space-4) var(--space-6);
+}
+.reply-row { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; margin: var(--space-2) 0 0; }
+
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.list li {
+  display: flex; gap: var(--space-3); align-items: flex-start; background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-3) var(--space-4);
+}
+.list li .i { margin-top: 3px; color: var(--ink-muted); }
+
+.limits {
+  margin-top: var(--space-6); background: var(--surface-sunken); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: var(--space-4) var(--space-6); color: var(--ink-muted);
+}
+.limits b { color: var(--ink); }
+
+/* ---------- Финал ---------- */
+.end {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: var(--space-8) var(--space-6); text-align: center;
+}
+.end h2 { margin: 0; }
+.end p { margin: var(--space-2) auto 0; max-width: 520px; color: var(--ink-muted); }
+.cta { display: flex; gap: var(--space-3); justify-content: center; flex-wrap: wrap; margin-top: var(--space-6); }
+.end .fmt { margin-top: var(--space-4); }
+
+/* ---------- Подвал: подпись Gadalov BI ---------- */
+.foot { border-top: 1px solid var(--border); margin-top: var(--space-12); color: var(--ink); }
+.foot-row { display: flex; justify-content: center; align-items: center; min-height: 56px; padding-top: var(--space-3); padding-bottom: var(--space-3); }
+
+@media (max-width: 760px) {
+  .hero { padding-top: var(--space-8); }
+  .hero h1 { font: 600 27px/34px var(--font-sans); letter-spacing: 0; }
+  .lead { font: 400 15px/22px var(--font-sans); }
+  .values, .flow { grid-template-columns: 1fr; }
+  .demo { padding: var(--space-4); }
+  .sec { padding-top: var(--space-8); }
+  .sec h2 { font: 600 21px/28px var(--font-sans); }
+  .top .btn.ghost:not(.icon-only) { display: none; }
+}
+
+/* столбец с текстом договора переносится, чтобы таблица помещалась без прокрутки на широком экране */
+table.data th.text, table.data td.text { white-space: normal; min-width: 240px; }

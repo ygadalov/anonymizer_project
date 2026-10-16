@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Собирает src/ в один автономный файл Redact_vX.Y.html (работает офлайн, без установки)."""
+"""Собирает src/ в один автономный файл Redact_vX.Y.html (работает офлайн, без установки)
+и страницу проекта index.html (из src/landing.html) для GitHub Pages."""
 import base64
 import pathlib
 import re
@@ -26,12 +27,13 @@ def icon_sprite():
             + '\n'.join(symbols) + '\n</svg>\n<!-- icons:end -->')
 
 
-def main():
-    index = SRC / 'index.html'
-    html = index.read_text(encoding='utf-8')
-    # спрайт обновляется и в исходнике, чтобы src/index.html тоже работал без сборки
+def inline(name):
+    """Читает src/<name>, обновляет в нём спрайт иконок и встраивает стили, шрифты, SVG и скрипты."""
+    src = SRC / name
+    html = src.read_text(encoding='utf-8')
+    # спрайт обновляется и в исходнике, чтобы страница из src/ тоже работала без сборки
     html = ICON_MARKERS.sub(lambda m: icon_sprite(), html)
-    index.write_text(html, encoding='utf-8')
+    src.write_text(html, encoding='utf-8')
 
     def data_uri(path):
         mime = {'.svg': 'image/svg+xml', '.woff2': 'font/woff2'}[path.suffix]
@@ -57,12 +59,26 @@ def main():
     # логотип и фавикон бренда — из brand/logo, встраиваются как есть
     html = re.sub(r'((?:src|href)=")([^"]+\.svg)"', svg_asset, html)
     html = re.sub(r'<script src="([^"]+)"></script>', js, html)
+    return html
+
+
+def main():
+    html = inline('index.html')
     m = re.search(r"ANON_VERSION\s*=\s*'([\d.]+)'", (SRC / 'version.js').read_text(encoding='utf-8'))
     if not m:
         raise SystemExit('src/version.js: не найдена версия')
     out = ROOT / f'Redact_v{m.group(1)}.html'
     out.write_text(html, encoding='utf-8')
     print(f'{out.name}: {out.stat().st_size / 1024:.0f} КБ')
+
+    # страница проекта для GitHub Pages: index.html в корне ссылается на свежую сборку
+    size = out.stat().st_size / 1024 / 1024
+    page = inline('landing.html')
+    page = (page.replace('{{VERSION}}', m.group(1)).replace('{{APP}}', out.name)
+                .replace('{{SIZE}}', f'{size:.1f} МБ'.replace('.', ',')))
+    landing = ROOT / 'index.html'
+    landing.write_text(page, encoding='utf-8')
+    print(f'{landing.name}: {landing.stat().st_size / 1024:.0f} КБ')
 
 
 if __name__ == '__main__':

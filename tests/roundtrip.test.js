@@ -1,5 +1,5 @@
 // Обезличивание → ключ → восстановление должно возвращать данные один в один.
-// Запуск: node --test tests/   (зависимости не нужны; данные синтетические)
+// Запуск: node --test tests/*.test.js   (зависимости не нужны; данные синтетические)
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert');

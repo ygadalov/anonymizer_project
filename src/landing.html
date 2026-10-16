@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Страница проекта (GitHub Pages). Исходник: src/landing.html, build.py собирает из него index.html в корне
+     и подставляет версию, имя и размер файла приложения. Править здесь, не в index.html. -->
+<title>Redact — обезличивание таблиц</title>
+<meta name="description" content="Скрывает названия контрагентов, ИНН, суммы и даты в Excel и CSV прямо в браузере: структура, итоги и сроки остаются, по ключу всё возвращается обратно. Файл никуда не отправляется.">
+<meta property="og:title" content="Redact — обезличивание таблиц">
+<meta property="og:description" content="Скрывает названия контрагентов, ИНН, суммы и даты в Excel и CSV прямо в браузере. Файл никуда не отправляется.">
+<meta property="og:type" content="website">
+<link rel="icon" type="image/svg+xml" href="../brand/logo/redact-favicon.svg">
+<link rel="stylesheet" href="../brand/tokens.css">
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="landing.css">
+<script>
+  // тема до отрисовки, чтобы не мигало: та же настройка, что в приложении
+  try { const t = localStorage.getItem('redact-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
+</head>
+<body>
+<!-- icons:start -->
+<!-- Иконки: Lucide (lucide.dev), лицензия ISC — vendor/lucide.LICENSE. Генерируется build.py из src/icons/ -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+<symbol id="i-arrow-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></symbol>
+<symbol id="i-calendar-range" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M16 2v4" /><path d="M3 10h18" /><path d="M8 2v4" /><path d="M17 14h-6" /><path d="M13 18H7" /><path d="M7 14h.01" /><path d="M17 18h.01" /></symbol>
+<symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></symbol>
+<symbol id="i-circle-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></symbol>
+<symbol id="i-circle-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></symbol>
+<symbol id="i-dices" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="12" height="12" x="2" y="10" rx="2" ry="2" /><path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6" /><path d="M6 18h.01" /><path d="M10 14h.01" /><path d="M15 6h.01" /><path d="M18 9h.01" /></symbol>
+<symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></symbol>
+<symbol id="i-eraser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" /><path d="M22 21H7" /><path d="m5 11 9 9" /></symbol>
+<symbol id="i-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /><path d="m2 2 20 20" /></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" /></symbol>
+<symbol id="i-file-spreadsheet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M8 13h2" /><path d="M14 13h2" /><path d="M8 17h2" /><path d="M14 17h2" /></symbol>
+<symbol id="i-folder-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" /></symbol>
+<symbol id="i-key-round" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z" /><circle cx="16.5" cy="7.5" r=".5" fill="currentColor" /></symbol>
+<symbol id="i-lock-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" /></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></symbol>
+<symbol id="i-message-square-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /><path d="M13 8H7" /><path d="M17 12H7" /></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></symbol>
+<symbol id="i-rotate-ccw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></symbol>
+<symbol id="i-save" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" /><path d="M7 3v4a1 1 0 0 0 1 1h7" /></symbol>
+<symbol id="i-shield-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></symbol>
+<symbol id="i-sigma" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 7V5a1 1 0 0 0-1-1H6.5a.5.5 0 0 0-.4.8l4.5 6a2 2 0 0 1 0 2.4l-4.5 6a.5.5 0 0 0 .4.8H17a1 1 0 0 0 1-1v-2" /></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" /></symbol>
+<symbol id="i-table-properties" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3v18" /><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M21 9H3" /><path d="M21 15H3" /></symbol>
+<symbol id="i-text-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 6H3" /><path d="M10 12H3" /><path d="M10 18H3" /><circle cx="17" cy="15" r="3" /><path d="m21 19-1.9-1.9" /></symbol>
+<symbol id="i-triangle-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></symbol>
+<symbol id="i-undo-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" /></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" x2="12" y1="3" y2="15" /></symbol>
+<symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></symbol>
+<symbol id="i-wand-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72" /><path d="m14 7 3 3" /><path d="M5 6v4" /><path d="M19 14v4" /><path d="M10 2v2" /><path d="M7 8H3" /><path d="M21 16h-4" /><path d="M11 3H9" /></symbol>
+</svg>
+<!-- icons:end -->
+
+<header class="top">
+  <div class="wrap top-row">
+    <a class="brand" href="./" aria-label="Redact">
+      <img class="logo logo-light" src="../brand/logo/redact-logo.svg" alt="Redact" width="137" height="40">
+      <img class="logo logo-dark" src="../brand/logo/redact-logo-inverse.svg" alt="" width="137" height="40">
+    </a>
+    <span class="chip mono-small">v{{VERSION}}</span>
+    <span class="spacer"></span>
+    <a class="btn ghost" href="https://github.com/ygadalov/anonymizer_project">GitHub</a>
+    <button class="btn ghost icon-only" id="btnTheme" type="button" aria-label="Сменить тему"><svg class="i i20 when-light" aria-hidden="true"><use href="#i-moon"></use></svg><svg class="i i20 when-dark" aria-hidden="true"><use href="#i-sun"></use></svg></button>
+  </div>
+</header>
+
+<main>
+<section class="hero"><div class="wrap">
+  <p class="eyebrow caption">Обезличивание по 152-ФЗ</p>
+  <h1>Отдавайте таблицы аудитору, подрядчику или&nbsp;ИИ-сервису без персональных данных и&nbsp;коммерческой тайны</h1>
+  <p class="lead">Redact заменяет ФИО, названия контрагентов, ИНН, суммы и даты прямо в книге Excel — методом введения
+    идентификаторов, который 152-ФЗ относит к обезличиванию. Без ключа, который остаётся у вас, получатель не может
+    определить, к кому относятся данные. А считать по ним может: итоги сходятся, сроки те же.</p>
+
+  <div class="values">
+    <div class="value"><svg class="i i20" aria-hidden="true"><use href="#i-shield-check"></use></svg>
+      <b>Персональные данные не уходят</b>
+      <span>ФИО индивидуальных предпринимателей и физлиц, ИНН, номера договоров заменяются и в столбцах, и внутри текста.</span></div>
+    <div class="value"><svg class="i i20" aria-hidden="true"><use href="#i-lock"></use></svg>
+      <b>Коммерческая тайна закрыта</b>
+      <span>Не видно, с кем вы работаете и на какие суммы: контрагенты становятся псевдонимами, суммы — масштабированными.</span></div>
+    <div class="value"><svg class="i i20" aria-hidden="true"><use href="#i-eye-off"></use></svg>
+      <b>Исходник не покидает компьютер</b>
+      <span>Обработка идёт в браузере, без сервера и интернета. Третьим лицам уходит только обезличенный файл.</span></div>
+  </div>
+
+  <div class="demo">
+    <div class="demo-head">
+      <span class="caption muted">Исходная выгрузка</span>
+      <span class="legend small"><span class="rv rv-detected">ОПТТРЕЙД</span> найдено</span>
+    </div>
+    <div class="table-scroll">
+      <table class="data">
+        <thead><tr><th>Контрагент</th><th>ИНН</th><th class="text">Договор</th><th class="num">Сумма, руб</th><th>Дата</th></tr></thead>
+        <tbody>
+          <tr><td><span class="rv rv-detected">ОПТТРЕЙД</span> <span class="rv">ООО</span></td><td><span class="rv rv-detected">7714820365</span></td><td class="text"><span class="rv">Поставка <span class="rv-detected">ОПТТРЕЙД</span> № <span class="rv-detected">154</span> от <span class="rv-detected">12.03.2025</span></span></td><td class="num"><span class="rv rv-detected">400 316,00</span></td><td><span class="rv rv-detected">12.03.2025</span></td></tr>
+          <tr><td><span class="rv">АО</span> <span class="rv rv-detected">ПРОМЕТЕЙ</span></td><td><span class="rv rv-detected">5032119874</span></td><td class="text"><span class="rv">Аренда склада № <span class="rv-detected">2210</span> от <span class="rv-detected">01.02.2025</span></span></td><td class="num"><span class="rv rv-detected">274 800,00</span></td><td><span class="rv rv-detected">01.02.2025</span></td></tr>
+          <tr><td><span class="rv">ИП</span> <span class="rv rv-detected">Смирнов Андрей Викторович</span></td><td><span class="rv rv-detected">770412345678</span></td><td class="text"><span class="rv">Услуги ИП <span class="rv-detected">Смирнов Андрей Викторович</span> № 77 от <span class="rv-detected">28.04.2025</span></span></td><td class="num"><span class="rv rv-detected">15 850,40</span></td><td><span class="rv rv-detected">28.04.2025</span></td></tr>
+          <tr><td><span class="rv rv-detected">ОПТТРЕЙД</span> <span class="rv">ООО</span></td><td><span class="rv rv-detected">7714820365</span></td><td class="text"><span class="rv">Поставка <span class="rv-detected">ОПТТРЕЙД</span> № <span class="rv-detected">169</span> от <span class="rv-detected">03.06.2025</span></span></td><td class="num"><span class="rv rv-detected">128 540,00</span></td><td><span class="rv rv-detected">03.06.2025</span></td></tr>
+          <tr class="total"><td>Итого</td><td></td><td></td><td class="num"><span class="rv">819 506,40</span></td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="demo-arrow" aria-hidden="true"><svg class="i i20"><use href="#i-arrow-right"></use></svg></div>
+
+    <div class="demo-head">
+      <span class="caption muted">Что получит аналитик</span>
+      <span class="legend small"><span class="rv rv-token">Контрагент 002</span> замена</span>
+    </div>
+    <div class="table-scroll">
+      <table class="data">
+        <thead><tr><th>Контрагент</th><th>ИНН</th><th class="text">Договор</th><th class="num">Сумма, руб</th><th>Дата</th></tr></thead>
+        <tbody>
+          <tr><td><span class="rv rv-token">Контрагент 002</span> <span class="rv">ООО</span></td><td><span class="rv rv-token">9727303280</span></td><td class="text"><span class="rv">Поставка <span class="rv-token">Контрагент 002</span> № <span class="rv-token">643</span> от <span class="rv-token">28.11.2025</span></span></td><td class="num"><span class="rv rv-token">546 271,21</span></td><td><span class="rv rv-token">28.11.2025</span></td></tr>
+          <tr><td><span class="rv">АО</span> <span class="rv rv-token">Контрагент 003</span></td><td><span class="rv rv-token">3971311929</span></td><td class="text"><span class="rv">Аренда склада № <span class="rv-token">7280</span> от <span class="rv-token">20.10.2025</span></span></td><td class="num"><span class="rv rv-token">374 992,08</span></td><td><span class="rv rv-token">20.10.2025</span></td></tr>
+          <tr><td><span class="rv">ИП</span> <span class="rv rv-token">Контрагент 001</span></td><td><span class="rv rv-token">427047729170</span></td><td class="text"><span class="rv">Услуги ИП <span class="rv-token">Контрагент 001</span> № 77 от <span class="rv-token">14.01.2026</span></span></td><td class="num"><span class="rv rv-token">21 629,46</span></td><td><span class="rv rv-token">14.01.2026</span></td></tr>
+          <tr><td><span class="rv rv-token">Контрагент 002</span> <span class="rv">ООО</span></td><td><span class="rv rv-token">9727303280</span></td><td class="text"><span class="rv">Поставка <span class="rv-token">Контрагент 002</span> № <span class="rv-token">115</span> от <span class="rv-token">19.02.2026</span></span></td><td class="num"><span class="rv rv-token">175 405,68</span></td><td><span class="rv rv-token">19.02.2026</span></td></tr>
+          <tr class="total"><td>Итого</td><td></td><td></td><td class="num"><span class="rv">1 118 298,43</span></td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="demo-note small muted">Настоящий результат Redact на этих строках. Один и тот же покупатель стал одним
+      псевдонимом и в столбце, и внутри названия договора. Все суммы умножены на одно число, поэтому «Итого» по-прежнему
+      равно сумме строк. Даты сдвинуты на одинаковое число дней, а форма организации (ООО, АО, ИП) осталась на месте.</p>
+  </div>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <h2>Данные скрыты, анализ остаётся</h2>
+  <p class="note">Обезличенный файл можно сводить, фильтровать и считать так же, как исходный: Redact меняет значения,
+    а связи между ними сохраняет.</p>
+  <div class="grid">
+    <div class="tile"><svg class="i i20" aria-hidden="true"><use href="#i-sigma"></use></svg><b>Итоги сходятся</b>
+      <span>Все выбранные суммы умножаются на один коэффициент: доли, структура и строка «Итого» согласованы.</span></div>
+    <div class="tile"><svg class="i i20" aria-hidden="true"><use href="#i-calendar-range"></use></svg><b>Сроки не ломаются</b>
+      <span>Даты сдвигаются на одинаковое число дней: просрочка и распределение по срокам те же.</span></div>
+    <div class="tile"><svg class="i i20" aria-hidden="true"><use href="#i-users"></use></svg><b>Одна компания — один псевдоним</b>
+      <span>На всех листах книги и в каждой выгрузке с той же секретной фразой. Можно сравнивать месяц к месяцу.</span></div>
+    <div class="tile"><svg class="i i20" aria-hidden="true"><use href="#i-text-search"></use></svg><b>Названия в тексте тоже</b>
+      <span>«Договор», «Комментарий», «Документ расчётов»: находит названия и ИНН из других столбцов, меняет номера и даты.</span></div>
+    <div class="tile"><svg class="i i20" aria-hidden="true"><use href="#i-table-properties"></use></svg><b>Книга остаётся книгой</b>
+      <span>Форматы чисел, ширина столбцов, объединённые ячейки и формулы на месте. Выгрузки 1С читаются как есть.</span></div>
+    <div class="tile"><svg class="i i20" aria-hidden="true"><use href="#i-wand-sparkles"></use></svg><b>Методы — по названиям</b>
+      <span>Сам находит строку заголовков и «Итого» и предлагает метод для каждого столбца. Настройки можно сохранить на следующий месяц.</span></div>
+  </div>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <h2>И возвращает обратно</h2>
+  <p class="note">Аналитик или ИИ-сервис вернул ответ, а в нём псевдонимы. Ключ соответствий превращает их обратно
+    в настоящие названия, в том числе внутри нового текста.</p>
+  <div class="flow">
+    <div class="tile"><span class="step">1</span><b>Обезличить и скачать ключ</b>
+      <span>Ключ — отдельный файл. С паролем он шифруется (AES-256); без пароля это таблица Excel, которую может открыть любой.</span></div>
+    <div class="tile"><span class="step">2</span><b>Отдать файл</b>
+      <span>Получатель работает с ним как с обычной таблицей: переставляет столбцы, добавляет свои, пишет выводы.</span></div>
+    <div class="tile"><span class="step">3</span><b>Восстановить по ключу</b>
+      <span>Redact сопоставляет столбцы по названиям и возвращает значения. Обезличенный файл восстанавливается один в один.</span></div>
+  </div>
+  <div class="reply">
+    <span class="caption muted">Комментарий в ответном файле</span>
+    <p class="reply-row"><span class="rv"><span class="rv-token">Контрагент 002 ООО</span>: просрочка 92 дня, резерв 50%</span></p>
+    <p class="reply-row"><svg class="i rv-arrow" aria-hidden="true"><use href="#i-undo-2"></use></svg><span class="rv">ОПТТРЕЙД ООО: просрочка 92 дня, резерв 50%</span></p>
+  </div>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <h2>Не пропускает лишнего</h2>
+  <p class="note">Утечка обычно не там, где её ищут: в авторе файла, в примечании к ячейке или в соседнем листе.</p>
+  <ul class="list">
+    <li><svg class="i" aria-hidden="true"><use href="#i-eraser"></use></svg><span><b>Свойства файла, примечания, колонтитулы</b> очищаются флажками на шаге 3.</span></li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-file-spreadsheet"></use></svg><span><b>Листы без обезличивания</b> по умолчанию удаляются из результата.</span></li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-triangle-alert"></use></svg><span><b>Предупреждение</b>, если настоящее название встречается в столбце, который вы оставили без изменений.</span></li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-sigma"></use></svg><span><b>Сохранённые результаты формул</b> убираются: в них могли остаться исходные значения. Excel пересчитает формулы при открытии.</span></li>
+  </ul>
+
+  <div class="limits small">
+    <b>Честно про ограничения.</b> Это псевдонимизация: по ключу данные восстанавливаются, поэтому ключ храните отдельно
+    от файла и лучше с паролем. Если контрагентов мало, а суммы известны, их можно сопоставить и без ключа — для внешней
+    передачи умножайте суммы на коэффициент. Шум, округление, случайные значения и очистка необратимы — для этого они и
+    нужны. Старый формат <span class="mono-small">.xls</span> нужно пересохранить в <span class="mono-small">.xlsx</span>;
+    сводные таблицы и диаграммы внутри книги могут не сохраниться, поэтому лучше обезличивать «плоскую» выгрузку.
+  </div>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <div class="end">
+    <h2>Один файл. Открыть и перетащить таблицу</h2>
+    <p>Ни установки, ни сервера, ни учётной записи. Скачанный файл работает без интернета.</p>
+    <div class="cta">
+      <a class="btn primary" href="{{APP}}">Открыть Redact <svg class="i i20" aria-hidden="true"><use href="#i-arrow-right"></use></svg></a>
+      <a class="btn secondary" href="{{APP}}" download><svg class="i i20" aria-hidden="true"><use href="#i-download"></use></svg>Скачать {{SIZE}}</a>
+    </div>
+    <p class="fmt mono-small muted">.xlsx · .csv · v{{VERSION}}</p>
+  </div>
+</div></section>
+</main>
+
+<!-- Подпись в проектах — из брендбука Gadalov BI (brand/gadalov-bi/BRAND.md, раздел 7), код без изменений -->
+<footer class="foot">
+  <div class="wrap foot-row">
+    <span class="gbi-sign" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;line-height:1.4;color:inherit;opacity:.75;white-space:nowrap">
+      <svg width="12" height="12" viewBox="0 0 65.28 65.28" aria-hidden="true" style="flex-shrink:0;fill:currentColor"><path d="M0 0h10v10H0zM13.82 0h10v10h-10zM27.64 0h10v10h-10zM41.46 0h10v10h-10zM55.28 0h10v10h-10zM0 13.82h10v10H0zM0 27.64h10v10H0zM0 41.46h10v10H0zM0 55.28h10v10H0zM13.82 55.28h10v10h-10zM27.64 55.28h10v10h-10zM41.46 55.28h10v10h-10zM55.28 55.28h10v10h-10zM55.28 41.46h10v10h-10zM55.28 27.64h10v10h-10z"/><path fill="#4F86BF" d="M41.46 27.64h10v10h-10z"/></svg>
+      <span>Developed by <b style="font-weight:600">Gadalov BI</b> · Built with AI</span>
+    </span>
+  </div>
+</footer>
+
+<script>
+  // смена темы: та же настройка redact-theme, что в приложении
+  document.getElementById('btnTheme').addEventListener('click', () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    root.dataset.theme = dark ? 'light' : 'dark';
+    try { localStorage.setItem('redact-theme', root.dataset.theme); } catch (e) {}
+  });
+</script>
+</body>
+</html>

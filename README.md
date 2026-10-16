@@ -3,6 +3,8 @@
 Один HTML-файл, который скрывает чувствительные данные в Excel/CSV: названия контрагентов, ИНН, коды, суммы, даты.
 Обработка идёт **полностью в браузере**: файл никуда не загружается, интернет не нужен.
 
+Страница проекта — `index.html` (для GitHub Pages): что делает Redact, пример «было → стало» и ссылка на последнюю версию.
+
 ## Как пользоваться
 
 1. Откройте `Redact_vX.Y.html` (последняя версия) в браузере (Chrome, Edge, Firefox) — двойным щелчком.
@@ -98,6 +100,7 @@
 brand/           брендбук Redact: BRAND.md, токены, логотипы, правила компонентов
 src/version.js   номер версии
 src/index.html   разметка
+src/landing.html страница проекта (build.py собирает из неё index.html) и её стили src/landing.css
 src/style.css    стили (только токены из brand/tokens.css)
 src/fonts/       шрифты бренда (Golos Text, JetBrains Mono; SIL OFL), встраиваются при сборке
 src/icons/       SVG-иконки (Lucide, ISC); build.py собирает из них спрайт
@@ -107,12 +110,12 @@ src/restore.js   интерфейс восстановления по ключу
 src/dropdown.js  выпадающие списки в стиле Redact вместо системных
 src/tooltip.js   подсказки в стиле Redact вместо системных
 src/dialog.js    диалог подтверждения необратимых действий
-tests/           автотесты: обезличивание → ключ → восстановление (node --test tests/)
+tests/           автотесты: обезличивание → ключ → восстановление (node --test tests/*.test.js)
 vendor/          ExcelJS 4.4.0 (MIT), JSZip 3.10.2 (MIT), лицензия Lucide
-build.py         собирает всё в один файл Redact_vX.Y.html
+build.py         собирает всё в один файл Redact_vX.Y.html и страницу index.html
 ```
 
-Для разработки откройте `src/index.html`, после правок выполните `python3 build.py` и `node --test tests/`
+Для разработки откройте `src/index.html`, после правок выполните `python3 build.py` и `node --test tests/*.test.js`
 (тесты не требуют установки зависимостей и работают на синтетических данных).
 
 **Дизайн.** Все правила — в `brand/BRAND.md`: цвета, отступы, скругления и шрифты только через токены,
