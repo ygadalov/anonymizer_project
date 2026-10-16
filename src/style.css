@@ -237,9 +237,20 @@ input[type=password] {
   border-radius: var(--radius-sm); cursor: pointer; font: 400 15px/22px var(--font-sans); color: var(--ink);
 }
 .dd-opt .dd-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.dd-opt.active { background: var(--surface-sunken); }
-.dd-opt.selected { font-weight: 500; }
+/* выбранный пункт — мягкий фон, полужирный и галочка; пункт под курсором — фон легче, чтобы их не перепутать */
+.dd-opt.active { background: var(--paper); }
+.dd-opt.selected, .dd-opt.selected.active { background: var(--surface-sunken); font-weight: 500; }
 /* галочка только у выбранного пункта и места у остальных не занимает */
 .dd-check { display: none; width: 14px; height: 14px; }
 .dd-opt.selected .dd-check { display: block; }
 select.dd-open { border-color: var(--border-strong); box-shadow: inset 0 0 0 1px var(--border-strong); }
+
+/* ---------- Подсказки (src/tooltip.js) — вместо системных ---------- */
+.tip {
+  position: fixed; z-index: 30; max-width: 320px; padding: var(--space-2) var(--space-3);
+  background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: var(--radius-md);
+  box-shadow: var(--shadow-popover); font: 400 13px/18px var(--font-sans);
+  pointer-events: none; opacity: 0; transition: opacity .12s;
+}
+.tip.on { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .tip { transition: none; } }

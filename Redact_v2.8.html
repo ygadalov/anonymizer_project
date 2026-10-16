@@ -428,12 +428,23 @@ input[type=password] {
   border-radius: var(--radius-sm); cursor: pointer; font: 400 15px/22px var(--font-sans); color: var(--ink);
 }
 .dd-opt .dd-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.dd-opt.active { background: var(--surface-sunken); }
-.dd-opt.selected { font-weight: 500; }
+/* выбранный пункт — мягкий фон, полужирный и галочка; пункт под курсором — фон легче, чтобы их не перепутать */
+.dd-opt.active { background: var(--paper); }
+.dd-opt.selected, .dd-opt.selected.active { background: var(--surface-sunken); font-weight: 500; }
 /* галочка только у выбранного пункта и места у остальных не занимает */
 .dd-check { display: none; width: 14px; height: 14px; }
 .dd-opt.selected .dd-check { display: block; }
 select.dd-open { border-color: var(--border-strong); box-shadow: inset 0 0 0 1px var(--border-strong); }
+
+/* ---------- Подсказки (src/tooltip.js) — вместо системных ---------- */
+.tip {
+  position: fixed; z-index: 30; max-width: 320px; padding: var(--space-2) var(--space-3);
+  background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: var(--radius-md);
+  box-shadow: var(--shadow-popover); font: 400 13px/18px var(--font-sans);
+  pointer-events: none; opacity: 0; transition: opacity .12s;
+}
+.tip.on { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .tip { transition: none; } }
 </style>
 <script>
   // тема до отрисовки, чтобы не мигало: сохранённый выбор или системная
@@ -753,7 +764,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 // Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
-window.ANON_VERSION = '2.7';
+window.ANON_VERSION = '2.8';
 
 </script>
 <script>
@@ -2869,6 +2880,95 @@ window.ANON_VERSION = '2.7';
     if (r.bottom < 0 || r.top > window.innerHeight) close(); else place();
   }, true);
   window.addEventListener('resize', close);
+})();
+
+</script>
+<script>
+/*
+ * Подсказки в стиле Redact вместо системных (атрибут title).
+ * Системную подсказку рисует ОС: её нельзя оформить, и длинный текст уходит далеко вправо.
+ * Здесь title на время наведения снимается (чтобы не всплывала системная), а текст показывается
+ * в карточке рядом с элементом — с переносом строк и в пределах экрана.
+ */
+(function () {
+  'use strict';
+  const DELAY = 350, GAP = 6, MARGIN = 8;
+  let tip = null, target = null, timer = null;
+
+  function textOf(el) {
+    // title мог появиться заново (его меняет код страницы) — берём свежий и снимаем
+    const t = el.getAttribute('title');
+    if (t) {
+      el.dataset.tip = t;
+      el.removeAttribute('title');
+      if (!el.hasAttribute('aria-label') && !el.textContent.trim()) el.setAttribute('aria-label', t);
+      else el.setAttribute('aria-description', t);
+    }
+    return el.dataset.tip || '';
+  }
+
+  function show(el) {
+    const text = textOf(el);
+    const pop = document.querySelector('.dd-pop');
+    if (!text || (pop && !pop.contains(el))) return; // пока открыт список, подсказки — только у его пунктов
+    if (!tip) {
+      tip = document.createElement('div');
+      tip.className = 'tip';
+      tip.setAttribute('role', 'tooltip');
+      document.body.appendChild(tip);
+    }
+    tip.textContent = text;
+    tip.style.left = '0px';
+    tip.style.top = '0px';
+    tip.classList.add('on');
+    const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+    let top, left;
+    if (pop && pop.contains(el)) {
+      // у пунктов списка — сбоку от списка, чтобы не закрывать соседние пункты
+      const pr = pop.getBoundingClientRect();
+      left = pr.right + GAP + w <= window.innerWidth - MARGIN ? pr.right + GAP : pr.left - GAP - w;
+      top = Math.min(r.top, window.innerHeight - h - MARGIN);
+    } else {
+      // под элементом, а если внизу не помещается — над ним
+      top = r.bottom + GAP;
+      if (top + h > window.innerHeight - MARGIN && r.top - GAP - h > MARGIN) top = r.top - GAP - h;
+      left = r.left;
+    }
+    left = Math.max(MARGIN, Math.min(left, window.innerWidth - w - MARGIN));
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+  }
+
+  function hide() {
+    clearTimeout(timer);
+    target = null;
+    if (tip) tip.classList.remove('on');
+  }
+
+  const tipped = el => el && el.closest && el.closest('[title], [data-tip]');
+
+  document.addEventListener('mouseover', ev => {
+    const el = tipped(ev.target);
+    if (el === target) return;
+    hide();
+    if (!el) return;
+    target = el;
+    textOf(el); // снять title сразу, чтобы системная подсказка не успела появиться
+    timer = setTimeout(() => { if (target === el) show(el); }, DELAY);
+  });
+  document.addEventListener('mouseout', ev => {
+    if (target && !target.contains(ev.relatedTarget)) hide();
+  });
+  // с клавиатуры подсказка показывается при фокусе
+  document.addEventListener('focusin', ev => {
+    const el = tipped(ev.target);
+    if (el && el.matches(':focus-visible')) { target = el; show(el); }
+  });
+  document.addEventListener('focusout', hide);
+  document.addEventListener('mousedown', hide, true);
+  document.addEventListener('keydown', ev => { if (ev.key === 'Escape') hide(); }, true);
+  window.addEventListener('scroll', hide, true);
+  window.addEventListener('resize', hide);
 })();
 
 </script>

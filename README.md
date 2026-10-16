@@ -91,6 +91,7 @@ src/engine.js    логика (без DOM, можно запускать в Node
 src/app.js       интерфейс обезличивания
 src/restore.js   интерфейс восстановления по ключу
 src/dropdown.js  выпадающие списки в стиле Redact вместо системных
+src/tooltip.js   подсказки в стиле Redact вместо системных
 tests/           автотесты: обезличивание → ключ → восстановление (node --test tests/)
 vendor/          ExcelJS 4.4.0 (MIT), JSZip 3.10.2 (MIT), лицензия Lucide
 build.py         собирает всё в один файл Redact_vX.Y.html
