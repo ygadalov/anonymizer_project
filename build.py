@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Собирает src/ в один автономный файл Anonymizer_vX.Y.html (работает офлайн, без установки)."""
+import base64
 import pathlib
 import re
 
@@ -32,8 +33,19 @@ def main():
     html = ICON_MARKERS.sub(lambda m: icon_sprite(), html)
     index.write_text(html, encoding='utf-8')
 
+    def data_uri(path):
+        mime = {'.svg': 'image/svg+xml', '.woff2': 'font/woff2'}[path.suffix]
+        return f'data:{mime};base64,' + base64.b64encode(path.read_bytes()).decode('ascii')
+
     def css(m):
-        return '<style>\n' + (SRC / m.group(1)).read_text(encoding='utf-8') + '</style>'
+        path = (SRC / m.group(1)).resolve()
+        code = path.read_text(encoding='utf-8')
+        # шрифты (url(fonts/...woff2)) встраиваются, чтобы файл работал без интернета
+        code = re.sub(r'url\(([^)]+\.woff2)\)', lambda u: f'url({data_uri(path.parent / u.group(1))})', code)
+        return '<style>\n' + code + '</style>'
+
+    def svg_asset(m):
+        return m.group(1) + data_uri((SRC / m.group(2)).resolve()) + '"'
 
     def js(m):
         code = (SRC / m.group(1)).resolve().read_text(encoding='utf-8')
@@ -42,6 +54,8 @@ def main():
         return '<script>\n' + code + '\n</script>'
 
     html = re.sub(r'<link rel="stylesheet" href="([^"]+)">', css, html)
+    # логотип и фавикон бренда — из brand/logo, встраиваются как есть
+    html = re.sub(r'((?:src|href)=")([^"]+\.svg)"', svg_asset, html)
     html = re.sub(r'<script src="([^"]+)"></script>', js, html)
     m = re.search(r"ANON_VERSION\s*=\s*'([\d.]+)'", (SRC / 'version.js').read_text(encoding='utf-8'))
     if not m:

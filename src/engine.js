@@ -1,5 +1,5 @@
 /*
- * Ядро анонимайзера: разбор листа, определение типов столбцов и замены.
+ * Ядро обезличивания Redact: разбор листа, определение типов столбцов и замены.
  * Не зависит от DOM — работает и в браузере, и в Node (для тестов).
  */
 (function (root) {
@@ -446,6 +446,7 @@
     const changes = new Map();
     const mapping = [];
     const warnings = [];
+    const leaks = [];      // исходные значения остаются в файле — показываются как ошибка
     const skipRow = r => config.keepTotals && an.totalsRows.has(r);
     const cellAt = (r, c) => { const x = grid.rows[r][c]; return (x && !x.slave && !isEmpty(x.v)) ? x : null; };
     const asText = v => isDate(v) ? v.toISOString().slice(0, 10) : String(v);
@@ -606,10 +607,10 @@
           const cell = cellAt(r, col.c);
           if (cell && typeof cell.v === 'string' && leakRe.test(cell.v)) { hits++; if (!example) example = cell.v; }
         }
-        if (hits) warnings.push(`Столбец «${col.name}» оставлен без изменений, но в ${hits} ячейк. встречаются заменяемые значения (например: «${String(example).slice(0, 80)}»). Поставьте метод «Замена внутри текста».`);
+        if (hits) leaks.push(`Столбец «${col.name}» не обезличивается, но в ${hits} ячейк. есть исходные значения из других столбцов (например: «${String(example).slice(0, 80)}»). Выберите для него метод «Замена внутри текста».`);
       }
     }
-    return { changes, mapping, stats: { changed, columns: active.length }, warnings };
+    return { changes, mapping, stats: { changed, columns: active.length }, warnings, leaks };
   }
 
   // ---------- Починка «нестандартных» xlsx (например, выгрузок из 1С) ----------

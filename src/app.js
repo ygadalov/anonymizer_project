@@ -1,4 +1,4 @@
-/* Интерфейс анонимайзера. Логика замен — в engine.js (window.Anon). */
+/* Интерфейс Redact (обезличивание таблиц). Логика замен — в engine.js (window.Anon). */
 (function () {
   'use strict';
   const A = window.Anon;
@@ -23,13 +23,22 @@
 
   $('appVersion').textContent = 'v' + A.VERSION;
 
+  // ---------- Тема: системная по умолчанию, выбор пользователя запоминается ----------
+  $('btnTheme').addEventListener('click', () => {
+    const cur = document.documentElement.dataset.theme ||
+      (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem('redact-theme', next); } catch (e) { /* без сохранения */ }
+  });
+
   // ---------- Уведомления ----------
   let toastTimer;
   function toast(msg, ms = 3500, kind) {
     const t = $('toast');
     kind = kind || (/^(ошибк|не удалось)/i.test(msg) ? 'error' : 'ok');
+    t.className = 'toast ' + kind;
     t.innerHTML = icon(kind === 'error' ? 'circle-alert' : 'circle-check') + `<span>${esc(msg)}</span>`;
-    t.classList.remove('hidden');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => t.classList.add('hidden'), ms);
   }
@@ -50,7 +59,7 @@
 
   async function loadFile(file) {
     const ext = (file.name.split('.').pop() || '').toLowerCase();
-    $('fileInfo').textContent = 'Читаю файл…';
+    $('fileInfo').textContent = 'Читаем файл…';
     try {
       const buf = await file.arrayBuffer();
       S.fileName = file.name;
@@ -92,8 +101,8 @@
         S.sheetIndex = best;
         S.grid = A.gridFromWorksheet(S.wb.worksheets[best]);
       }
-      $('fileInfo').innerHTML = `${icon('file-spreadsheet')}<b>${esc(file.name)}</b> · ${(file.size / 1024).toFixed(0)} КБ` +
-        (S.loadNotes.length ? ' · файл автоматически исправлен при чтении (подробности в шаге 4)' : '');
+      $('fileInfo').innerHTML = `${icon('file-spreadsheet', 'i i20')}<b>${esc(file.name)}</b><span class="muted">${(file.size / 1024).toFixed(0)} КБ` +
+        (S.loadNotes.length ? ' · файл исправлен при чтении, подробности в шаге 4' : '') + '</span>';
       if (!$('seed').value) newSeed();
       $('settingsInfo').textContent = '';
       setupSheet(true);
@@ -166,7 +175,7 @@
       <td class="colname"><b>${col.letter}</b>${esc(col.name)}</td>
       <td><select data-k="type" title="• — тип, определённый автоматически">${types}</select></td>
       <td class="samples">${samples}</td>
-      <td class="r">${col.nonEmpty} / ${col.uniques}</td>
+      <td class="r counts">${col.nonEmpty} / ${col.uniques}</td>
       <td><select data-k="method" title="${esc(A.METHOD_HINTS[cfg.method] || '')}">${methods}</select></td>
       <td>${paramsHtml(col, cfg)}</td>
     </tr>`;
@@ -317,12 +326,12 @@
     const { hit, missing } = applySettingsColumns(p.columns || {});
     renderColumns(); rememberLayout(); schedulePreview();
     $('settingsInfo').innerHTML = `Настройки <b>${esc(name)}</b> применены: столбцов ${hit} из ${S.an.columns.length}` +
-      (missing.length ? `. <span class="warn-text">Нет в файле: ${missing.map(esc).join(', ')}</span>` : '');
+      (missing.length ? `. <span class="text-danger">Нет в файле: ${missing.map(esc).join(', ')}</span>` : '');
     toast(`Настройки применены: ${hit} из ${S.an.columns.length} столбцов`);
   }
   async function readSettingsFile(f) {
     const p = JSON.parse(await f.text());
-    if (!p || typeof p !== 'object' || !p.columns) throw new Error('это не файл настроек анонимайзера (нет раздела columns)');
+    if (!p || typeof p !== 'object' || !p.columns) throw new Error('это не файл настроек Redact (нет раздела columns)');
     return p;
   }
 
@@ -362,35 +371,45 @@
     const active = S.an.columns.filter(col => S.cols[col.c].method !== 'keep');
     const { changes, mapping, warnings, stats } = S.result;
     $('previewStats').textContent = active.length
-      ? `Изменится ячеек: ${stats.changed.toLocaleString('ru-RU')} в ${stats.columns} столбц. · уникальных замен в словарях: ${mapping.length.toLocaleString('ru-RU')} · ${ms} мс`
-      : 'Ни один столбец не выбран для анонимизации — выберите метод на шаге 2.';
+      ? `Будет обезличено ячеек: ${stats.changed.toLocaleString('ru-RU')} в ${stats.columns} столбц. · уникальных замен: ${mapping.length.toLocaleString('ru-RU')} · ${ms} мс`
+      : 'Столбцы для обезличивания не выбраны. Выберите метод хотя бы для одного столбца на шаге 2.';
     const table = $('previewTable');
     if (!active.length) { table.innerHTML = ''; }
     else {
       const rows = S.an.dataRows.filter(r => active.some(col => changes.has(r + ':' + col.c))).slice(0, 15);
       const head = `<thead><tr><th class="r">Строка</th>${active.map(col => `<th>${esc(col.letter)} · ${esc(col.name)}</th>`).join('')}</tr></thead>`;
-      const body = rows.map(r => `<tr><td class="r muted">${r}</td>${active.map(col => {
+      // RedactedValue: найдено (маркер) → заменено (токен) или скрыто (плашка)
+      const body = rows.map(r => `<tr><td class="r rownum">${r}</td>${active.map(col => {
         const cell = S.grid.rows[r][col.c];
         const old = cell && !cell.slave ? cell.v : null;
         const key = r + ':' + col.c;
-        if (!changes.has(key)) return `<td>${esc(fmt(old))}</td>`;
+        if (!changes.has(key)) return `<td>${old === null ? '' : `<span class="rv rv-original">${esc(fmt(old))}</span>`}</td>`;
         const nv = changes.get(key);
-        return `<td class="ch" title="${esc(fmt(old))} → ${esc(fmt(nv))}"><span class="old">${esc(fmt(old))}</span><span class="new">${esc(fmt(nv) || '∅')}</span></td>`;
+        const after = (nv === null || nv === '')
+          ? `<span class="rv rv-redacted" style="width:${Math.min(40, Math.max(3, fmt(old).length))}ch" role="img" aria-label="Скрыто: ${esc(col.name)}"></span>`
+          : `<span class="rv rv-token">${esc(fmt(nv))}</span>`;
+        return `<td title="${esc(fmt(old))} → ${esc(fmt(nv) || 'скрыто')}"><div class="pair"><span class="rv rv-detected">${esc(fmt(old))}</span><span class="line"><span class="rv-arrow" aria-hidden="true">→</span>${after}</span></div></td>`;
       }).join('')}</tr>`).join('');
       table.innerHTML = head + `<tbody>${body}</tbody>`;
     }
     const w = [...S.loadNotes, ...warnings];
+    const leaks = [...S.result.leaks];
     if (S.kind === 'xlsx') {
       const hf = A.headerFooterText(S.wb.worksheets[S.sheetIndex]);
-      if (hf.length) w.push($('clearHF').checked
-        ? `Колонтитулы содержат текст («${hf.join('», «').slice(0, 150)}») — он будет удалён.`
-        : `Колонтитулы содержат текст («${hf.join('», «').slice(0, 150)}») и останутся в файле — включите «Очистить колонтитулы» на шаге 3.`);
+      if (hf.length) {
+        if ($('clearHF').checked) w.push(`В колонтитулах есть текст («${hf.join('», «').slice(0, 150)}»). Он будет удалён.`);
+        else leaks.push(`В колонтитулах есть текст («${hf.join('», «').slice(0, 150)}»), и он останется в файле. Включите «Очистить колонтитулы» на шаге 3.`);
+      }
     }
     if (S.kind === 'xlsx' && S.wb.worksheets.length > 1) {
       const others = S.wb.worksheets.filter((_, i) => i !== S.sheetIndex).map(ws => `«${ws.name}»`).join(', ');
-      w.push(`В книге есть другие листы (${others}) — они не анонимизируются и удаляются из результата.`);
+      w.push(`В книге есть другие листы (${others}). Они не обезличиваются и в результат не попадут.`);
     }
-    $('warnings').innerHTML = w.length ? `<div class="warn"><b>${icon('triangle-alert')}Обратите внимание</b><ul>${w.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
+    const notice = (cls, ic, title, items) => items.length
+      ? `<div class="notice ${cls}"><div class="notice-title">${icon(ic, 'i i20')}${title}</div><ul>${items.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
+    $('warnings').innerHTML =
+      notice('danger', 'triangle-alert', `Возможна утечка данных: ${leaks.length}`, leaks) +
+      notice('', 'circle-alert', 'Проверьте перед выгрузкой', w);
   }
 
   // ---------- Выгрузка ----------
@@ -413,7 +432,7 @@
       const { changes } = S.result;
       if (S.kind === 'csv') {
         const text = A.gridToCsv(S.grid, changes, S.csv.delim, S.csv.decSep);
-        download(new Blob([text], { type: 'text/csv;charset=utf-8' }), baseName() + '_anon.csv');
+        download(new Blob([text], { type: 'text/csv;charset=utf-8' }), baseName() + '_redact.csv');
       } else {
         // Пишем в свежую копию исходной книги — так сохраняется всё оформление
         const wb = new ExcelJS.Workbook();
@@ -430,12 +449,12 @@
         if ($('clearHF').checked) A.clearHeaderFooter(ws);
         wb.calcProperties = { ...(wb.calcProperties || {}), fullCalcOnLoad: true };
         const out = await wb.xlsx.writeBuffer();
-        download(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), baseName() + '_anon.xlsx');
+        download(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), baseName() + '_redact.xlsx');
       }
-      toast('Готово: файл сохранён в «Загрузки»');
+      toast(`Обезличено ячеек: ${S.result.stats.changed.toLocaleString('ru-RU')}. Файл сохранён в «Загрузки»`);
     } catch (e) {
       console.error(e);
-      toast('Ошибка при сохранении: ' + e.message, 7000);
+      toast('Не удалось сохранить файл: ' + e.message, 7000);
     } finally { btn.disabled = false; }
   });
 
@@ -468,6 +487,6 @@
     ]);
     const out = await wb.xlsx.writeBuffer();
     download(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), baseName() + '_KEY.xlsx');
-    toast('Ключ сохранён. Храните его отдельно от анонимизированного файла!', 5000);
+    toast('Ключ соответствий сохранён. Храните его отдельно от обезличенного файла', 5000);
   });
 })();

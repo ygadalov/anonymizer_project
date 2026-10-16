@@ -3,8 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Anonymizer</title>
+<title>Redact — обезличивание таблиц</title>
+<link rel="icon" type="image/svg+xml" href="../brand/logo/redact-favicon.svg">
+<link rel="stylesheet" href="../brand/tokens.css">
+<link rel="stylesheet" href="fonts.css">
 <link rel="stylesheet" href="style.css">
+<script>
+  // тема до отрисовки, чтобы не мигало: сохранённый выбор или системная
+  try { const t = localStorage.getItem('redact-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
 </head>
 <body>
 <!-- icons:start -->
@@ -18,87 +25,99 @@
 <symbol id="i-file-spreadsheet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M8 13h2" /><path d="M14 13h2" /><path d="M8 17h2" /><path d="M14 17h2" /></symbol>
 <symbol id="i-folder-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" /></symbol>
 <symbol id="i-key-round" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z" /><circle cx="16.5" cy="7.5" r=".5" fill="currentColor" /></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></symbol>
 <symbol id="i-rotate-ccw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></symbol>
 <symbol id="i-save" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" /><path d="M7 3v4a1 1 0 0 0 1 1h7" /></symbol>
-<symbol id="i-shield-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" /></symbol>
 <symbol id="i-triangle-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></symbol>
 <symbol id="i-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" x2="12" y1="3" y2="15" /></symbol>
 <symbol id="i-wand-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72" /><path d="m14 7 3 3" /><path d="M5 6v4" /><path d="M19 14v4" /><path d="M10 2v2" /><path d="M7 8H3" /><path d="M21 16h-4" /><path d="M11 3H9" /></symbol>
 </svg>
 <!-- icons:end -->
-<header class="top">
-  <div class="wrap">
-    <h1><svg class="i logo" aria-hidden="true"><use href="#i-shield-check"></use></svg>Анонимайзер таблиц <span class="ver" id="appVersion"></span></h1>
-    <p class="sub">Excel / CSV → выбор столбцов → файл со скрытыми данными. Всё обрабатывается в браузере, файл никуда не отправляется.</p>
+<header class="appbar">
+  <div class="wrap appbar-row">
+    <a class="brand" href="#" aria-label="Redact">
+      <img class="mark mark-light" src="../brand/logo/redact-mark.svg" alt="" width="19" height="24">
+      <img class="mark mark-dark" src="../brand/logo/redact-mark-inverse.svg" alt="" width="19" height="24">
+      <span class="display-s">REDACT</span>
+    </a>
+    <span class="chip mono-small" id="appVersion"></span>
+    <span class="spacer"></span>
+    <button class="btn ghost icon-only" id="btnTheme" title="Сменить тему" aria-label="Сменить тему"><svg class="i i20 when-light" aria-hidden="true"><use href="#i-moon"></use></svg><svg class="i i20 when-dark" aria-hidden="true"><use href="#i-sun"></use></svg></button>
   </div>
 </header>
 
 <main class="wrap">
+  <div class="intro">
+    <h1 class="h1">Обезличивание таблиц</h1>
+    <p class="body muted">Excel или CSV → выбор столбцов → файл со скрытыми данными. Обработка идёт в браузере, файл никуда не отправляется.</p>
+  </div>
+
   <!-- Шаг 1 -->
   <section class="card" id="step1">
-    <h2><span class="num">1</span> Загрузите файл</h2>
+    <h2 class="h2 step"><span class="num">1</span>Файл с данными</h2>
     <label class="drop" id="drop">
       <input type="file" id="file" accept=".xlsx,.xlsm,.csv,.txt" hidden>
       <svg class="i drop-icon" aria-hidden="true"><use href="#i-upload"></use></svg>
-      <span class="drop-main">Перетащите файл сюда или нажмите для выбора</span>
-      <span class="drop-hint">.xlsx, .xlsm, .csv (старый .xls сначала пересохраните в .xlsx)</span>
+      <span class="body-strong">Перетащите файл сюда или нажмите, чтобы выбрать</span>
+      <span class="small muted">Поддерживаются .xlsx, .xlsm и .csv. Файл .xls сначала пересохраните в .xlsx.</span>
     </label>
-    <div id="fileInfo" class="muted"></div>
+    <div id="fileInfo" class="small"></div>
     <div class="row-controls settings-line">
-      <label class="btn ghost"><svg class="i" aria-hidden="true"><use href="#i-folder-open"></use></svg>Загрузить настройки (JSON)<input type="file" id="profileFile1" accept=".json,application/json" hidden></label>
-      <span class="muted" id="pendingInfo">Есть сохранённые настройки? Загрузите их до или после файла с данными.</span>
+      <label class="btn secondary"><svg class="i i20" aria-hidden="true"><use href="#i-folder-open"></use></svg>Загрузить настройки<input type="file" id="profileFile1" accept=".json,application/json" hidden></label>
+      <span class="small muted" id="pendingInfo">Сохранённые настройки (JSON) можно загрузить до или после файла с данными.</span>
     </div>
   </section>
 
   <!-- Шаг 2 -->
   <section class="card hidden" id="step2">
-    <h2><span class="num">2</span> Структура и выбор столбцов</h2>
+    <h2 class="h2 step"><span class="num">2</span>Столбцы и методы</h2>
     <div class="row-controls">
-      <label>Лист <select id="sheet"></select></label>
-      <label>Строка заголовков <input type="number" id="headerRow" min="1" step="1"></label>
-      <label class="chk"><input type="checkbox" id="keepTotals" checked> Не трогать строки «Итого/Всего» (кроме K и округления)</label>
-      <span class="muted" id="rowsInfo"></span>
+      <label class="field-inline"><span class="caption">Лист</span><select id="sheet"></select></label>
+      <label class="field-inline"><span class="caption">Строка заголовков</span><input type="number" id="headerRow" min="1" step="1"></label>
+      <label class="chk"><input type="checkbox" id="keepTotals" checked> Не изменять строки «Итого» и «Всего» (кроме K и округления)</label>
     </div>
-    <div class="row-controls">
-      <button class="btn" id="btnAuto" title="Подобрать методы по названиям столбцов"><svg class="i" aria-hidden="true"><use href="#i-wand-sparkles"></use></svg>Автовыбор по названиям</button>
-      <button class="btn ghost" id="btnReset"><svg class="i" aria-hidden="true"><use href="#i-rotate-ccw"></use></svg>Сбросить всё на «Оставить»</button>
+    <div class="small muted" id="rowsInfo"></div>
+    <div class="row-controls toolbar">
+      <button class="btn secondary" id="btnAuto" title="Подобрать методы по названиям столбцов"><svg class="i i20" aria-hidden="true"><use href="#i-wand-sparkles"></use></svg>Подобрать методы</button>
+      <button class="btn danger" id="btnReset"><svg class="i i20" aria-hidden="true"><use href="#i-rotate-ccw"></use></svg>Сбросить методы</button>
       <span class="spacer"></span>
-      <button class="btn ghost" id="btnSaveProfile" title="Методы по столбцам, строка заголовков, лист и флажки"><svg class="i" aria-hidden="true"><use href="#i-save"></use></svg>Сохранить настройки (JSON)</button>
-      <label class="btn ghost"><svg class="i" aria-hidden="true"><use href="#i-folder-open"></use></svg>Загрузить настройки (JSON)<input type="file" id="profileFile" accept=".json,application/json" hidden></label>
+      <button class="btn ghost" id="btnSaveProfile" title="Методы по столбцам, строка заголовков, лист и флажки"><svg class="i i20" aria-hidden="true"><use href="#i-save"></use></svg>Сохранить настройки</button>
+      <label class="btn ghost"><svg class="i i20" aria-hidden="true"><use href="#i-folder-open"></use></svg>Загрузить настройки<input type="file" id="profileFile" accept=".json,application/json" hidden></label>
     </div>
     <div class="table-scroll">
-      <table class="cols" id="colsTable">
+      <table class="data cols" id="colsTable">
         <thead><tr>
-          <th>Столбец</th><th class="c-type">Тип</th><th>Примеры значений</th><th class="r">Заполн. / уник.</th><th class="c-method">Метод</th><th class="c-params">Параметры</th>
+          <th>Столбец</th><th class="c-type">Тип</th><th>Примеры значений</th><th class="r" title="Заполнено ячеек / уникальных значений">Заполн. / уник.</th><th class="c-method">Метод</th><th class="c-params">Параметры</th>
         </tr></thead>
         <tbody></tbody>
       </table>
     </div>
-    <div id="settingsInfo" class="muted settings-info"></div>
+    <div id="settingsInfo" class="small muted settings-info"></div>
   </section>
 
   <!-- Шаг 3 -->
   <section class="card hidden" id="step3">
-    <h2><span class="num">3</span> Общие параметры</h2>
+    <h2 class="h2 step"><span class="num">3</span>Общие параметры</h2>
     <div class="grid3">
-      <label class="field">
-        <span>Секретный ключ</span>
-        <span class="inline"><input type="text" id="seed" spellcheck="false"><button class="btn small ghost" id="btnSeed" title="Новый случайный ключ" aria-label="Новый случайный ключ"><svg class="i" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
-        <small>Один и тот же ключ → одни и те же замены (удобно для ежемесячных выгрузок). Не передавайте ключ вместе с файлом.</small>
-      </label>
-      <label class="field">
-        <span>Коэффициент K для чисел</span>
-        <span class="inline"><input type="number" id="factor" step="0.0001"><button class="btn small ghost" id="btnFactor" title="Случайный K" aria-label="Случайный K"><svg class="i" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
-        <small>Все числа с методом «K» умножаются на одно число — пропорции, доли и суммы сохраняются.</small>
-      </label>
-      <label class="field">
-        <span>Сдвиг дат D, дней</span>
-        <span class="inline"><input type="number" id="shiftDays" step="1"><button class="btn small ghost" id="btnShift" title="Случайный сдвиг" aria-label="Случайный сдвиг"><svg class="i" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
-        <small>Все даты сдвигаются одинаково — сроки, просрочка и интервалы сохраняются.</small>
-      </label>
+      <div class="field">
+        <label class="caption" for="seed">Секретный ключ</label>
+        <span class="inline"><input class="mono-input" type="text" id="seed" spellcheck="false"><button class="btn secondary icon-only" id="btnSeed" title="Новый случайный ключ" aria-label="Новый случайный ключ"><svg class="i i20" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
+        <small class="small muted">Один ключ — одни и те же замены в каждой выгрузке. Не передавайте ключ вместе с файлом.</small>
+      </div>
+      <div class="field">
+        <label class="caption" for="factor">Коэффициент K для чисел</label>
+        <span class="inline"><input class="mono-input" type="number" id="factor" step="0.0001"><button class="btn secondary icon-only" id="btnFactor" title="Случайный K" aria-label="Случайный K"><svg class="i i20" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
+        <small class="small muted">Все числа с методом «K» умножаются на одно число: доли и суммы сохраняются.</small>
+      </div>
+      <div class="field">
+        <label class="caption" for="shiftDays">Сдвиг дат D, дней</label>
+        <span class="inline"><input class="mono-input" type="number" id="shiftDays" step="1"><button class="btn secondary icon-only" id="btnShift" title="Случайный сдвиг" aria-label="Случайный сдвиг"><svg class="i i20" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
+        <small class="small muted">Все даты сдвигаются одинаково: сроки, просрочка и интервалы сохраняются.</small>
+      </div>
     </div>
-    <div class="row-controls">
-      <label class="chk"><input type="checkbox" id="keepForm" checked> Сохранять ОПФ в названиях (ООО, АО, ИП…)</label>
+    <div class="checks">
+      <label class="chk"><input type="checkbox" id="keepForm" checked> Сохранять ОПФ в названиях (ООО, АО, ИП)</label>
       <label class="chk"><input type="checkbox" id="clearMeta" checked> Очистить свойства файла (автор, компания)</label>
       <label class="chk"><input type="checkbox" id="clearNotes" checked> Удалить примечания ячеек</label>
       <label class="chk"><input type="checkbox" id="clearHF" checked> Очистить колонтитулы</label>
@@ -108,20 +127,20 @@
 
   <!-- Шаг 4 -->
   <section class="card hidden" id="step4">
-    <h2><span class="num">4</span> Предпросмотр и выгрузка</h2>
-    <div class="row-controls">
-      <button class="btn" id="btnPreview"><svg class="i" aria-hidden="true"><use href="#i-eye"></use></svg>Обновить предпросмотр</button>
+    <h2 class="h2 step"><span class="num">4</span>Проверка и результат</h2>
+    <div class="row-controls toolbar">
+      <button class="btn secondary" id="btnPreview"><svg class="i i20" aria-hidden="true"><use href="#i-eye"></use></svg>Обновить предпросмотр</button>
       <span class="spacer"></span>
-      <button class="btn primary" id="btnDownload"><svg class="i" aria-hidden="true"><use href="#i-download"></use></svg>Скачать анонимизированный файл</button>
-      <button class="btn ghost" id="btnKey" title="Таблица соответствий «было → стало». Храните отдельно!"><svg class="i" aria-hidden="true"><use href="#i-key-round"></use></svg>Скачать ключ соответствий</button>
+      <button class="btn secondary" id="btnKey" title="Таблица соответствий «было → стало». Храните отдельно от результата"><svg class="i i20" aria-hidden="true"><use href="#i-key-round"></use></svg>Скачать ключ соответствий</button>
+      <button class="btn primary" id="btnDownload"><svg class="i i20" aria-hidden="true"><use href="#i-download"></use></svg>Обезличить и скачать</button>
     </div>
-    <div id="previewStats" class="muted"></div>
-    <div class="table-scroll"><table class="preview" id="previewTable"></table></div>
+    <div id="previewStats" class="small muted"></div>
+    <div class="table-scroll"><table class="data preview" id="previewTable"></table></div>
     <div id="warnings"></div>
   </section>
 </main>
 
-<div id="toast" class="toast hidden"></div>
+<div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
 <script src="../vendor/exceljs.min.js"></script>
 <script src="../vendor/jszip.min.js"></script>
