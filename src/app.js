@@ -99,6 +99,7 @@
         (S.loadNotes.length ? ' · файл исправлен при чтении, подробности в шаге 4' : '') + '</span>';
       if (!$('seed').value) newSeed();
       $('settingsInfo').textContent = '';
+      $('btnClear').classList.remove('hidden');
       setupSheet(true);
       ['step2', 'step3', 'step4'].forEach(id => $(id).classList.remove('hidden'));
       if (S.pending) { applySettings(S.pending.p, S.pending.name); }
@@ -108,6 +109,30 @@
       toast('Не удалось прочитать файл: ' + e.message, 7000);
     }
   }
+
+  // ---------- Очистить: начать работу с другим файлом без перезагрузки страницы ----------
+  // Убираются файл, настройки столбцов, предпросмотр и пароль ключа; общие параметры шага 3 остаются,
+  // чтобы несколько выгрузок можно было обезличить одним ключом
+  function clearRedact() {
+    Object.assign(S, {
+      pending: null, loadNotes: [], kind: null, fileName: '', buffer: null, wb: null,
+      sheetIndex: 0, grid: null, csv: null, an: null, cols: {}, result: null,
+    });
+    clearTimeout(previewTimer);
+    ['step2', 'step3', 'step4'].forEach(id => $(id).classList.add('hidden'));
+    $('btnClear').classList.add('hidden');
+    $('fileInfo').textContent = '';
+    $('pendingInfo').textContent = 'Сохранённые настройки (JSON) можно загрузить до или после файла с данными.';
+    $('sheet').innerHTML = '';
+    $('colsTable').tBodies[0].innerHTML = '';
+    for (const id of ['rowsInfo', 'settingsInfo', 'previewStats', 'warnings', 'previewTable']) $(id).innerHTML = '';
+    $('legend').classList.add('hidden');
+    $('keyPass').value = '';
+    $('keyPass2').value = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast('Готово к новому файлу. Общие параметры сохранены');
+  }
+  $('btnClear').addEventListener('click', clearRedact);
 
   $('sheet').addEventListener('change', () => {
     S.sheetIndex = +$('sheet').value;

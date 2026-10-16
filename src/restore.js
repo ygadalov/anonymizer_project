@@ -74,6 +74,7 @@
         $('rSheet').value = String(R.sheetIndex);
         R.grid = A.gridFromWorksheet(R.wb.worksheets[R.sheetIndex]);
       }
+      $('rClearRow').classList.remove('hidden');
       $('rFileInfo').innerHTML = `${icon('file-spreadsheet', 'i i20')}<b>${esc(file.name)}</b><span class="muted">${(file.size / 1024).toFixed(0)} КБ</span>`;
       setup(true);
     } catch (e) {
@@ -125,6 +126,7 @@
           R.key = null; R.prep = null;
           $('rKeyInfo').innerHTML = `${icon('lock', 'i i20')}<b>${esc(file.name)}</b><span class="muted">зашифрован паролем</span>`;
           $('rPassRow').classList.remove('hidden');
+          $('rClearRow').classList.remove('hidden');
           $('rPass').value = '';
           $('rPass').focus();
           return;
@@ -138,6 +140,21 @@
       toast('Не удалось прочитать ключ: ' + e.message, 7000, 'error');
     }
   }
+
+  // ---------- Очистить ----------
+  function clearRestore() {
+    Object.assign(R, {
+      fileName: '', kind: null, buffer: null, wb: null, csv: null, sheetIndex: 0, grid: null, an: null, notes: [],
+      key: null, keyName: '', keyNotes: [], envelope: null, prep: null, actions: {}, result: null,
+    });
+    ['r2', 'r3', 'rPassRow', 'rClearRow'].forEach(id => $(id).classList.add('hidden'));
+    for (const id of ['rFileInfo', 'rKeyInfo', 'rRowsInfo', 'rStats', 'rPreview', 'rWarnings', 'rSheet']) $(id).innerHTML = '';
+    $('rColsTable').tBodies[0].innerHTML = '';
+    $('rPass').value = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast('Готово к новому файлу и ключу');
+  }
+  $('btnRClear').addEventListener('click', clearRestore);
 
   async function unlock() {
     if (!R.envelope) return;
@@ -156,6 +173,7 @@
   $('rPass').addEventListener('keydown', ev => { if (ev.key === 'Enter') unlock(); });
 
   function setKey(key) {
+    $('rClearRow').classList.remove('hidden');
     R.key = key;
     R.prep = A.prepareRestore(key);
     const pairs = (key.dictionaries || []).reduce((n, d) => n + d.pairs.length, 0);
