@@ -428,9 +428,9 @@ input[type=password] {
   border-radius: var(--radius-sm); cursor: pointer; font: 400 15px/22px var(--font-sans); color: var(--ink);
 }
 .dd-opt .dd-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-/* выбранный пункт — мягкий фон, полужирный и галочка; пункт под курсором — фон легче, чтобы их не перепутать */
-.dd-opt.active { background: var(--paper); }
-.dd-opt.selected, .dd-opt.selected.active { background: var(--surface-sunken); font-weight: 500; }
+/* пункт под курсором — мягкий фон; выбранный — такой же фон, тонкая рамка, полужирный и галочка */
+.dd-opt.active { background: var(--surface-sunken); }
+.dd-opt.selected { background: var(--surface-sunken); box-shadow: inset 0 0 0 1px var(--border); font-weight: 500; }
 /* галочка только у выбранного пункта и места у остальных не занимает */
 .dd-check { display: none; width: 14px; height: 14px; }
 .dd-opt.selected .dd-check { display: block; }
@@ -764,7 +764,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 // Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
-window.ANON_VERSION = '2.8';
+window.ANON_VERSION = '2.9';
 
 </script>
 <script>
@@ -2908,6 +2908,11 @@ window.ANON_VERSION = '2.8';
   }
 
   function show(el) {
+    // элемент мог исчезнуть, пока ждали задержку (список закрылся, строку таблицы перерисовали):
+    // у такого элемента нет координат, и подсказка оказалась бы в левом верхнем углу
+    if (!el.isConnected) return;
+    const rect = el.getBoundingClientRect();
+    if (!rect.width && !rect.height) return;
     const text = textOf(el);
     const pop = document.querySelector('.dd-pop');
     if (!text || (pop && !pop.contains(el))) return; // пока открыт список, подсказки — только у его пунктов
@@ -2947,11 +2952,25 @@ window.ANON_VERSION = '2.8';
 
   const tipped = el => el && el.closest && el.closest('[title], [data-tip]');
 
+  // после щелчка или выбора под неподвижным курсором оказывается другой элемент (список закрылся,
+  // строка перерисовалась) — его подсказка не нужна, пока мышь снова не сдвинется
+  let quiet = false, qx = 0, qy = 0, mx = 0, my = 0;
+  const hush = () => { quiet = true; qx = mx; qy = my; hide(); };
+  document.addEventListener('mousedown', hush, true);
+  document.addEventListener('change', hush, true);
+  document.addEventListener('mousemove', ev => {
+    mx = ev.clientX; my = ev.clientY;
+    if (!quiet || Math.abs(mx - qx) + Math.abs(my - qy) < 3) return;
+    quiet = false;
+    const el = tipped(ev.target);
+    if (el && el !== target) { target = el; textOf(el); timer = setTimeout(() => { if (target === el) show(el); }, DELAY); }
+  }, true);
+
   document.addEventListener('mouseover', ev => {
     const el = tipped(ev.target);
     if (el === target) return;
     hide();
-    if (!el) return;
+    if (!el || quiet) return;
     target = el;
     textOf(el); // снять title сразу, чтобы системная подсказка не успела появиться
     timer = setTimeout(() => { if (target === el) show(el); }, DELAY);
@@ -2965,7 +2984,9 @@ window.ANON_VERSION = '2.8';
     if (el && el.matches(':focus-visible')) { target = el; show(el); }
   });
   document.addEventListener('focusout', hide);
-  document.addEventListener('mousedown', hide, true);
+  // элемент под подсказкой удалили из страницы — подсказку убираем (mouseout в этом случае не приходит)
+  new MutationObserver(() => { if (target && !target.isConnected) hide(); })
+    .observe(document.body, { childList: true, subtree: true });
   document.addEventListener('keydown', ev => { if (ev.key === 'Escape') hide(); }, true);
   window.addEventListener('scroll', hide, true);
   window.addEventListener('resize', hide);

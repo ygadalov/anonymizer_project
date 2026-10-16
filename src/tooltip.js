@@ -22,6 +22,11 @@
   }
 
   function show(el) {
+    // элемент мог исчезнуть, пока ждали задержку (список закрылся, строку таблицы перерисовали):
+    // у такого элемента нет координат, и подсказка оказалась бы в левом верхнем углу
+    if (!el.isConnected) return;
+    const rect = el.getBoundingClientRect();
+    if (!rect.width && !rect.height) return;
     const text = textOf(el);
     const pop = document.querySelector('.dd-pop');
     if (!text || (pop && !pop.contains(el))) return; // пока открыт список, подсказки — только у его пунктов
@@ -61,11 +66,25 @@
 
   const tipped = el => el && el.closest && el.closest('[title], [data-tip]');
 
+  // после щелчка или выбора под неподвижным курсором оказывается другой элемент (список закрылся,
+  // строка перерисовалась) — его подсказка не нужна, пока мышь снова не сдвинется
+  let quiet = false, qx = 0, qy = 0, mx = 0, my = 0;
+  const hush = () => { quiet = true; qx = mx; qy = my; hide(); };
+  document.addEventListener('mousedown', hush, true);
+  document.addEventListener('change', hush, true);
+  document.addEventListener('mousemove', ev => {
+    mx = ev.clientX; my = ev.clientY;
+    if (!quiet || Math.abs(mx - qx) + Math.abs(my - qy) < 3) return;
+    quiet = false;
+    const el = tipped(ev.target);
+    if (el && el !== target) { target = el; textOf(el); timer = setTimeout(() => { if (target === el) show(el); }, DELAY); }
+  }, true);
+
   document.addEventListener('mouseover', ev => {
     const el = tipped(ev.target);
     if (el === target) return;
     hide();
-    if (!el) return;
+    if (!el || quiet) return;
     target = el;
     textOf(el); // снять title сразу, чтобы системная подсказка не успела появиться
     timer = setTimeout(() => { if (target === el) show(el); }, DELAY);
@@ -79,7 +98,9 @@
     if (el && el.matches(':focus-visible')) { target = el; show(el); }
   });
   document.addEventListener('focusout', hide);
-  document.addEventListener('mousedown', hide, true);
+  // элемент под подсказкой удалили из страницы — подсказку убираем (mouseout в этом случае не приходит)
+  new MutationObserver(() => { if (target && !target.isConnected) hide(); })
+    .observe(document.body, { childList: true, subtree: true });
   document.addEventListener('keydown', ev => { if (ev.key === 'Escape') hide(); }, true);
   window.addEventListener('scroll', hide, true);
   window.addEventListener('resize', hide);
