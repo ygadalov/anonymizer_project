@@ -443,46 +443,72 @@
 
   // ---------- Преобразование ----------
   /*
-   * config = { seed, factor, shiftDays, keepForm, keepTotals,
-   *            columns: { [c]: { type, method, prefix, pct, step, group } } }
-   * Возвращает { changes: Map('r:c' → новое значение), mapping: [...], stats, warnings }
+   * Книга из одного или нескольких листов:
+   *   sheets = [{ name, grid, an, columns: { [c]: { type, method, prefix, pct, step, group } } }]
+   *   config = { seed, factor, shiftDays, keepForm, keepTotals }
+   * Группы замен общие для всей книги: одно и то же значение в столбцах одной группы на разных листах
+   * получает одну замену. Возвращает { bySheet: { [лист]: { changes: Map('r:c' → значение), changed } },
+   * mapping, stats, warnings, leaks, groups, smartDigits, numberMap }.
    */
+  // Имя группы замен. Буква столбца (группа по умолчанию) в книге из нескольких листов относится к своему листу:
+  // столбец B на «ДЗ» и столбец B на «КЗ» — разные группы. Названная группа («Контрагент») — общая для книги
+  function groupName(cfg, col, sheetName, multi) {
+    const g = String((cfg && cfg.group) || '').trim() || col.letter;
+    return (multi && /^[A-Z]{1,3}$/.test(g)) ? `${sheetName}!${g}` : g;
+  }
+  const isActive = cfg => cfg && cfg.method && cfg.method !== 'keep';
+
+  // Один лист — частный случай книги (так работают старые вызовы и тесты)
   function transform(grid, an, config) {
+    const r = transformBook([{ name: '', grid, an, columns: config.columns }], config);
+    r.changes = r.bySheet[''].changes;
+    return r;
+  }
+
+  function transformBook(sheets, config) {
     const seed = config.seed;
     const K = Number(config.factor) || 1;
     const D = Math.round(Number(config.shiftDays) || 0);
     const DAY = 86400000;
-    const active = an.columns
-      .map(col => ({ col, cfg: config.columns[col.c] }))
-      .filter(x => x.cfg && x.cfg.method && x.cfg.method !== 'keep');
-    const changes = new Map();
+    const used_ = sheets.filter(sh => sh.an.columns.some(col => isActive(sh.columns[col.c])));
+    const multi = used_.length > 1;
+    const label = (sh, col) => multi ? `${sh.name} · ${col.name}` : col.name;
+    // одиночный лист считается так же, как до появления книг: замены не зависят от имени листа
+    const salt = sh => multi ? [sh.name] : [];
+    const active = [];
+    for (const sh of sheets) for (const col of sh.an.columns) {
+      const cfg = sh.columns[col.c];
+      if (isActive(cfg)) active.push({ sh, col, cfg });
+    }
+    const bySheet = {};
+    for (const sh of sheets) bySheet[sh.name] = { changes: new Map(), changed: 0 };
     const mapping = [];
     const warnings = [];
     const leaks = [];      // исходные значения остаются в файле — показываются как ошибка
-    const skipRow = r => config.keepTotals && an.totalsRows.has(r);
-    const cellAt = (r, c) => { const x = grid.rows[r][c]; return (x && !x.slave && !isEmpty(x.v)) ? x : null; };
+    const cellIn = (sh, r, c) => { const x = sh.grid.rows[r][c]; return (x && !x.slave && !isEmpty(x.v)) ? x : null; };
     const asText = v => isDate(v) ? v.toISOString().slice(0, 10) : String(v);
 
-    // 1. Словари для текстовых/кодовых методов (общие для столбцов с одинаковым «словарём»)
+    // 1. Группы замен для текстовых и кодовых методов — общие для всей книги
     const groups = new Map();
-    for (const { col, cfg } of active) {
+    const gkeyOf = (sh, col, cfg) => cfg.method + '␟' + groupName(cfg, col, sh.name, multi);
+    for (const { sh, col, cfg } of active) {
       if (!DICT_METHODS.has(cfg.method)) continue;
-      const gkey = cfg.method + '␟' + (String(cfg.group || '').trim() || col.letter);
-      if (!groups.has(gkey)) groups.set(gkey, { method: cfg.method, name: String(cfg.group || '').trim() || col.letter, prefix: cfg.prefix, cols: [], values: new Set(), map: new Map() });
+      const gkey = gkeyOf(sh, col, cfg);
+      if (!groups.has(gkey)) groups.set(gkey, { method: cfg.method, name: groupName(cfg, col, sh.name, multi), prefix: cfg.prefix, cols: [], values: new Set(), map: new Map() });
       const g = groups.get(gkey);
-      g.cols.push(col);
-      for (const r of an.dataRows) {
-        if (skipRow(r)) continue;
-        const cell = cellAt(r, col.c);
+      g.cols.push(label(sh, col));
+      for (const r of sh.an.dataRows) {
+        if (config.keepTotals && sh.an.totalsRows.has(r)) continue;
+        const cell = cellIn(sh, r, col.c);
         if (cell && !isDate(cell.v)) g.values.add(asText(cell.v).trim());
       }
     }
-    // Слова, значения и номера исходного файла: замена не должна совпасть ни с одним из них,
+    // Слова, значения и номера исходной книги: замена не должна совпасть ни с одним из них,
     // иначе при возврате настоящее значение примут за замену («УРАЛСНАБ» в данных и такое же вымышленное название)
     const forbidden = new Set();
     if (groups.size) {
-      for (const r of an.dataRows) for (let c = 1; c <= grid.maxCol; c++) {
-        const cell = cellAt(r, c);
+      for (const sh of sheets) for (const r of sh.an.dataRows) for (let c = 1; c <= sh.grid.maxCol; c++) {
+        const cell = cellIn(sh, r, c);
         if (!cell || isDate(cell.v)) continue;
         const t = String(cell.v).trim().toLowerCase();
         forbidden.add(t);
@@ -526,7 +552,7 @@
           g.map.set(v, out);
         }
       }
-      for (const [o, n] of g.map) mapping.push({ dict: g.name, columns: g.cols.map(c => c.name).join(', '), method: g.method, orig: o, repl: n });
+      for (const [o, n] of g.map) mapping.push({ dict: g.name, columns: g.cols.join(', '), method: g.method, orig: o, repl: n });
     }
 
     // 2. Словарь для «замены внутри текста»: исходные имена/коды из других столбцов → их замены
@@ -545,9 +571,10 @@
     const crossRe = cross.size ? new RegExp([...cross.keys()].sort((a, b) => b.length - a.length).map(escapeRe).join('|'), 'gi') : null;
     const crossLower = new Map([...cross].map(([k, v]) => [k.toLowerCase(), v]));
     const smartDigits = new Map();
-    // замены номеров не должны совпадать с заменами из словарей — иначе при возврате их не различить
+    // замены номеров не должны совпадать с заменами из групп — иначе при возврате их не различить
     const smartDigitsUsed = new Set([...groups.values()].flatMap(g => [...g.map.values()]));
-    // Числа, умноженные на K: «новое ↔ исходное» по каждому столбцу, чтобы вернуть точно, без ошибки округления
+    // Числа, умноженные на коэффициент: «новое ↔ исходное» по названию столбца (общее для листов книги),
+    // чтобы вернуть точно, без ошибки округления
     const numberMap = new Map();
     const RE_DATE_IN_TEXT = /(?<!\d)(\d{1,2})([./])(\d{1,2})\2(\d{4})(?!\d)/g;
 
@@ -577,12 +604,14 @@
 
     // 3. Ячейки
     let changed = 0;
-    for (const { col, cfg } of active) {
+    for (const { sh, col, cfg } of active) {
       const m = cfg.method;
-      const g = DICT_METHODS.has(m) ? groups.get(m + '␟' + (String(cfg.group || '').trim() || col.letter)) : null;
+      const an = sh.an;
+      const out = bySheet[sh.name];
+      const g = DICT_METHODS.has(m) ? groups.get(gkeyOf(sh, col, cfg)) : null;
       let skippedType = 0;
       for (const r of an.dataRows) {
-        const cell = cellAt(r, col.c);
+        const cell = cellIn(sh, r, col.c);
         if (!cell) continue;
         const v = cell.v;
         const total = an.totalsRows.has(r);
@@ -604,7 +633,7 @@
             nv = smartText(v); break;
           case 'scale': case 'noise': case 'round': case 'random': {
             if (typeof v !== 'number') { skippedType++; continue; }
-            const rnd = makeRng(seed, 'num', col.c, r);
+            const rnd = makeRng(seed, 'num', col.c, r, ...salt(sh));
             if (m === 'scale') nv = v * K;
             else if (m === 'noise') nv = v * (1 + (rnd() * 2 - 1) * (Number(cfg.pct) || 0) / 100);
             else if (m === 'round') { const st = Number(cfg.step) || 1; nv = Math.round(v / st) * st; }
@@ -636,42 +665,46 @@
             const info = isD ? null : parseTextDate(v);
             if (!isD && !info) { skippedType++; continue; }
             const ms = isD ? v.getTime() : infoToMs(info);
-            let out;
-            if (m === 'shift') out = ms + D * DAY;
-            else if (m === 'month') { const dt = new Date(ms); out = Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), 1); }
+            let o;
+            if (m === 'shift') o = ms + D * DAY;
+            else if (m === 'month') { const dt = new Date(ms); o = Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), 1); }
             else {
-              const rnd = makeRng(seed, 'date', col.c, r);
-              out = col.dmin + Math.floor(rnd() * ((col.dmax - col.dmin) / DAY + 1)) * DAY;
+              const rnd = makeRng(seed, 'date', col.c, r, ...salt(sh));
+              o = col.dmin + Math.floor(rnd() * ((col.dmax - col.dmin) / DAY + 1)) * DAY;
             }
             // при сдвиге время суток сохраняется, при обобщении — отбрасывается
-            nv = isD ? new Date(out) : formatTextDate(info, out, m === 'shift');
+            nv = isD ? new Date(o) : formatTextDate(info, o, m === 'shift');
             break;
           }
           default: continue;
         }
         const same = (isDate(nv) && isDate(v)) ? nv.getTime() === v.getTime() : nv === v;
-        if (!same || cell.f || cell.rich) { changes.set(r + ':' + col.c, nv); changed++; }
+        if (!same || cell.f || cell.rich) { out.changes.set(r + ':' + col.c, nv); out.changed++; changed++; }
       }
-      if (skippedType) warnings.push(`«${col.name}»: ${skippedType} ${plural(skippedType, 'значение не подходит', 'значения не подходят', 'значений не подходят')} под тип «${TYPE_NAMES[cfg.type] || cfg.type}» и ${plural(skippedType, 'оставлено', 'оставлены', 'оставлены')} без изменений.`);
+      if (skippedType) warnings.push(`«${label(sh, col)}»: ${skippedType} ${plural(skippedType, 'значение не подходит', 'значения не подходят', 'значений не подходят')} под тип «${TYPE_NAMES[cfg.type] || cfg.type}» и ${plural(skippedType, 'оставлено', 'оставлены', 'оставлены')} без изменений.`);
     }
 
     // 4. Предупреждения об утечках: исходные значения в столбцах, которые оставлены как есть
+    //    (только на обезличиваемых листах; листы без методов приложение удаляет или показывает отдельно)
     if (cross.size) {
-      const keptCols = an.columns.filter(col => !active.some(a => a.col.c === col.c));
       const leakRe = new RegExp([...cross.keys()].filter(k => k.length >= 5).sort((a, b) => b.length - a.length).map(escapeRe).join('|') || '(?!)', 'i');
-      for (const col of keptCols) {
-        let hits = 0, example = null;
-        for (const r of an.dataRows) {
-          const cell = cellAt(r, col.c);
-          if (cell && typeof cell.v === 'string' && leakRe.test(cell.v)) { hits++; if (!example) example = cell.v; }
+      for (const sh of used_) {
+        for (const col of sh.an.columns.filter(col => !isActive(sh.columns[col.c]))) {
+          let hits = 0, example = null;
+          for (const r of sh.an.dataRows) {
+            const cell = cellIn(sh, r, col.c);
+            if (cell && typeof cell.v === 'string' && leakRe.test(cell.v)) { hits++; if (!example) example = cell.v; }
+          }
+          if (hits) leaks.push(`Столбец «${label(sh, col)}» не обезличивается, но в ${hits} ${plural(hits, 'ячейке', 'ячейках', 'ячейках')} есть исходные значения из других столбцов (например: «${String(example).slice(0, 80)}»). Выберите для него метод «Замена внутри текста».`);
         }
-        if (hits) leaks.push(`Столбец «${col.name}» не обезличивается, но в ${hits} ${plural(hits, 'ячейке', 'ячейках', 'ячейках')} есть исходные значения из других столбцов (например: «${String(example).slice(0, 80)}»). Выберите для него метод «Замена внутри текста».`);
       }
     }
     return {
-      changes, mapping, stats: { changed, columns: active.length }, warnings, leaks,
+      bySheet, mapping, multi,
+      stats: { changed, columns: active.length, sheets: used_.length },
+      warnings, leaks,
       // для ключа соответствий
-      groups: [...groups.values()].map(g => ({ name: g.name, method: g.method, prefix: g.prefix, columns: g.cols.map(c => c.name), pairs: [...g.map] })),
+      groups: [...groups.values()].map(g => ({ name: g.name, method: g.method, prefix: g.prefix, columns: g.cols, pairs: [...g.map] })),
       smartDigits: [...smartDigits],
       numberMap,
     };
@@ -788,27 +821,34 @@
     unshift: 'Даты сдвигаются обратно на сдвиг из ключа',
   };
 
-  function buildKey({ an, config, result, sourceFile, sheet, appVersion }) {
+  // Ключ для книги: sheets = [{ name, an, columns }] — все листы, которые попадут в результат
+  function buildKeyBook({ sheets, config, result, sourceFile, appVersion }) {
     const numbers = {};
     for (const [name, st] of result.numberMap) numbers[name] = [...st.n2o].map(([k, o]) => [Number(k), o]);
+    const multi = !!result.multi;
     return {
       app: 'Redact', kind: 'redact-key', format: KEY_FORMAT, appVersion, createdAt: new Date().toISOString(),
-      sourceFile, sheet, headerRow: an.headerRow,
+      sourceFile,
+      sheet: sheets[0] ? sheets[0].name : null,   // для ключей одного листа (как в прежних версиях)
+      sheets: sheets.map(sh => ({ name: sh.name, headerRow: sh.an.headerRow })),
+      headerRow: sheets[0] ? sheets[0].an.headerRow : 1,
       factor: Number(config.factor) || 1,
       shiftDays: Math.round(Number(config.shiftDays) || 0),
-      // все столбцы исходного файла, включая оставленные как есть: при возврате их значения не трогаются,
-      // даже если они похожи на замены из словаря (например, коды договоров и коды контрагентов в одном формате)
-      columns: an.columns
-        .map(c => {
-          const cfg = config.columns[c.c] || { type: c.detected, method: 'keep' };
-          const item = { letter: c.letter, name: c.name, type: cfg.type, method: cfg.method || 'keep' };
-          if (DICT_METHODS.has(cfg.method)) item.dict = String(cfg.group || '').trim() || c.letter;
-          return item;
-        }),
+      // все столбцы исходных листов, включая оставленные как есть: при возврате их значения не трогаются,
+      // даже если они похожи на замены (например, коды договоров и коды контрагентов в одном формате)
+      columns: sheets.flatMap(sh => sh.an.columns.map(c => {
+        const cfg = sh.columns[c.c] || { type: c.detected, method: 'keep' };
+        const item = { sheet: sh.name, letter: c.letter, name: c.name, type: cfg.type, method: cfg.method || 'keep' };
+        if (DICT_METHODS.has(cfg.method)) item.dict = groupName(cfg, c, sh.name, multi);
+        return item;
+      })),
       dictionaries: result.groups.map(g => ({ name: g.name, method: g.method, prefix: g.prefix || '', columns: g.columns, pairs: g.pairs })),
       smartDigits: result.smartDigits,
       numbers,
     };
+  }
+  function buildKey({ an, config, result, sourceFile, sheet, appVersion }) {
+    return buildKeyBook({ sheets: [{ name: sheet, an, columns: config.columns }], config, result, sourceFile, appVersion });
   }
 
   // Ключ из таблицы соответствий версий до 2.1 (листы «Соответствия» и «Параметры»)
@@ -925,7 +965,15 @@
     const re = keys.length ? new RegExp(`(?<![\\p{L}\\p{N}])(?:${keys.map(escapeRe).join('|')})(?![\\p{L}\\p{N}])`, 'giu') : null;
     const revDigits = new Map((key.smartDigits || []).map(([o, r]) => [String(r), String(o)]));
     const numbers = new Map(Object.entries(key.numbers || {}).map(([name, list]) => [name, new Map(list.map(([n, o]) => [String(n), o]))]));
-    const colByName = new Map((key.columns || []).map(c => [c.name, c]));
+    // столбцы ключа: по листу и названию, а также только по названию (если лист в ответном файле переименовали)
+    const colBySheet = new Map((key.columns || []).filter(c => c.sheet != null).map(c => [c.sheet + '␟' + c.name, c]));
+    const colByName = new Map();
+    for (const c of key.columns || []) {
+      const prev = colByName.get(c.name);
+      // одноимённые столбцы на разных листах: предпочтение обезличенному
+      if (!prev || (prev.method === 'keep' && c.method !== 'keep')) colByName.set(c.name, c);
+    }
+    const keySheets = new Set((key.sheets || []).map(x => x.name).concat(key.sheet ? [key.sheet] : []));
     // префиксы псевдонимов: из ключа, а для ключей старых версий — из самих замен («Контрагент 047 ООО» → «Контрагент»)
     const prefixes = new Set();
     for (const d of key.dictionaries || []) {
@@ -934,21 +982,24 @@
       for (const [, r] of d.pairs.slice(0, 50)) { const m = /^(.+?) \d{3,}$/.exec(splitLegalForm(r).core); if (m) prefixes.add(m[1]); }
     }
     const leftoverRe = prefixes.size ? new RegExp(`(?<![\\p{L}\\p{N}])(?:${[...prefixes].map(escapeRe).join('|')}) \\d{3,}(?!\\p{N})`, 'u') : null;
-    return { key, global, lower, re, byDict, revDigits, numbers, colByName, ambiguous: ambiguous.size, leftoverRe };
+    return { key, global, lower, re, byDict, revDigits, numbers, colByName, colBySheet, keySheets, ambiguous: ambiguous.size, leftoverRe };
   }
 
   // Столбец присланного файла ↔ столбец ключа — только по названию: в ответном файле столбцы могут быть
   // переставлены или добавлены, и буквы перестают совпадать
-  function matchKeyColumn(prep, col) {
+  function matchKeyColumn(prep, col, sheetName) {
+    if (sheetName != null && prep.colBySheet.has(sheetName + '␟' + col.name)) return prep.colBySheet.get(sheetName + '␟' + col.name);
+    // лист с таким именем есть в ключе, но столбца на нём не было — это новый столбец
+    if (sheetName != null && prep.keySheets.has(sheetName) && prep.colBySheet.size) return null;
     return prep.colByName.get(col.name) || null;
   }
-  function defaultRestoreAction(prep, col) {
-    const kc = matchKeyColumn(prep, col);
+  function defaultRestoreAction(prep, col, sheetName) {
+    const kc = matchKeyColumn(prep, col, sheetName);
     if (kc) return REVERSE_OF[kc.method] || 'keep';
     return (col.detected === 'text' || col.detected === 'id') ? 'text' : 'keep';
   }
 
-  function restoreTransform(grid, an, prep, actions) {
+  function restoreTransform(grid, an, prep, actions, sheetName) {
     const key = prep.key;
     const K = Number(key.factor) || 1, D = Math.round(Number(key.shiftDays) || 0), DAY = 86400000;
     const changes = new Map();
@@ -982,7 +1033,7 @@
     for (const col of an.columns) {
       const action = actions[col.c] || 'keep';
       if (action === 'keep') continue;
-      const kc = matchKeyColumn(prep, col);
+      const kc = matchKeyColumn(prep, col, sheetName);
       const dictMap = kc && kc.dict ? prep.byDict.get(kc.method + '␟' + kc.dict) : null;
       const nums = prep.numbers.get(kc ? kc.name : col.name);
       let n = 0;
@@ -1081,7 +1132,7 @@
 
   const api = {
     VERSION: root.ANON_VERSION || 'dev',
-    buildKey, legacyKeyFromRows, encryptKey, decryptKey, prepareRestore, matchKeyColumn, defaultRestoreAction, restoreTransform,
+    transformBook, buildKeyBook, groupName, buildKey, legacyKeyFromRows, encryptKey, decryptKey, prepareRestore, matchKeyColumn, defaultRestoreAction, restoreTransform,
     REVERSE_OF, RESTORE_ACTIONS, RESTORE_HINTS,
     plural, cyrb128, makeRng, randomSeed, factorFromSeed, shiftFromSeed,
     parseTextDate, formatTextDate, gridFromWorksheet, parseCsv, gridToCsv,

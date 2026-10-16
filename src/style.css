@@ -91,6 +91,8 @@ input:focus, select:focus, input:focus-visible, select:focus-visible {
 .mono-input, .params input { font: 400 14px/20px var(--font-mono); }
 input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--ink); margin: 0; flex: none; }
 #headerRow, #rHeaderRow { width: 80px; }
+/* в списке листов — статус («6 столбцов», «не обезличивается»): поле шире, чтобы пункты не переносились */
+#sheet, #rSheet { min-width: 280px; max-width: 100%; }
 
 .field { display: flex; flex-direction: column; gap: var(--space-1); }
 .field .caption, .field-inline .caption { color: var(--ink-muted); }

@@ -9,7 +9,11 @@
     sheetIndex: 0, grid: null, an: null, notes: [],
     key: null, keyName: '', keyNotes: [], envelope: null, prep: null,
     actions: {}, result: null,
+    sheetActions: new Map(),   // действия, изменённые вручную, по листам: имя → { headerRow, actions }
   };
+  const curName = () => R.kind === 'xlsx' && R.wb ? R.wb.worksheets[R.sheetIndex].name : null;
+  // лист есть в ключе — он был обезличен вместе с книгой и восстанавливается полностью
+  const inKey = name => !!(R.prep && name != null && R.prep.keySheets.has(name));
 
   // ---------- Переключение режимов ----------
   function setMode(mode) {
@@ -68,10 +72,9 @@
         R.wb = new ExcelJS.Workbook();
         await R.wb.xlsx.load(R.buffer);
         if (!R.wb.worksheets.length) throw new Error('в книге нет листов');
-        $('rSheet').innerHTML = R.wb.worksheets.map((ws, i) => `<option value="${i}">${esc(ws.name)}</option>`).join('');
-        $('rSheet').disabled = R.wb.worksheets.length < 2;
+        R.sheetActions = new Map();
         R.sheetIndex = pickSheet();
-        $('rSheet').value = String(R.sheetIndex);
+        renderSheetOptions();
         R.grid = A.gridFromWorksheet(R.wb.worksheets[R.sheetIndex]);
       }
       $('rClearRow').classList.remove('hidden');
@@ -83,11 +86,12 @@
       toast('Не удалось прочитать файл: ' + e.message, 7000, 'error');
     }
   }
-  // лист из ключа, если он есть в файле; иначе самый большой
+  // первый лист из ключа, если он есть в файле; иначе самый большой
   function pickSheet() {
     const wss = R.wb.worksheets;
-    if (R.key && R.key.sheet) {
-      const i = wss.findIndex(ws => ws.name === R.key.sheet);
+    const names = R.key ? (R.key.sheets || []).map(x => x.name).concat(R.key.sheet ? [R.key.sheet] : []) : [];
+    for (const n of names) {
+      const i = wss.findIndex(ws => ws.name === n);
       if (i >= 0) return i;
     }
     let best = 0;
@@ -146,6 +150,7 @@
     Object.assign(R, {
       fileName: '', kind: null, buffer: null, wb: null, csv: null, sheetIndex: 0, grid: null, an: null, notes: [],
       key: null, keyName: '', keyNotes: [], envelope: null, prep: null, actions: {}, result: null,
+      sheetActions: new Map(),
     });
     ['r2', 'r3', 'rPassRow', 'rClearRow'].forEach(id => $(id).classList.add('hidden'));
     for (const id of ['rFileInfo', 'rKeyInfo', 'rRowsInfo', 'rStats', 'rPreview', 'rWarnings', 'rSheet']) $(id).innerHTML = '';
@@ -183,6 +188,7 @@
     $('rClearRow').classList.remove('hidden');
     R.key = key;
     R.prep = A.prepareRestore(key);
+    R.sheetActions = new Map(); // действия по умолчанию зависят от ключа
     const pairs = (key.dictionaries || []).reduce((n, d) => n + d.pairs.length, 0);
     const locked = !!R.envelope;
     $('rKeyInfo').innerHTML = `${icon(locked ? 'lock-open' : 'key-round', 'i i20')}<b>${esc(R.keyName)}</b>` +
@@ -197,6 +203,13 @@
   }
 
   // ---------- Структура ----------
+  function renderSheetOptions() {
+    if (R.kind !== 'xlsx' || !R.wb) { $('rSheet').innerHTML = '<option>CSV</option>'; $('rSheet').disabled = true; return; }
+    $('rSheet').innerHTML = R.wb.worksheets.map((ws, i) =>
+      `<option value="${i}">${esc(ws.name)}${R.prep ? (inKey(ws.name) ? ' · из ключа' : ' · нет в ключе') : ''}</option>`).join('');
+    $('rSheet').value = String(R.sheetIndex);
+    $('rSheet').disabled = R.wb.worksheets.length < 2;
+  }
   $('rSheet').addEventListener('change', () => {
     R.sheetIndex = +$('rSheet').value;
     R.grid = A.gridFromWorksheet(R.wb.worksheets[R.sheetIndex]);
@@ -214,12 +227,19 @@
       ['r2', 'r3'].forEach(id => $(id).classList.add('hidden'));
       return;
     }
-    const hr = autoHeader ? A.detectHeaderRow(R.grid) : headerRow;
+    const name = curName();
+    const kept = R.sheetActions.get(name);
+    const hr = autoHeader ? (kept ? kept.headerRow : A.detectHeaderRow(R.grid)) : headerRow;
     $('rHeaderRow').value = hr;
     R.an = A.analyze(R.grid, hr);
-    R.actions = {};
-    for (const col of R.an.columns) R.actions[col.c] = A.defaultRestoreAction(R.prep, col);
-    const known = R.an.columns.filter(col => A.matchKeyColumn(R.prep, col)).length;
+    if (kept && kept.headerRow === hr) R.actions = kept.actions;
+    else {
+      R.actions = {};
+      for (const col of R.an.columns) R.actions[col.c] = A.defaultRestoreAction(R.prep, col, name);
+      R.sheetActions.set(name, { headerRow: hr, actions: R.actions });
+    }
+    renderSheetOptions();
+    const known = R.an.columns.filter(col => A.matchKeyColumn(R.prep, col, name)).length;
     $('rRowsInfo').textContent = `Строк: ${R.an.dataRows.length} · столбцов: ${R.an.columns.length}, из них из исходного файла: ${known}`;
     renderCols();
     ['r2', 'r3'].forEach(id => $(id).classList.remove('hidden'));
@@ -233,7 +253,7 @@
 
   function renderCols() {
     $('rColsTable').tBodies[0].innerHTML = R.an.columns.map(col => {
-      const kc = A.matchKeyColumn(R.prep, col);
+      const kc = A.matchKeyColumn(R.prep, col, curName());
       const inKey = !kc ? '<span class="muted">нет — новый столбец</span>'
         : kc.method === 'keep' ? '<span class="muted">не обезличивался</span>'
         : `${esc(methodLabel(kc.method))}${A.REVERSE_OF[kc.method] ? '' : ' <span class="text-danger">· необратимо</span>'}`;
@@ -260,10 +280,11 @@
   // ---------- Предпросмотр ----------
   function preview() {
     if (!R.an || !R.prep) return;
-    R.result = A.restoreTransform(R.grid, R.an, R.prep, R.actions);
+    R.result = A.restoreTransform(R.grid, R.an, R.prep, R.actions, curName());
     const { changes, stats, leftovers } = R.result;
     $('rStats').textContent = stats.restored
-      ? `Будет восстановлено значений: ${stats.restored.toLocaleString('ru-RU')} в ${stats.columns} ${A.plural(stats.columns, 'столбце', 'столбцах', 'столбцах')}`
+      ? `Будет восстановлено значений: ${stats.restored.toLocaleString('ru-RU')} в ${stats.columns} ${A.plural(stats.columns, 'столбце', 'столбцах', 'столбцах')}` +
+        (R.kind === 'xlsx' && R.wb.worksheets.length > 1 ? ` на листе «${curName()}»` : '')
       : 'В файле не найдено значений из ключа. Проверьте, что ключ от этого файла и строка заголовков выбрана верно.';
     const active = R.an.columns.filter(col => R.result.perColumn.some(p => p.col.c === col.c && p.restored));
     const rows = R.an.dataRows.filter(r => active.some(col => changes.has(r + ':' + col.c))).slice(0, 15);
@@ -282,14 +303,19 @@
       const ex = [...new Set(leftovers.map(x => x.text))].slice(0, 5).map(t => `«${t}»`).join(', ');
       danger.push(`Не найдено в ключе: ${leftovers.length} ${A.plural(leftovers.length, 'значение', 'значения', 'значений')} (${ex}). Возможно, файл обезличен другим ключом или значения добавлены вручную.`);
     }
-    const irreversible = R.an.columns.map(col => A.matchKeyColumn(R.prep, col)).filter(kc => kc && kc.method !== 'keep' && !A.REVERSE_OF[kc.method]);
+    const irreversible = R.an.columns.map(col => A.matchKeyColumn(R.prep, col, curName())).filter(kc => kc && kc.method !== 'keep' && !A.REVERSE_OF[kc.method]);
     if (irreversible.length) info.push(`Необратимые методы: ${irreversible.map(kc => `«${kc.name}» — ${methodLabel(kc.method).toLowerCase()}`).join('; ')}. Эти значения не восстановить.`);
     if (R.prep.ambiguous) info.push(`Замен, которые совпали в разных группах: ${R.prep.ambiguous}. Внутри текста они не заменяются; в своих столбцах восстанавливаются по группе столбца.`);
     if (R.kind === 'xlsx' && R.wb.worksheets.length > 1) {
-      const others = R.wb.worksheets.filter((_, i) => i !== R.sheetIndex).map(ws => `«${ws.name}»`).join(', ');
-      info.push($('rOtherSheets').checked
-        ? `На остальных листах (${others}) названия и коды тоже будут возвращены. Числа и даты там не меняются.`
-        : `Остальные листы (${others}) останутся без изменений.`);
+      const others = R.wb.worksheets.filter((_, i) => i !== R.sheetIndex);
+      const fromKey = others.filter(ws => inKey(ws.name)).map(ws => `«${ws.name}»`);
+      const rest = others.filter(ws => !inKey(ws.name)).map(ws => `«${ws.name}»`);
+      if (fromKey.length) info.push(fromKey.length > 1
+        ? `Листы ${fromKey.join(', ')} из ключа тоже будут восстановлены полностью — названия, коды, суммы и даты. Чтобы проверить или изменить действия, выберите лист в списке «Лист».`
+        : `Лист ${fromKey[0]} из ключа тоже будет восстановлен полностью — названия, коды, суммы и даты. Чтобы проверить или изменить действия, выберите его в списке «Лист».`);
+      if (rest.length) info.push($('rOtherSheets').checked
+        ? `На ${rest.length > 1 ? 'листах' : 'листе'} ${rest.join(', ')} (нет в ключе) будут возвращены названия и коды. Числа и даты там не меняются.`
+        : `${rest.length > 1 ? 'Листы' : 'Лист'} ${rest.join(', ')} (нет в ключе) останутся без изменений.`);
     }
     const notice = (cls, ic, title, items) => items.length
       ? `<div class="notice ${cls}"><div class="notice-title">${icon(ic, 'i i20')}${title}</div><ul>${items.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
@@ -312,12 +338,21 @@
         await wb.xlsx.load(R.buffer);
         wb.worksheets.forEach((ws, i) => {
           if (i === R.sheetIndex) { A.applyToWorksheet(ws, R.result.changes); return; }
-          if (!$('rOtherSheets').checked) return;
-          // на остальных листах — только названия и коды (числа и даты там могут быть уже своими)
-          const g = A.gridFromWorksheet(ws), an = A.analyze(g, 0);
-          const acts = {};
-          for (const col of an.columns) acts[col.c] = 'text';
-          const res = A.restoreTransform(g, an, R.prep, acts);
+          const g = A.gridFromWorksheet(ws);
+          let an, acts = {};
+          if (inKey(ws.name)) {
+            // лист из ключа — полностью, с действиями, выбранными для него (или по умолчанию)
+            const kept = R.sheetActions.get(ws.name);
+            an = A.analyze(g, kept ? kept.headerRow : A.detectHeaderRow(g));
+            if (kept) acts = kept.actions;
+            else for (const col of an.columns) acts[col.c] = A.defaultRestoreAction(R.prep, col, ws.name);
+          } else {
+            if (!$('rOtherSheets').checked) return;
+            // лист не из ключа — только названия и коды (числа и даты там могут быть уже своими)
+            an = A.analyze(g, 0);
+            for (const col of an.columns) acts[col.c] = 'text';
+          }
+          const res = A.restoreTransform(g, an, R.prep, acts, ws.name);
           A.applyToWorksheet(ws, res.changes);
           total += res.stats.restored;
         });

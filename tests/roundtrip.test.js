@@ -119,3 +119,46 @@ test('ключ шифруется паролем и не открывается 
   assert.deepStrictEqual(await A.decryptKey(env, 'Пароль-2026'), key);
   await assert.rejects(A.decryptKey(env, 'не тот пароль'), /неверный пароль/);
 });
+
+test('книга из двух листов: общий псевдоним и точное восстановление', () => {
+  const g1 = makeGrid(120), g2 = makeGrid(80);
+  const mk = (name, grid) => {
+    const an = A.analyze(grid, A.detectHeaderRow(grid));
+    const columns = {};
+    for (const c of an.columns) {
+      columns[c.c] = A.suggest(c);
+      if (c.detected === 'number' && c.name !== 'Дни') columns[c.c].method = 'scale';
+      if (c.detected === 'date') columns[c.c].method = 'shift';
+      if (c.name === 'Контрагент') columns[c.c].group = 'Контрагент'; // общая группа на двух листах
+    }
+    return { name, grid, an, columns };
+  };
+  const sheets = [mk('ДЗ', g1), mk('КЗ', g2)];
+  const cfg = { seed: 'book', factor: 1.37, shiftDays: -45, keepForm: true, keepTotals: true };
+  const res = A.transformBook(sheets, cfg);
+  assert.ok(res.multi);
+  const nameCol = 5, seen = new Map();
+  for (const sh of sheets) for (const r of sh.an.dataRows) {
+    const o = sh.grid.rows[r][nameCol], n = res.bySheet[sh.name].changes.get(r + ':' + nameCol);
+    if (!o || n === undefined) continue;
+    const k = String(o.v).trim();
+    if (seen.has(k)) assert.strictEqual(seen.get(k), String(n).trim(), `один псевдоним для «${k}» на обоих листах`);
+    seen.set(k, String(n).trim());
+  }
+  const key = JSON.parse(JSON.stringify(A.buildKeyBook({ sheets, config: cfg, result: res, sourceFile: 'book.xlsx' })));
+  const prep = A.prepareRestore(key);
+  for (const sh of sheets) {
+    const ch = res.bySheet[sh.name].changes;
+    const anon = { ...sh.grid, rows: sh.grid.rows.map((row, r) => row && row.map((cell, c) => ch.has(r + ':' + c) ? { v: ch.get(r + ':' + c) } : cell)) };
+    const an = A.analyze(anon, sh.an.headerRow);
+    const actions = {};
+    for (const c of an.columns) actions[c.c] = A.defaultRestoreAction(prep, c, sh.name);
+    const back = A.restoreTransform(anon, an, prep, actions, sh.name);
+    for (const r of sh.an.dataRows) for (const c of sh.an.columns) {
+      const k = r + ':' + c.c;
+      const got = back.changes.has(k) ? back.changes.get(k) : (anon.rows[r][c.c] ? anon.rows[r][c.c].v : null);
+      const orig = sh.grid.rows[r][c.c] ? sh.grid.rows[r][c.c].v : null;
+      assert.strictEqual(val(got), val(orig), `${sh.name}, строка ${r}, «${c.name}»`);
+    }
+  }
+});

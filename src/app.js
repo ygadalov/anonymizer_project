@@ -14,11 +14,12 @@
     fileName: '',
     buffer: null,     // исходный файл — для записи результата в «чистую» копию книги
     wb: null,
-    sheetIndex: 0,
+    sheets: [],       // состояние каждого листа: { name, grid, an, cols, saved }
+    sheetIndex: 0,    // текущий лист; grid, an и cols ниже — его же, для краткости
     grid: null,
     csv: null,        // { delim, decSep }
     an: null,
-    cols: {},         // настройки по номеру столбца
+    cols: {},         // настройки текущего листа по номеру столбца
     result: null,
   };
 
@@ -49,7 +50,7 @@
     get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* недоступно — не страшно */ } },
   };
-  const layoutKey = () => S.an ? 'anon-layout:' + A.cyrb128(S.an.columns.map(c => c.name).join('␟'))[0].toString(36) : null;
+  const layoutKey = (an = S.an) => an ? 'anon-layout:' + A.cyrb128(an.columns.map(c => c.name).join('␟'))[0].toString(36) : null;
 
   // ---------- Загрузка файла ----------
   const drop = $('drop');
@@ -73,10 +74,9 @@
         if (text.includes('�')) text = new TextDecoder('windows-1251').decode(buf);
         const parsed = A.parseCsv(text);
         S.wb = null;
-        S.grid = parsed.grid;
         S.csv = { delim: parsed.delim, decSep: parsed.decSep };
-        $('sheet').innerHTML = '<option>CSV</option>';
-        $('sheet').disabled = true;
+        S.sheets = [makeState('CSV', parsed.grid)];
+        S.sheetIndex = 0;
       } else {
         S.kind = 'xlsx';
         // Файл заранее приводится к виду, который ExcelJS читает без потерь (выгрузки из 1С и т.п.)
@@ -86,22 +86,21 @@
         S.wb = new ExcelJS.Workbook();
         await S.wb.xlsx.load(S.buffer);
         if (!S.wb.worksheets.length) throw new Error('В книге нет листов.');
-        $('sheet').innerHTML = S.wb.worksheets.map((ws, i) => `<option value="${i}">${esc(ws.name)}${ws.state && ws.state !== 'visible' ? ' (скрытый)' : ''}</option>`).join('');
-        $('sheet').disabled = S.wb.worksheets.length < 2;
-        // по умолчанию — самый большой лист
+        // все листы разбираются сразу: методы подбираются для каждого, а в списке листов видно, какие обезличиваются
+        S.sheets = S.wb.worksheets.map(ws => makeState(ws.name, A.gridFromWorksheet(ws)));
+        linkGroupsAcrossSheets();
+        // открывается самый большой лист
         let best = 0;
         S.wb.worksheets.forEach((ws, i) => { if (ws.rowCount * ws.columnCount > S.wb.worksheets[best].rowCount * S.wb.worksheets[best].columnCount) best = i; });
-        $('sheet').value = String(best);
         S.sheetIndex = best;
-        S.grid = A.gridFromWorksheet(S.wb.worksheets[best]);
       }
       $('fileInfo').innerHTML = `${icon('file-spreadsheet', 'i i20')}<b>${esc(file.name)}</b><span class="muted">${(file.size / 1024).toFixed(0)} КБ` +
         (S.loadNotes.length ? ' · файл исправлен при чтении, подробности в шаге 4' : '') + '</span>';
       if (!$('seed').value) newSeed();
       $('settingsInfo').textContent = '';
       $('btnClear').classList.remove('hidden');
-      setupSheet(true);
       ['step2', 'step3', 'step4'].forEach(id => $(id).classList.remove('hidden'));
+      showSheet(S.sheetIndex);
       if (S.pending) { applySettings(S.pending.p, S.pending.name); }
     } catch (e) {
       console.error(e);
@@ -116,7 +115,7 @@
   function clearRedact() {
     Object.assign(S, {
       pending: null, loadNotes: [], kind: null, fileName: '', buffer: null, wb: null,
-      sheetIndex: 0, grid: null, csv: null, an: null, cols: {}, result: null,
+      sheets: [], sheetIndex: 0, grid: null, csv: null, an: null, cols: {}, result: null,
     });
     clearTimeout(previewTimer);
     ['step2', 'step3', 'step4'].forEach(id => $(id).classList.add('hidden'));
@@ -141,30 +140,86 @@
     if (ok) clearRedact();
   });
 
-  $('sheet').addEventListener('change', () => {
-    S.sheetIndex = +$('sheet').value;
-    S.grid = A.gridFromWorksheet(S.wb.worksheets[S.sheetIndex]);
-    setupSheet(true);
-  });
+  // ---------- Листы ----------
+  // Состояние листа: разбор, подобранные методы (или сохранённые для такой же структуры столбцов)
+  function makeState(name, grid, headerRow) {
+    const an = A.analyze(grid, headerRow || A.detectHeaderRow(grid));
+    const cols = {};
+    for (const col of an.columns) cols[col.c] = A.suggest(col);
+    const saved = store.get(layoutKey(an));
+    const st = { name, grid, an, cols, saved: !!(saved && saved.columns) };
+    if (st.saved) applySettingsColumns(saved.columns, st);
+    return st;
+  }
+  const isActive = cfg => cfg && cfg.method && cfg.method !== 'keep';
+  const activeCount = st => st.an.columns.filter(col => isActive(st.cols[col.c])).length;
+  const usedSheets = () => S.sheets.filter(st => activeCount(st) > 0);
+  const resultSheets = () => S.sheets.filter(st => activeCount(st) > 0 || !$('dropUnused').checked);
+
+  // Однотипные столбцы на разных листах (контрагенты, ИНН, организация) получают общую группу замен —
+  // одна и та же компания на «ДЗ» и «КЗ» станет одним псевдонимом. Группы, заданные вручную, не трогаются
+  const GROUP_KINDS = [
+    [/инн/i, 'ИНН'],
+    [/^код\s+(контрагент|клиент|покупател|поставщик)/i, 'Код контрагента'],
+    [/организац/i, 'Организация'],
+    [/контрагент|покупател|поставщик|клиент|дебитор|кредитор|counterpart|customer|client|vendor|supplier/i, 'Контрагент'],
+  ];
+  function linkGroupsAcrossSheets() {
+    if (usedSheets().length < 2) return;
+    const byKind = new Map();
+    S.sheets.forEach(st => st.an.columns.forEach(col => {
+      const cfg = st.cols[col.c];
+      if (!A.DICT_METHODS.has(cfg.method) || (cfg.group && cfg.group !== col.letter)) return;
+      const kind = (GROUP_KINDS.find(([re]) => re.test(col.name)) || [])[1];
+      if (!kind) return;
+      if (!byKind.has(kind)) byKind.set(kind, []);
+      byKind.get(kind).push({ st, cfg });
+    }));
+    for (const [kind, list] of byKind) {
+      if (new Set(list.map(x => x.st)).size < 2) continue; // только если такие столбцы есть на разных листах
+      for (const { cfg } of list) cfg.group = kind;
+    }
+  }
+
+  // Подпись листа в списке: обезличивается ли он и сколько столбцов
+  function renderSheetOptions() {
+    const sel = $('sheet');
+    sel.innerHTML = S.sheets.map((st, i) => {
+      const n = activeCount(st);
+      const hidden = S.wb && S.wb.worksheets[i].state && S.wb.worksheets[i].state !== 'visible' ? ' (скрытый)' : '';
+      const status = n ? `${n} ${A.plural(n, 'столбец', 'столбца', 'столбцов')}` : 'не обезличивается';
+      return `<option value="${i}">${esc(st.name)}${hidden} · ${status}</option>`;
+    }).join('');
+    sel.value = String(S.sheetIndex);
+    sel.disabled = S.sheets.length < 2;
+  }
+
+  function showSheet(i) {
+    S.sheetIndex = i;
+    const st = S.sheets[i];
+    S.grid = st.grid; S.an = st.an; S.cols = st.cols;
+    $('headerRow').value = st.an.headerRow;
+    const tot = st.an.totalsRows.size;
+    $('rowsInfo').textContent = `Строк данных: ${st.an.dataRows.length - tot}${tot ? `, строк итогов: ${tot}` : ''} · столбцов: ${st.an.columns.length}` + (st.saved ? ' · применены настройки, сохранённые для этой структуры' : '');
+    renderSheetOptions();
+    renderColumns();
+    schedulePreview();
+  }
+
+  $('sheet').addEventListener('change', () => showSheet(+$('sheet').value));
   $('headerRow').addEventListener('change', () => {
     const v = Math.max(1, Math.min(S.grid.maxRow, parseInt($('headerRow').value, 10) || 1));
     $('headerRow').value = v;
     setupSheet(false, v);
   });
   $('keepTotals').addEventListener('change', schedulePreview);
+  $('dropUnused').addEventListener('change', schedulePreview);
 
+  // Строка заголовков изменена — текущий лист разбирается заново
   function setupSheet(autoHeader, headerRow) {
-    const hr = autoHeader ? A.detectHeaderRow(S.grid) : headerRow;
-    $('headerRow').value = hr;
-    S.an = A.analyze(S.grid, hr);
-    S.cols = {};
-    const saved = store.get(layoutKey());
-    for (const col of S.an.columns) S.cols[col.c] = A.suggest(col);
-    if (saved && saved.columns) applySettingsColumns(saved.columns);
-    const tot = S.an.totalsRows.size;
-    $('rowsInfo').textContent = `Строк данных: ${S.an.dataRows.length - tot}${tot ? `, строк итогов: ${tot}` : ''} · столбцов: ${S.an.columns.length}` + (saved ? ' · применены настройки, сохранённые для этой структуры' : '');
-    renderColumns();
-    schedulePreview();
+    const st = S.sheets[S.sheetIndex];
+    S.sheets[S.sheetIndex] = makeState(st.name, st.grid, autoHeader ? null : headerRow);
+    showSheet(S.sheetIndex);
   }
 
   // ---------- Таблица столбцов ----------
@@ -266,16 +321,16 @@
       shiftDays: parseInt($('shiftDays').value, 10) || 0,
       keepForm: $('keepForm').checked,
       keepTotals: $('keepTotals').checked,
-      columns: S.cols,
     };
   }
+  const bookForEngine = (list = S.sheets) => list.map(st => ({ name: st.name, grid: st.grid, an: st.an, columns: st.cols }));
 
   // ---------- Файл настроек (JSON) ----------
   const COL_KEYS = ['type', 'method', 'prefix', 'pct', 'step', 'group'];
-  function settingsColumns() {
+  function settingsColumns(st = S.sheets[S.sheetIndex]) {
     const out = {};
-    for (const col of S.an.columns) {
-      const cfg = S.cols[col.c];
+    for (const col of st.an.columns) {
+      const cfg = st.cols[col.c];
       const item = { letter: col.letter };
       for (const k of COL_KEYS) if (cfg[k] !== undefined && cfg[k] !== '') item[k] = cfg[k];
       out[col.name] = item;
@@ -283,20 +338,20 @@
     return out;
   }
   // Столбцы сопоставляются по названию, а если названия нет в файле — по букве столбца
-  function applySettingsColumns(columns) {
-    const names = new Set(S.an.columns.map(c => c.name));
+  function applySettingsColumns(columns, st = S.sheets[S.sheetIndex]) {
+    const names = new Set(st.an.columns.map(c => c.name));
     const byLetter = {};
     for (const [name, item] of Object.entries(columns)) if (!names.has(name) && item.letter) byLetter[item.letter] = name;
     const used = new Set();
     let hit = 0;
-    for (const col of S.an.columns) {
+    for (const col of st.an.columns) {
       const name = columns[col.name] ? col.name : byLetter[col.letter];
       if (!name) continue;
       const item = columns[name];
-      const cfg = { ...S.cols[col.c] };
+      const cfg = { ...st.cols[col.c] };
       for (const k of COL_KEYS) if (item[k] !== undefined) cfg[k] = item[k];
       if (!A.METHODS[cfg.type] || !A.METHODS[cfg.type].some(([k]) => k === cfg.method)) continue;
-      S.cols[col.c] = cfg;
+      st.cols[col.c] = cfg;
       used.add(name);
       hit++;
     }
@@ -313,7 +368,7 @@
       format: 1,
       savedAt: new Date().toISOString(),
       sourceFile: S.fileName,
-      sheet: S.kind === 'xlsx' ? S.wb.worksheets[S.sheetIndex].name : null,
+      sheet: S.kind === 'xlsx' ? S.sheets[S.sheetIndex].name : null,
       headerRow: S.an.headerRow,
       options: {
         keepTotals: $('keepTotals').checked,
@@ -321,15 +376,18 @@
         clearMeta: $('clearMeta').checked,
         clearNotes: $('clearNotes').checked,
         clearHF: $('clearHF').checked,
+        dropUnused: $('dropUnused').checked,
       },
-      columns: settingsColumns(),
+      columns: settingsColumns(),   // текущий лист — для совместимости с прежними версиями
+      // все листы книги: методы и строка заголовков каждого
+      sheets: Object.fromEntries(S.sheets.map(st => [st.name, { headerRow: st.an.headerRow, columns: settingsColumns(st) }])),
     };
     if ($('profileWithKey').checked) p.secret = { seed: $('seed').value, factor: +$('factor').value, shiftDays: +$('shiftDays').value };
     return p;
   }
   function applyOptions(p) {
     const o = p.options || p; // формат ранней версии хранил флаги в корне
-    for (const id of ['keepTotals', 'keepForm', 'clearMeta', 'clearNotes', 'clearHF']) if (typeof o[id] === 'boolean') $(id).checked = o[id];
+    for (const id of ['keepTotals', 'keepForm', 'clearMeta', 'clearNotes', 'clearHF', 'dropUnused']) if (typeof o[id] === 'boolean') $(id).checked = o[id];
     const sec = p.secret || (p.seed ? p : null);
     if (sec && sec.seed) {
       $('seed').value = sec.seed;
@@ -340,21 +398,26 @@
   // Применить настройки к загруженному файлу
   function applySettings(p, name) {
     applyOptions(p);
-    if (S.kind === 'xlsx' && p.sheet) {
-      const i = S.wb.worksheets.findIndex(ws => ws.name === p.sheet);
-      if (i >= 0 && i !== S.sheetIndex) {
-        S.sheetIndex = i;
-        $('sheet').value = String(i);
-        S.grid = A.gridFromWorksheet(S.wb.worksheets[i]);
-        setupSheet(true);
-      }
+    // настройки по листам (с версии 3.6) или одного листа (прежние версии)
+    const entries = p.sheets ? Object.entries(p.sheets) : [[p.sheet, { headerRow: p.headerRow, columns: p.columns || {} }]];
+    let hit = 0, total = 0;
+    const missing = [], noSheet = [];
+    for (const [sheetName, cfg] of entries) {
+      let i = S.sheets.findIndex(st => st.name === sheetName);
+      if (i < 0) { if (p.sheets && S.sheets.length > 1) { noSheet.push(sheetName); continue; } i = S.sheetIndex; }
+      let st = S.sheets[i];
+      if (cfg.headerRow && cfg.headerRow !== st.an.headerRow && cfg.headerRow <= st.grid.maxRow) st = S.sheets[i] = makeState(st.name, st.grid, cfg.headerRow);
+      const r = applySettingsColumns(cfg.columns || {}, st);
+      hit += r.hit; total += st.an.columns.length;
+      missing.push(...r.missing.map(n => entries.length > 1 ? `${st.name} · ${n}` : n));
+      if (!p.sheets && p.sheet && i !== S.sheetIndex) S.sheetIndex = i;
     }
-    if (p.headerRow && p.headerRow !== S.an.headerRow && p.headerRow <= S.grid.maxRow) setupSheet(false, p.headerRow);
-    const { hit, missing } = applySettingsColumns(p.columns || {});
-    renderColumns(); rememberLayout(); schedulePreview();
-    $('settingsInfo').innerHTML = `Настройки <b>${esc(name)}</b> применены: столбцов ${hit} из ${S.an.columns.length}` +
-      (missing.length ? `. <span class="text-danger">Нет в файле: ${missing.map(esc).join(', ')}</span>` : '');
-    toast(`Настройки применены: ${hit} из ${S.an.columns.length} ${A.plural(S.an.columns.length, 'столбца', 'столбцов', 'столбцов')}`);
+    showSheet(S.sheetIndex);
+    rememberLayout();
+    $('settingsInfo').innerHTML = `Настройки <b>${esc(name)}</b> применены: столбцов ${hit} из ${total}` +
+      (missing.length ? `. <span class="text-danger">Нет в файле: ${missing.map(esc).join(', ')}</span>` : '') +
+      (noSheet.length ? `. <span class="text-danger">Нет листов: ${noSheet.map(esc).join(', ')}</span>` : '');
+    toast(`Настройки применены: ${hit} из ${total} ${A.plural(total, 'столбца', 'столбцов', 'столбцов')}`);
   }
   async function readSettingsFile(f) {
     const p = JSON.parse(await f.text());
@@ -393,12 +456,18 @@
   function runPreview() {
     if (!S.an) return;
     const t0 = performance.now();
-    S.result = A.transform(S.grid, S.an, config());
+    S.result = A.transformBook(bookForEngine(), config());
     const ms = Math.round(performance.now() - t0);
+    renderSheetOptions();
     const active = S.an.columns.filter(col => S.cols[col.c].method !== 'keep');
-    const { changes, mapping, warnings, stats } = S.result;
-    $('previewStats').textContent = active.length
-      ? `Будет обезличено ячеек: ${stats.changed.toLocaleString('ru-RU')} в ${stats.columns} ${A.plural(stats.columns, 'столбце', 'столбцах', 'столбцах')} · уникальных замен: ${mapping.length.toLocaleString('ru-RU')} · ${ms} мс`
+    const { mapping, warnings, stats } = S.result;
+    const changes = S.result.bySheet[S.sheets[S.sheetIndex].name].changes;
+    const where = stats.sheets > 1
+      ? `в ${stats.columns} ${A.plural(stats.columns, 'столбце', 'столбцах', 'столбцах')} на ${stats.sheets} ${A.plural(stats.sheets, 'листе', 'листах', 'листах')}`
+      : `в ${stats.columns} ${A.plural(stats.columns, 'столбце', 'столбцах', 'столбцах')}`;
+    $('previewStats').textContent = stats.columns
+      ? `Будет обезличено ячеек: ${stats.changed.toLocaleString('ru-RU')} ${where} · уникальных замен: ${mapping.length.toLocaleString('ru-RU')} · ${ms} мс` +
+        (stats.sheets > 1 ? ` · ниже — лист «${S.sheets[S.sheetIndex].name}»` : '')
       : 'Столбцы для обезличивания не выбраны. Выберите метод хотя бы для одного столбца на шаге 2.';
     const table = $('previewTable');
     $('legend').classList.toggle('hidden', !active.length);
@@ -425,15 +494,23 @@
     const w = [...S.loadNotes, ...warnings];
     const leaks = [...S.result.leaks];
     if (S.kind === 'xlsx') {
-      const hf = A.headerFooterText(S.wb.worksheets[S.sheetIndex]);
-      if (hf.length) {
-        if ($('clearHF').checked) w.push(`В колонтитулах есть текст («${hf.join('», «').slice(0, 150)}»). Он будет удалён.`);
-        else leaks.push(`В колонтитулах есть текст («${hf.join('», «').slice(0, 150)}»), и он останется в файле. Включите «Очистить колонтитулы» на шаге 3.`);
+      for (const st of resultSheets()) {
+        const hf = A.headerFooterText(S.wb.worksheets[S.sheets.indexOf(st)]);
+        if (!hf.length) continue;
+        const where = S.sheets.length > 1 ? ` листа «${st.name}»` : '';
+        if ($('clearHF').checked) w.push(`В колонтитулах${where} есть текст («${hf.join('», «').slice(0, 150)}»). Он будет удалён.`);
+        else leaks.push(`В колонтитулах${where} есть текст («${hf.join('», «').slice(0, 150)}»), и он останется в файле. Включите «Очистить колонтитулы» на шаге 3.`);
       }
-    }
-    if (S.kind === 'xlsx' && S.wb.worksheets.length > 1) {
-      const others = S.wb.worksheets.filter((_, i) => i !== S.sheetIndex).map(ws => `«${ws.name}»`).join(', ');
-      w.push(`В книге есть другие листы (${others}). Они не обезличиваются и в результат не попадут.`);
+      const unused = S.sheets.filter(st => !activeCount(st)).map(st => `«${st.name}»`);
+      if (unused.length && S.sheets.length > 1) {
+        const list = unused.join(', '), many = unused.length > 1;
+        if ($('dropUnused').checked) w.push(many
+          ? `Листы ${list} не обезличиваются и в результат не попадут. Чтобы обезличить, выберите их в списке «Лист» и задайте методы.`
+          : `Лист ${list} не обезличивается и в результат не попадёт. Чтобы обезличить, выберите его в списке «Лист» и задайте методы.`);
+        else leaks.push(many
+          ? `Листы ${list} не обезличиваются и останутся в файле как есть. Задайте методы или включите «Удалять из результата листы, которые не обезличиваются» на шаге 3.`
+          : `Лист ${list} не обезличивается и останется в файле как есть. Задайте методы или включите «Удалять из результата листы, которые не обезличиваются» на шаге 3.`);
+      }
     }
     const notice = (cls, ic, title, items) => items.length
       ? `<div class="notice ${cls}"><div class="notice-title">${icon(ic, 'i i20')}${title}</div><ul>${items.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
@@ -459,24 +536,27 @@
     btn.disabled = true;
     try {
       runPreview();
-      const { changes } = S.result;
+      if (!S.result.stats.columns) { toast('Не удалось обезличить: не выбран метод ни для одного столбца', 6000, 'error'); return; }
       if (S.kind === 'csv') {
-        const text = A.gridToCsv(S.grid, changes, S.csv.delim, S.csv.decSep);
+        const text = A.gridToCsv(S.grid, S.result.bySheet[S.sheets[0].name].changes, S.csv.delim, S.csv.decSep);
         download(new Blob([text], { type: 'text/csv;charset=utf-8' }), baseName() + '_redact.csv');
       } else {
         // Пишем в свежую копию исходной книги — так сохраняется всё оформление
         const wb = new ExcelJS.Workbook();
         await wb.xlsx.load(S.buffer);
-        const ws = wb.worksheets[S.sheetIndex];
-        const others = wb.worksheets.filter(x => x !== ws);
-        if (others.length) {
-          others.forEach(x => wb.removeWorksheet(x.id));
+        // листы с методами обезличиваются; остальные удаляются или остаются как есть (флажок на шаге 3)
+        const keep = new Set(resultSheets().map(st => st.name));
+        const drop = wb.worksheets.filter(ws => !keep.has(ws.name));
+        if (drop.length) {
+          drop.forEach(x => wb.removeWorksheet(x.id));
           wb.definedNames.model = []; // имена могли ссылаться на удалённые листы
         }
-        A.applyToWorksheet(ws, changes);
+        for (const ws of wb.worksheets) {
+          A.applyToWorksheet(ws, S.result.bySheet[ws.name].changes);
+          if ($('clearNotes').checked) A.clearNotes(ws);
+          if ($('clearHF').checked) A.clearHeaderFooter(ws);
+        }
         if ($('clearMeta').checked) A.clearWorkbookMeta(wb);
-        if ($('clearNotes').checked) A.clearNotes(ws);
-        if ($('clearHF').checked) A.clearHeaderFooter(ws);
         wb.calcProperties = { ...(wb.calcProperties || {}), fullCalcOnLoad: true };
         // ExcelJS ссылается на тему оформления, даже если в исходной книге её не было, но сам файл темы не пишет —
         // Excel тогда предлагает «восстановить» книгу. Без своей темы записывается стандартная.
@@ -504,10 +584,11 @@
     try {
       runPreview();
       const cfg = config();
-      const key = A.buildKey({
-        an: S.an, config: cfg, result: S.result, sourceFile: S.fileName, appVersion: A.VERSION,
-        sheet: S.kind === 'xlsx' ? S.wb.worksheets[S.sheetIndex].name : null,
+      const key = A.buildKeyBook({
+        sheets: bookForEngine(S.kind === 'xlsx' ? resultSheets() : S.sheets), config: cfg, result: S.result,
+        sourceFile: S.fileName, appVersion: A.VERSION,
       });
+      if (S.kind !== 'xlsx') key.sheet = null;
       key.seed = cfg.seed;
       if (pass) {
         const env = await A.encryptKey(key, pass);
@@ -546,7 +627,10 @@
       { k: 'Секретная фраза', v: cfg.seed },
       { k: 'Коэффициент для сумм (исходное = обезличенное ÷ коэффициент)', v: cfg.factor },
       { k: 'Сдвиг дат, дней (исходная дата = обезличенная − сдвиг)', v: cfg.shiftDays },
-      ...S.an.columns.filter(col => S.cols[col.c].method !== 'keep').map(col => ({ k: `${col.letter} · ${col.name}`, v: A.METHODS[S.cols[col.c].type].find(([k]) => k === S.cols[col.c].method)[1] })),
+      ...S.sheets.flatMap(st => st.an.columns.filter(col => isActive(st.cols[col.c])).map(col => ({
+        k: `${S.sheets.length > 1 ? st.name + ' · ' : ''}${col.letter} · ${col.name}`,
+        v: A.METHODS[st.cols[col.c].type].find(([k]) => k === st.cols[col.c].method)[1],
+      }))),
     ]);
     // ключ для восстановления: JSON частями (в ячейке Excel не больше 32 767 символов), лист скрыт
     const ks = wb.addWorksheet(KEY_SHEET, { state: 'veryHidden' });
