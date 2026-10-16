@@ -215,3 +215,8 @@ input[type=password] {
 .restore-cols .samples, .restore-cols .samples span { max-width: 320px; }
 .restore-cols .c-key { width: 26%; }
 .restore-cols .c-method { min-width: 220px; width: 220px; }
+
+/* ---------- Подвал: подпись Gadalov BI ---------- */
+/* Подпись наследует цвет страницы (opacity .75 задана в её коде) — серый текст в обеих темах */
+.appfooter { border-top: 1px solid var(--border); margin-top: var(--space-6); color: var(--ink); }
+.appfooter-row { display: flex; justify-content: flex-end; align-items: center; min-height: 56px; padding-top: var(--space-3); padding-bottom: var(--space-3); }
