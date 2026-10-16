@@ -90,20 +90,20 @@
     <div class="row-controls">
       <label class="field-inline"><span class="caption">Лист</span><select id="sheet"></select></label>
       <label class="field-inline"><span class="caption">Строка заголовков</span><input type="number" id="headerRow" min="1" step="1"></label>
-      <label class="chk"><input type="checkbox" id="keepTotals" checked> Не изменять строки «Итого» и «Всего» (кроме K и округления)</label>
+      <label class="chk" title="Названия и текст в итоговых строках остаются как есть. Суммы в них пересчитываются только при умножении на коэффициент и округлении — чтобы итог сходился со строками"><input type="checkbox" id="keepTotals" checked> Не обезличивать строки «Итого» и «Всего»</label>
     </div>
     <div class="small muted" id="rowsInfo"></div>
     <div class="row-controls toolbar">
       <button class="btn secondary" id="btnAuto" title="Подобрать методы по названиям столбцов"><svg class="i i20" aria-hidden="true"><use href="#i-wand-sparkles"></use></svg>Подобрать методы</button>
       <button class="btn secondary" id="btnReset"><svg class="i i20" aria-hidden="true"><use href="#i-rotate-ccw"></use></svg>Сбросить методы</button>
       <span class="spacer"></span>
-      <button class="btn ghost" id="btnSaveProfile" title="Методы по столбцам, строка заголовков, лист и флажки"><svg class="i i20" aria-hidden="true"><use href="#i-save"></use></svg>Сохранить настройки</button>
+      <button class="btn ghost" id="btnSaveProfile" title="Методы по столбцам, лист, строка заголовков и флажки — чтобы в следующий раз не настраивать заново"><svg class="i i20" aria-hidden="true"><use href="#i-save"></use></svg>Сохранить настройки</button>
       <label class="btn ghost"><svg class="i i20" aria-hidden="true"><use href="#i-folder-open"></use></svg>Загрузить настройки<input type="file" id="profileFile" accept=".json,application/json" hidden></label>
     </div>
     <div class="table-scroll">
       <table class="data cols" id="colsTable">
         <thead><tr>
-          <th>Столбец</th><th class="c-type">Тип</th><th>Примеры значений</th><th class="r" title="Заполнено ячеек / уникальных значений">Заполн. / уник.</th><th class="c-method">Метод</th><th class="c-params">Параметры</th>
+          <th>Столбец</th><th class="c-type">Тип</th><th>Примеры значений</th><th class="r" title="Сколько ячеек заполнено и сколько среди них разных значений">Значений / разных</th><th class="c-method">Метод</th><th class="c-params">Параметры</th>
         </tr></thead>
         <tbody></tbody>
       </table>
@@ -116,27 +116,27 @@
     <h2 class="h2 step"><span class="num">3</span>Общие параметры</h2>
     <div class="grid3">
       <div class="field">
-        <label class="caption" for="seed">Секретный ключ</label>
-        <span class="inline"><input class="mono-input" type="text" id="seed" spellcheck="false"><button class="btn secondary icon-only" id="btnSeed" title="Новый случайный ключ" aria-label="Новый случайный ключ"><svg class="i i20" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
-        <small class="small muted">Один ключ — одни и те же замены в каждой выгрузке. Не передавайте ключ вместе с файлом.</small>
+        <label class="caption" for="seed">Секретная фраза</label>
+        <span class="inline"><input class="mono-input" type="text" id="seed" spellcheck="false"><button class="btn secondary icon-only" id="btnSeed" title="Новая случайная фраза" aria-label="Новая случайная фраза"><svg class="i i20" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
+        <small class="small muted">От неё зависят замены: с той же фразой «ОПТТРЕЙД» и через месяц станет «Контрагент 017». Держите её в секрете.</small>
       </div>
       <div class="field">
-        <label class="caption" for="factor">Коэффициент K для чисел</label>
-        <span class="inline"><input class="mono-input" type="number" id="factor" step="0.0001"><button class="btn secondary icon-only" id="btnFactor" title="Случайный K" aria-label="Случайный K"><svg class="i i20" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
-        <small class="small muted">Все числа с методом «K» умножаются на одно число: доли и суммы сохраняются.</small>
+        <label class="caption" for="factor">Коэффициент для сумм</label>
+        <span class="inline"><input class="mono-input" type="number" id="factor" step="0.0001"><button class="btn secondary icon-only" id="btnFactor" title="Новый случайный коэффициент" aria-label="Новый случайный коэффициент"><svg class="i i20" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
+        <small class="small muted">Числа с методом «Умножить на коэффициент» умножаются на это число: доли и итоги сохраняются, а сами суммы скрыты.</small>
       </div>
       <div class="field">
-        <label class="caption" for="shiftDays">Сдвиг дат D, дней</label>
-        <span class="inline"><input class="mono-input" type="number" id="shiftDays" step="1"><button class="btn secondary icon-only" id="btnShift" title="Случайный сдвиг" aria-label="Случайный сдвиг"><svg class="i i20" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
-        <small class="small muted">Все даты сдвигаются одинаково: сроки, просрочка и интервалы сохраняются.</small>
+        <label class="caption" for="shiftDays">Сдвиг дат, дней</label>
+        <span class="inline"><input class="mono-input" type="number" id="shiftDays" step="1"><button class="btn secondary icon-only" id="btnShift" title="Новый случайный сдвиг" aria-label="Новый случайный сдвиг"><svg class="i i20" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
+        <small class="small muted">Даты с методом «Сдвинуть даты» сдвигаются на это число дней: сроки, просрочка и интервалы сохраняются.</small>
       </div>
     </div>
     <div class="checks">
-      <label class="chk"><input type="checkbox" id="keepForm" checked> Сохранять ОПФ в названиях (ООО, АО, ИП)</label>
+      <label class="chk"><input type="checkbox" id="keepForm" checked> Оставлять форму организации в названиях (ООО, АО, ИП)</label>
       <label class="chk"><input type="checkbox" id="clearMeta" checked> Очистить свойства файла (автор, компания)</label>
       <label class="chk"><input type="checkbox" id="clearNotes" checked> Удалить примечания ячеек</label>
       <label class="chk"><input type="checkbox" id="clearHF" checked> Очистить колонтитулы</label>
-      <label class="chk"><input type="checkbox" id="profileWithKey"> Включать ключ, K и D в файл настроек</label>
+      <label class="chk"><input type="checkbox" id="profileWithKey"> Сохранять в файле настроек секретную фразу, коэффициент и сдвиг дат</label>
     </div>
   </section>
 
@@ -171,7 +171,7 @@
         </div>
         <button class="btn secondary" id="btnKey"><svg class="i i20" aria-hidden="true"><use href="#i-download"></use></svg>Скачать ключ</button>
       </div>
-      <p class="small muted" id="keyHint">С паролем ключ сохраняется зашифрованным файлом .redactkey (AES-256). Без пароля — таблицей Excel, которую может открыть любой.</p>
+      <p class="small muted" id="keyHint">С паролем ключ сохраняется зашифрованным файлом .redactkey — без пароля его не открыть. Без пароля — обычной таблицей Excel, которую может открыть любой.</p>
     </div>
   </section>
   </div>

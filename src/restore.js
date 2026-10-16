@@ -116,7 +116,7 @@
           const map = wb.getWorksheet('Соответствия'), par = wb.getWorksheet('Параметры');
           if (!map || !par) throw new Error('в файле нет листов «Соответствия» и «Параметры» — это не ключ Redact');
           const rows = (ws, n) => { const out = []; ws.eachRow((row, r) => { if (r > 1) out.push(Array.from({ length: n }, (_, i) => row.getCell(i + 1).value)); }); return out; };
-          R.keyNotes.push('Ключ сохранён версией до 2.1: названия и коды вернутся, но номера внутри текста не восстанавливаются, а суммы делятся на K с точностью до копейки.');
+          R.keyNotes.push('Ключ сохранён версией до 2.1: названия и коды вернутся, но номера внутри текста не восстанавливаются, а суммы делятся на коэффициент с точностью до копейки.');
           setKey(A.legacyKeyFromRows(rows(map, 5), rows(par, 2)));
         }
       } else {
@@ -179,7 +179,7 @@
     const pairs = (key.dictionaries || []).reduce((n, d) => n + d.pairs.length, 0);
     const locked = !!R.envelope;
     $('rKeyInfo').innerHTML = `${icon(locked ? 'lock-open' : 'key-round', 'i i20')}<b>${esc(R.keyName)}</b>` +
-      `<span class="muted">${key.sourceFile ? `для «${esc(key.sourceFile)}» · ` : ''}замен в ключе: ${pairs.toLocaleString('ru-RU')} · K = ${esc(key.factor)} · D = ${esc(key.shiftDays)}</span>`;
+      `<span class="muted">${key.sourceFile ? `для «${esc(key.sourceFile)}» · ` : ''}замен в ключе: ${pairs.toLocaleString('ru-RU')} · коэффициент ${esc(key.factor)} · сдвиг дат ${esc(key.shiftDays)} дн.</span>`;
     R.envelope = null;
     // если файл уже загружен, а лист из ключа другой — переключаемся на лист из ключа
     if (R.kind === 'xlsx' && R.wb) {

@@ -315,12 +315,12 @@ td.r, th.r { text-align: right; }
 .cols td { padding-top: var(--space-2); }
 .cols .colname { font-weight: 500; min-width: 140px; }
 .cols .colname b { font: 400 12px/16px var(--font-mono); color: var(--ink-muted); margin-right: var(--space-2); }
-.cols .samples { color: var(--ink-muted); max-width: 240px; font: 400 12px/18px var(--font-mono); padding-top: var(--space-3); }
-.cols .samples span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
+.cols .samples { color: var(--ink-muted); max-width: 200px; font: 400 12px/18px var(--font-mono); padding-top: var(--space-3); }
+.cols .samples span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
 .cols .counts { font: 400 12px/16px var(--font-mono); color: var(--ink-muted); padding-top: var(--space-3); white-space: nowrap; }
 .cols select { width: 100%; }
-.cols .c-type { min-width: 176px; width: 176px; }
-.cols .c-method { min-width: 250px; width: 21%; }
+.cols .c-type { min-width: 196px; width: 196px; }
+.cols .c-method { min-width: 264px; width: 21%; }
 .cols .c-params { min-width: 200px; width: 17%; }
 .params { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-2) var(--space-2); align-items: center; }
 .params label { display: contents; font: 500 12px/16px var(--font-sans); color: var(--ink-muted); }
@@ -528,20 +528,20 @@ select.dd-open { border-color: var(--border-strong); box-shadow: inset 0 0 0 1px
     <div class="row-controls">
       <label class="field-inline"><span class="caption">Лист</span><select id="sheet"></select></label>
       <label class="field-inline"><span class="caption">Строка заголовков</span><input type="number" id="headerRow" min="1" step="1"></label>
-      <label class="chk"><input type="checkbox" id="keepTotals" checked> Не изменять строки «Итого» и «Всего» (кроме K и округления)</label>
+      <label class="chk" title="Названия и текст в итоговых строках остаются как есть. Суммы в них пересчитываются только при умножении на коэффициент и округлении — чтобы итог сходился со строками"><input type="checkbox" id="keepTotals" checked> Не обезличивать строки «Итого» и «Всего»</label>
     </div>
     <div class="small muted" id="rowsInfo"></div>
     <div class="row-controls toolbar">
       <button class="btn secondary" id="btnAuto" title="Подобрать методы по названиям столбцов"><svg class="i i20" aria-hidden="true"><use href="#i-wand-sparkles"></use></svg>Подобрать методы</button>
       <button class="btn secondary" id="btnReset"><svg class="i i20" aria-hidden="true"><use href="#i-rotate-ccw"></use></svg>Сбросить методы</button>
       <span class="spacer"></span>
-      <button class="btn ghost" id="btnSaveProfile" title="Методы по столбцам, строка заголовков, лист и флажки"><svg class="i i20" aria-hidden="true"><use href="#i-save"></use></svg>Сохранить настройки</button>
+      <button class="btn ghost" id="btnSaveProfile" title="Методы по столбцам, лист, строка заголовков и флажки — чтобы в следующий раз не настраивать заново"><svg class="i i20" aria-hidden="true"><use href="#i-save"></use></svg>Сохранить настройки</button>
       <label class="btn ghost"><svg class="i i20" aria-hidden="true"><use href="#i-folder-open"></use></svg>Загрузить настройки<input type="file" id="profileFile" accept=".json,application/json" hidden></label>
     </div>
     <div class="table-scroll">
       <table class="data cols" id="colsTable">
         <thead><tr>
-          <th>Столбец</th><th class="c-type">Тип</th><th>Примеры значений</th><th class="r" title="Заполнено ячеек / уникальных значений">Заполн. / уник.</th><th class="c-method">Метод</th><th class="c-params">Параметры</th>
+          <th>Столбец</th><th class="c-type">Тип</th><th>Примеры значений</th><th class="r" title="Сколько ячеек заполнено и сколько среди них разных значений">Значений / разных</th><th class="c-method">Метод</th><th class="c-params">Параметры</th>
         </tr></thead>
         <tbody></tbody>
       </table>
@@ -554,27 +554,27 @@ select.dd-open { border-color: var(--border-strong); box-shadow: inset 0 0 0 1px
     <h2 class="h2 step"><span class="num">3</span>Общие параметры</h2>
     <div class="grid3">
       <div class="field">
-        <label class="caption" for="seed">Секретный ключ</label>
-        <span class="inline"><input class="mono-input" type="text" id="seed" spellcheck="false"><button class="btn secondary icon-only" id="btnSeed" title="Новый случайный ключ" aria-label="Новый случайный ключ"><svg class="i i20" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
-        <small class="small muted">Один ключ — одни и те же замены в каждой выгрузке. Не передавайте ключ вместе с файлом.</small>
+        <label class="caption" for="seed">Секретная фраза</label>
+        <span class="inline"><input class="mono-input" type="text" id="seed" spellcheck="false"><button class="btn secondary icon-only" id="btnSeed" title="Новая случайная фраза" aria-label="Новая случайная фраза"><svg class="i i20" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
+        <small class="small muted">От неё зависят замены: с той же фразой «ОПТТРЕЙД» и через месяц станет «Контрагент 017». Держите её в секрете.</small>
       </div>
       <div class="field">
-        <label class="caption" for="factor">Коэффициент K для чисел</label>
-        <span class="inline"><input class="mono-input" type="number" id="factor" step="0.0001"><button class="btn secondary icon-only" id="btnFactor" title="Случайный K" aria-label="Случайный K"><svg class="i i20" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
-        <small class="small muted">Все числа с методом «K» умножаются на одно число: доли и суммы сохраняются.</small>
+        <label class="caption" for="factor">Коэффициент для сумм</label>
+        <span class="inline"><input class="mono-input" type="number" id="factor" step="0.0001"><button class="btn secondary icon-only" id="btnFactor" title="Новый случайный коэффициент" aria-label="Новый случайный коэффициент"><svg class="i i20" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
+        <small class="small muted">Числа с методом «Умножить на коэффициент» умножаются на это число: доли и итоги сохраняются, а сами суммы скрыты.</small>
       </div>
       <div class="field">
-        <label class="caption" for="shiftDays">Сдвиг дат D, дней</label>
-        <span class="inline"><input class="mono-input" type="number" id="shiftDays" step="1"><button class="btn secondary icon-only" id="btnShift" title="Случайный сдвиг" aria-label="Случайный сдвиг"><svg class="i i20" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
-        <small class="small muted">Все даты сдвигаются одинаково: сроки, просрочка и интервалы сохраняются.</small>
+        <label class="caption" for="shiftDays">Сдвиг дат, дней</label>
+        <span class="inline"><input class="mono-input" type="number" id="shiftDays" step="1"><button class="btn secondary icon-only" id="btnShift" title="Новый случайный сдвиг" aria-label="Новый случайный сдвиг"><svg class="i i20" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
+        <small class="small muted">Даты с методом «Сдвинуть даты» сдвигаются на это число дней: сроки, просрочка и интервалы сохраняются.</small>
       </div>
     </div>
     <div class="checks">
-      <label class="chk"><input type="checkbox" id="keepForm" checked> Сохранять ОПФ в названиях (ООО, АО, ИП)</label>
+      <label class="chk"><input type="checkbox" id="keepForm" checked> Оставлять форму организации в названиях (ООО, АО, ИП)</label>
       <label class="chk"><input type="checkbox" id="clearMeta" checked> Очистить свойства файла (автор, компания)</label>
       <label class="chk"><input type="checkbox" id="clearNotes" checked> Удалить примечания ячеек</label>
       <label class="chk"><input type="checkbox" id="clearHF" checked> Очистить колонтитулы</label>
-      <label class="chk"><input type="checkbox" id="profileWithKey"> Включать ключ, K и D в файл настроек</label>
+      <label class="chk"><input type="checkbox" id="profileWithKey"> Сохранять в файле настроек секретную фразу, коэффициент и сдвиг дат</label>
     </div>
   </section>
 
@@ -609,7 +609,7 @@ select.dd-open { border-color: var(--border-strong); box-shadow: inset 0 0 0 1px
         </div>
         <button class="btn secondary" id="btnKey"><svg class="i i20" aria-hidden="true"><use href="#i-download"></use></svg>Скачать ключ</button>
       </div>
-      <p class="small muted" id="keyHint">С паролем ключ сохраняется зашифрованным файлом .redactkey (AES-256). Без пароля — таблицей Excel, которую может открыть любой.</p>
+      <p class="small muted" id="keyHint">С паролем ключ сохраняется зашифрованным файлом .redactkey — без пароля его не открыть. Без пароля — обычной таблицей Excel, которую может открыть любой.</p>
     </div>
   </section>
   </div>
@@ -764,7 +764,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 // Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
-window.ANON_VERSION = '3.0';
+window.ANON_VERSION = '3.1';
 
 </script>
 <script>
@@ -1082,7 +1082,7 @@ window.ANON_VERSION = '3.0';
       ['fake', 'Вымышленное название'],
       ['mask', 'Маска символов'],
       ['smart', 'Замена внутри текста'],
-      ['hash', 'Хэш-код'],
+      ['hash', 'Код-идентификатор'],
       ['clear', 'Очистить'],
     ],
     id: [
@@ -1090,20 +1090,20 @@ window.ANON_VERSION = '3.0';
       ['digits', 'Случайные цифры'],
       ['mask', 'Маска символов'],
       ['pseudo', 'Псевдоним с номером'],
-      ['hash', 'Хэш-код'],
+      ['hash', 'Код-идентификатор'],
       ['clear', 'Очистить'],
     ],
     number: [
       ['keep', 'Оставить'],
-      ['scale', 'Умножить на K'],
-      ['noise', 'Случайный шум ±%'],
+      ['scale', 'Умножить на коэффициент'],
+      ['noise', 'Случайное отклонение ±%'],
       ['round', 'Округлить до шага'],
       ['random', 'Случайное число'],
       ['clear', 'Очистить'],
     ],
     date: [
       ['keep', 'Оставить'],
-      ['shift', 'Сдвинуть на D дней'],
+      ['shift', 'Сдвинуть даты'],
       ['month', 'Обобщить до месяца'],
       ['drandom', 'Случайная дата'],
       ['clear', 'Очистить'],
@@ -1115,14 +1115,14 @@ window.ANON_VERSION = '3.0';
     pseudo: 'ОПТТРЕЙД ООО → Контрагент 017 ООО; одинаковые значения получают одинаковый номер',
     fake: 'ОПТТРЕЙД ООО → ТРАНСГАРАНТ ООО',
     mask: 'Каждая буква → случайная буква, цифра → цифра; длина и знаки сохраняются',
-    smart: 'В свободном тексте заменяются названия и коды из других столбцов, даты сдвигаются на D, номера из 3+ цифр меняются',
+    smart: 'В свободном тексте заменяются названия и коды из других столбцов, даты сдвигаются (сдвиг дат — в шаге 3), номера из трёх и более цифр меняются',
     hash: 'Короткий код вида ID-3K9F2A7B',
     digits: '000001658 → 000003708: цифры случайные, длина, разделители и ведущие нули сохраняются',
-    scale: 'Все числа умножаются на одно и то же K — доли и суммы сохраняются',
+    scale: 'Все числа умножаются на один коэффициент (шаг 3) — доли и итоги сохраняются, а сами суммы скрыты',
     noise: 'Каждое число меняется на случайные ±N %',
     round: 'Округление до шага, например до 1000',
     random: 'Случайное число между минимумом и максимумом столбца',
-    shift: 'Все даты сдвигаются на одно и то же число дней D — интервалы сохраняются',
+    shift: 'Все даты сдвигаются на одно и то же число дней (шаг 3) — сроки и интервалы сохраняются',
     month: '15.03.2024 → 01.03.2024',
     drandom: 'Случайная дата между минимальной и максимальной датой столбца',
     clear: 'Ячейка становится пустой',
@@ -1547,15 +1547,15 @@ window.ANON_VERSION = '3.0';
     ['keep', 'Оставить'],
     ['text', 'Вернуть значения'],
     ['smart', 'Вернуть в тексте'],
-    ['unscale', 'Разделить на K'],
-    ['unshift', 'Сдвинуть даты на −D'],
+    ['unscale', 'Вернуть суммы'],
+    ['unshift', 'Вернуть даты'],
   ];
   const RESTORE_HINTS = {
     keep: 'Значения не меняются',
     text: 'Псевдонимы и другие замены из ключа заменяются исходными значениями — целиком или внутри текста',
-    smart: 'Как «Вернуть названия», плюс даты в тексте сдвигаются назад на D и номера возвращаются по ключу',
-    unscale: 'Числа делятся на K; значения из исходного файла возвращаются точно, по таблице ключа',
-    unshift: 'Даты сдвигаются назад на D дней',
+    smart: 'Как «Вернуть значения», плюс даты внутри текста сдвигаются обратно и номера возвращаются по ключу',
+    unscale: 'Числа делятся на коэффициент из ключа; суммы из исходного файла возвращаются точно, по таблице ключа',
+    unshift: 'Даты сдвигаются обратно на сдвиг из ключа',
   };
 
   function buildKey({ an, config, result, sourceFile, sheet, appVersion }) {
@@ -1587,7 +1587,8 @@ window.ANON_VERSION = '3.0';
     const labelToMethod = {
       'Псевдоним с номером («Контрагент 017»)': 'pseudo', 'Вымышленное название («ТрансГарант»)': 'fake',
       'Маска: случайные буквы/цифры': 'mask', 'Замена внутри текста (имена, даты, номера)': 'smart',
-      'Случайные цифры (формат сохраняется)': 'digits', 'Умножить на общий K': 'scale',
+      'Случайные цифры (формат сохраняется)': 'digits', 'Умножить на общий K': 'scale', 'Умножить на K': 'scale',
+      'Сдвинуть на D дней': 'shift', 'Хэш-код': 'hash', 'Случайный шум ±%': 'noise',
       'Случайное в диапазоне столбца': 'random', 'Сдвинуть на общий D дней': 'shift',
       'Обобщить до месяца (1-е число)': 'month', 'Случайная дата в диапазоне столбца': 'drandom',
     };
@@ -1595,8 +1596,8 @@ window.ANON_VERSION = '3.0';
     const key = { app: 'Redact', kind: 'redact-key', format: 0, factor: 1, shiftDays: 0, columns: [], dictionaries: [], smartDigits: [], numbers: {} };
     for (const [label, value] of paramRows) {
       const l = String(label || '');
-      if (/^Коэффициент K/.test(l)) key.factor = Number(value) || 1;
-      else if (/^Сдвиг дат D/.test(l)) key.shiftDays = Math.round(Number(value) || 0);
+      if (/^Коэффициент/.test(l)) key.factor = Number(value) || 1;
+      else if (/^Сдвиг дат/.test(l)) key.shiftDays = Math.round(Number(value) || 0);
       else if (/^Исходный файл/.test(l)) key.sourceFile = String(value || '');
       else {
         const m = /^([A-Z]{1,3}) · (.+)$/.exec(l);
@@ -2043,22 +2044,22 @@ window.ANON_VERSION = '3.0';
     const parts = [];
     const tipAttr = t => `title="${esc(t)}"`;
     if (m === 'pseudo') parts.push(`<label ${tipAttr('Начало псевдонима: «Контрагент» → «Контрагент 017 ООО». Номер подставляется автоматически')}>префикс <input type="text" data-p="prefix" value="${esc(cfg.prefix || '')}"></label>`);
-    if (m === 'noise') parts.push(`<label ${tipAttr('На сколько процентов в обе стороны случайно меняется каждое число')}>шум, ± % <input type="number" data-p="pct" min="0" step="1" value="${esc(cfg.pct)}"></label>`);
+    if (m === 'noise') parts.push(`<label ${tipAttr('На сколько процентов в обе стороны случайно меняется каждое число')}>отклонение, ± % <input type="number" data-p="pct" min="0" step="1" value="${esc(cfg.pct)}"></label>`);
     if (m === 'round') parts.push(`<label ${tipAttr('До какого шага округлять: 1000 → 274 800 станет 275 000')}>шаг <input type="number" data-p="step" min="0" step="any" value="${esc(cfg.step)}"></label>`);
     if (A.DICT_METHODS.has(m)) parts.push(`<label ${tipAttr(`Одинаковые значения в столбцах одной группы получают одинаковую замену. Например, укажите одну группу у «Покупателя» и «Грузополучателя» — одна и та же компания в обоих станет одним псевдонимом. По умолчанию у каждого столбца своя группа — его буква (${col.letter})`)}>группа замен <input type="text" data-p="group" value="${esc(cfg.group || col.letter)}"></label>`);
-    if (m === 'scale') parts.push('<span class="muted">K из шага 3</span>');
-    if (m === 'shift' || m === 'smart') parts.push('<span class="muted">D из шага 3</span>');
+    if (m === 'scale') parts.push('<span class="muted">коэффициент — в шаге 3</span>');
+    if (m === 'shift' || m === 'smart') parts.push('<span class="muted">сдвиг дат — в шаге 3</span>');
     return `<div class="params">${parts.join('')}</div>`;
   }
 
   function rowHtml(col) {
     const cfg = S.cols[col.c];
-    const types = Object.entries(A.TYPE_NAMES).map(([k, n]) => `<option value="${k}"${k === cfg.type ? ' selected' : ''}>${n}${k === col.detected ? ' •' : ''}</option>`).join('');
+    const types = Object.entries(A.TYPE_NAMES).map(([k, n]) => `<option value="${k}"${k === cfg.type ? ' selected' : ''}${k === col.detected ? ' title="Определено автоматически по значениям столбца"' : ''}>${n}${k === col.detected ? ' · авто' : ''}</option>`).join('');
     const methods = A.METHODS[cfg.type].map(([k, n]) => `<option value="${k}" title="${esc(A.METHOD_HINTS[k] || '')}"${k === cfg.method ? ' selected' : ''}>${n}</option>`).join('');
     const samples = col.samples.map(v => `<span title="${esc(fmt(v))}">${esc(fmt(v))}</span>`).join('');
     return `<tr data-c="${col.c}" class="${cfg.method !== 'keep' ? 'active' : ''}">
       <td class="colname"><b>${col.letter}</b>${esc(col.name)}</td>
-      <td><select data-k="type" title="• — тип, определённый автоматически">${types}</select></td>
+      <td><select data-k="type" title="Тип данных в столбце: от него зависят доступные методы. «авто» — тип, определённый по значениям">${types}</select></td>
       <td class="samples">${samples}</td>
       <td class="r counts">${col.nonEmpty} / ${col.uniques}</td>
       <td><select data-k="method" title="${esc(A.METHOD_HINTS[cfg.method] || '')}">${methods}</select></td>
@@ -2224,7 +2225,7 @@ window.ANON_VERSION = '3.0';
     if (!S.an) return;
     const p = collectSettings();
     download(new Blob([JSON.stringify(p, null, 2)], { type: 'application/json' }), `Redact_settings_${baseName()}.json`);
-    toast(p.secret ? 'Настройки сохранены вместе с ключом — не передавайте этот файл вместе с данными' : 'Настройки сохранены');
+    toast(p.secret ? 'Настройки сохранены вместе с секретной фразой — не передавайте этот файл вместе с данными' : 'Настройки сохранены');
   });
   // Загрузить настройки можно и до файла с данными — тогда они применятся при его загрузке
   for (const id of ['profileFile', 'profileFile1']) {
@@ -2401,9 +2402,9 @@ window.ANON_VERSION = '3.0';
     ps.addRows([
       { k: 'Исходный файл', v: S.fileName },
       { k: 'Дата обработки', v: new Date().toLocaleString('ru-RU') },
-      { k: 'Секретный ключ', v: cfg.seed },
-      { k: 'Коэффициент K (число_анонимное / K = исходное)', v: cfg.factor },
-      { k: 'Сдвиг дат D, дней (исходная = анонимная − D)', v: cfg.shiftDays },
+      { k: 'Секретная фраза', v: cfg.seed },
+      { k: 'Коэффициент для сумм (исходное = обезличенное ÷ коэффициент)', v: cfg.factor },
+      { k: 'Сдвиг дат, дней (исходная дата = обезличенная − сдвиг)', v: cfg.shiftDays },
       ...S.an.columns.filter(col => S.cols[col.c].method !== 'keep').map(col => ({ k: `${col.letter} · ${col.name}`, v: A.METHODS[S.cols[col.c].type].find(([k]) => k === S.cols[col.c].method)[1] })),
     ]);
     // ключ для восстановления: JSON частями (в ячейке Excel не больше 32 767 символов), лист скрыт
@@ -2538,7 +2539,7 @@ window.ANON_VERSION = '3.0';
           const map = wb.getWorksheet('Соответствия'), par = wb.getWorksheet('Параметры');
           if (!map || !par) throw new Error('в файле нет листов «Соответствия» и «Параметры» — это не ключ Redact');
           const rows = (ws, n) => { const out = []; ws.eachRow((row, r) => { if (r > 1) out.push(Array.from({ length: n }, (_, i) => row.getCell(i + 1).value)); }); return out; };
-          R.keyNotes.push('Ключ сохранён версией до 2.1: названия и коды вернутся, но номера внутри текста не восстанавливаются, а суммы делятся на K с точностью до копейки.');
+          R.keyNotes.push('Ключ сохранён версией до 2.1: названия и коды вернутся, но номера внутри текста не восстанавливаются, а суммы делятся на коэффициент с точностью до копейки.');
           setKey(A.legacyKeyFromRows(rows(map, 5), rows(par, 2)));
         }
       } else {
@@ -2601,7 +2602,7 @@ window.ANON_VERSION = '3.0';
     const pairs = (key.dictionaries || []).reduce((n, d) => n + d.pairs.length, 0);
     const locked = !!R.envelope;
     $('rKeyInfo').innerHTML = `${icon(locked ? 'lock-open' : 'key-round', 'i i20')}<b>${esc(R.keyName)}</b>` +
-      `<span class="muted">${key.sourceFile ? `для «${esc(key.sourceFile)}» · ` : ''}замен в ключе: ${pairs.toLocaleString('ru-RU')} · K = ${esc(key.factor)} · D = ${esc(key.shiftDays)}</span>`;
+      `<span class="muted">${key.sourceFile ? `для «${esc(key.sourceFile)}» · ` : ''}замен в ключе: ${pairs.toLocaleString('ru-RU')} · коэффициент ${esc(key.factor)} · сдвиг дат ${esc(key.shiftDays)} дн.</span>`;
     R.envelope = null;
     // если файл уже загружен, а лист из ключа другой — переключаемся на лист из ключа
     if (R.kind === 'xlsx' && R.wb) {

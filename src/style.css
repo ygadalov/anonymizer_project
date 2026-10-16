@@ -124,12 +124,12 @@ td.r, th.r { text-align: right; }
 .cols td { padding-top: var(--space-2); }
 .cols .colname { font-weight: 500; min-width: 140px; }
 .cols .colname b { font: 400 12px/16px var(--font-mono); color: var(--ink-muted); margin-right: var(--space-2); }
-.cols .samples { color: var(--ink-muted); max-width: 240px; font: 400 12px/18px var(--font-mono); padding-top: var(--space-3); }
-.cols .samples span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
+.cols .samples { color: var(--ink-muted); max-width: 200px; font: 400 12px/18px var(--font-mono); padding-top: var(--space-3); }
+.cols .samples span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
 .cols .counts { font: 400 12px/16px var(--font-mono); color: var(--ink-muted); padding-top: var(--space-3); white-space: nowrap; }
 .cols select { width: 100%; }
-.cols .c-type { min-width: 176px; width: 176px; }
-.cols .c-method { min-width: 250px; width: 21%; }
+.cols .c-type { min-width: 196px; width: 196px; }
+.cols .c-method { min-width: 264px; width: 21%; }
 .cols .c-params { min-width: 200px; width: 17%; }
 .params { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-2) var(--space-2); align-items: center; }
 .params label { display: contents; font: 500 12px/16px var(--font-sans); color: var(--ink-muted); }
