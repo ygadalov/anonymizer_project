@@ -128,9 +128,9 @@ td.r, th.r { text-align: right; }
 .cols .samples span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
 .cols .counts { font: 400 12px/16px var(--font-mono); color: var(--ink-muted); padding-top: var(--space-3); white-space: nowrap; }
 .cols select { width: 100%; }
-.cols .c-type { min-width: 150px; width: 150px; }
-.cols .c-method { min-width: 230px; width: 21%; }
-.cols .c-params { min-width: 210px; width: 18%; }
+.cols .c-type { min-width: 176px; width: 176px; }
+.cols .c-method { min-width: 250px; width: 21%; }
+.cols .c-params { min-width: 200px; width: 17%; }
 .params { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-2) var(--space-2); align-items: center; }
 .params label { display: contents; font: 500 12px/16px var(--font-sans); color: var(--ink-muted); }
 .params input { width: 100%; height: 36px; }
@@ -228,16 +228,18 @@ input[type=password] {
 /* ---------- Выпадающий список (src/dropdown.js) — вместо системного ---------- */
 .dd-pop {
   position: fixed; z-index: 20; overflow-y: auto; padding: var(--space-1);
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-md);
   box-shadow: var(--shadow-popover);
 }
+/* текст пунктов на одной линии с текстом в поле: 4px отступ списка + 8px пункта = 12px, как у поля */
 .dd-opt {
-  display: flex; align-items: center; gap: var(--space-3); min-height: 36px; padding: 0 var(--space-3);
-  border-radius: var(--radius-sm); cursor: pointer; white-space: nowrap; font: 400 15px/22px var(--font-sans); color: var(--ink);
+  display: flex; align-items: center; gap: var(--space-2); min-height: 32px; padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm); cursor: pointer; font: 400 15px/22px var(--font-sans); color: var(--ink);
 }
-.dd-opt .dd-text { flex: 1; }
+.dd-opt .dd-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .dd-opt.active { background: var(--surface-sunken); }
 .dd-opt.selected { font-weight: 500; }
-.dd-check { visibility: hidden; }
-.dd-opt.selected .dd-check { visibility: visible; }
+/* галочка только у выбранного пункта и места у остальных не занимает */
+.dd-check { display: none; width: 14px; height: 14px; }
+.dd-opt.selected .dd-check { display: block; }
 select.dd-open { border-color: var(--border-strong); box-shadow: inset 0 0 0 1px var(--border-strong); }

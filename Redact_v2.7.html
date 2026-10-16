@@ -319,9 +319,9 @@ td.r, th.r { text-align: right; }
 .cols .samples span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
 .cols .counts { font: 400 12px/16px var(--font-mono); color: var(--ink-muted); padding-top: var(--space-3); white-space: nowrap; }
 .cols select { width: 100%; }
-.cols .c-type { min-width: 150px; width: 150px; }
-.cols .c-method { min-width: 230px; width: 21%; }
-.cols .c-params { min-width: 210px; width: 18%; }
+.cols .c-type { min-width: 176px; width: 176px; }
+.cols .c-method { min-width: 250px; width: 21%; }
+.cols .c-params { min-width: 200px; width: 17%; }
 .params { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-2) var(--space-2); align-items: center; }
 .params label { display: contents; font: 500 12px/16px var(--font-sans); color: var(--ink-muted); }
 .params input { width: 100%; height: 36px; }
@@ -419,18 +419,20 @@ input[type=password] {
 /* ---------- Выпадающий список (src/dropdown.js) — вместо системного ---------- */
 .dd-pop {
   position: fixed; z-index: 20; overflow-y: auto; padding: var(--space-1);
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-md);
   box-shadow: var(--shadow-popover);
 }
+/* текст пунктов на одной линии с текстом в поле: 4px отступ списка + 8px пункта = 12px, как у поля */
 .dd-opt {
-  display: flex; align-items: center; gap: var(--space-3); min-height: 36px; padding: 0 var(--space-3);
-  border-radius: var(--radius-sm); cursor: pointer; white-space: nowrap; font: 400 15px/22px var(--font-sans); color: var(--ink);
+  display: flex; align-items: center; gap: var(--space-2); min-height: 32px; padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm); cursor: pointer; font: 400 15px/22px var(--font-sans); color: var(--ink);
 }
-.dd-opt .dd-text { flex: 1; }
+.dd-opt .dd-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .dd-opt.active { background: var(--surface-sunken); }
 .dd-opt.selected { font-weight: 500; }
-.dd-check { visibility: hidden; }
-.dd-opt.selected .dd-check { visibility: visible; }
+/* галочка только у выбранного пункта и места у остальных не занимает */
+.dd-check { display: none; width: 14px; height: 14px; }
+.dd-opt.selected .dd-check { display: block; }
 select.dd-open { border-color: var(--border-strong); box-shadow: inset 0 0 0 1px var(--border-strong); }
 </style>
 <script>
@@ -751,7 +753,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 // Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
-window.ANON_VERSION = '2.6';
+window.ANON_VERSION = '2.7';
 
 </script>
 <script>
@@ -1082,17 +1084,17 @@ window.ANON_VERSION = '2.6';
     ],
     number: [
       ['keep', 'Оставить'],
-      ['scale', 'Умножить на общий K'],
+      ['scale', 'Умножить на K'],
       ['noise', 'Случайный шум ±%'],
       ['round', 'Округлить до шага'],
-      ['random', 'Случайное в диапазоне столбца'],
+      ['random', 'Случайное число'],
       ['clear', 'Очистить'],
     ],
     date: [
       ['keep', 'Оставить'],
-      ['shift', 'Сдвинуть на общий D дней'],
-      ['month', 'Обобщить до месяца (1-е число)'],
-      ['drandom', 'Случайная дата в диапазоне столбца'],
+      ['shift', 'Сдвинуть на D дней'],
+      ['month', 'Обобщить до месяца'],
+      ['drandom', 'Случайная дата'],
       ['clear', 'Очистить'],
     ],
   };
@@ -1570,7 +1572,14 @@ window.ANON_VERSION = '2.6';
 
   // Ключ из таблицы соответствий версий до 2.1 (листы «Соответствия» и «Параметры»)
   function legacyKeyFromRows(mapRows, paramRows) {
-    const labelToMethod = {};
+    // подписи методов из всех прежних версий: по ним ключ старого формата сопоставляется с методами
+    const labelToMethod = {
+      'Псевдоним с номером («Контрагент 017»)': 'pseudo', 'Вымышленное название («ТрансГарант»)': 'fake',
+      'Маска: случайные буквы/цифры': 'mask', 'Замена внутри текста (имена, даты, номера)': 'smart',
+      'Случайные цифры (формат сохраняется)': 'digits', 'Умножить на общий K': 'scale',
+      'Случайное в диапазоне столбца': 'random', 'Сдвинуть на общий D дней': 'shift',
+      'Обобщить до месяца (1-е число)': 'month', 'Случайная дата в диапазоне столбца': 'drandom',
+    };
     for (const list of Object.values(METHODS)) for (const [k, n] of list) labelToMethod[n] = k;
     const key = { app: 'Redact', kind: 'redact-key', format: 0, factor: 1, shiftDays: 0, columns: [], dictionaries: [], smartDigits: [], numbers: {} };
     for (const [label, value] of paramRows) {
@@ -2738,6 +2747,7 @@ window.ANON_VERSION = '2.6';
  */
 (function () {
   'use strict';
+  const GAP = 2; // зазор между полем и списком, px
   let pop = null, sel = null, active = -1, typed = '', typedTimer = null;
 
   const options = () => Array.from(sel.options).filter(o => !o.hidden);
@@ -2764,13 +2774,14 @@ window.ANON_VERSION = '2.6';
 
   function place() {
     const r = sel.getBoundingClientRect();
-    pop.style.minWidth = r.width + 'px';
+    // ровно по ширине поля: список не выходит за ячейку таблицы
+    pop.style.width = r.width + 'px';
     pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - pop.offsetWidth - 8)) + 'px';
     const below = window.innerHeight - r.bottom - 8, above = r.top - 8;
     const h = Math.min(pop.scrollHeight, 320);
     // вниз, а если места мало — вверх
-    if (below >= h || below >= above) { pop.style.top = (r.bottom + 4) + 'px'; pop.style.maxHeight = Math.min(320, below - 4) + 'px'; }
-    else { pop.style.top = (r.top - 4 - Math.min(h, above)) + 'px'; pop.style.maxHeight = Math.min(320, above - 4) + 'px'; }
+    if (below >= h || below >= above) { pop.style.top = (r.bottom + GAP) + 'px'; pop.style.maxHeight = Math.min(320, below - GAP) + 'px'; }
+    else { pop.style.top = (r.top - GAP - Math.min(h, above)) + 'px'; pop.style.maxHeight = Math.min(320, above - GAP) + 'px'; }
   }
 
   function highlight(scroll) {

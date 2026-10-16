@@ -6,6 +6,7 @@
  */
 (function () {
   'use strict';
+  const GAP = 2; // зазор между полем и списком, px
   let pop = null, sel = null, active = -1, typed = '', typedTimer = null;
 
   const options = () => Array.from(sel.options).filter(o => !o.hidden);
@@ -32,13 +33,14 @@
 
   function place() {
     const r = sel.getBoundingClientRect();
-    pop.style.minWidth = r.width + 'px';
+    // ровно по ширине поля: список не выходит за ячейку таблицы
+    pop.style.width = r.width + 'px';
     pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - pop.offsetWidth - 8)) + 'px';
     const below = window.innerHeight - r.bottom - 8, above = r.top - 8;
     const h = Math.min(pop.scrollHeight, 320);
     // вниз, а если места мало — вверх
-    if (below >= h || below >= above) { pop.style.top = (r.bottom + 4) + 'px'; pop.style.maxHeight = Math.min(320, below - 4) + 'px'; }
-    else { pop.style.top = (r.top - 4 - Math.min(h, above)) + 'px'; pop.style.maxHeight = Math.min(320, above - 4) + 'px'; }
+    if (below >= h || below >= above) { pop.style.top = (r.bottom + GAP) + 'px'; pop.style.maxHeight = Math.min(320, below - GAP) + 'px'; }
+    else { pop.style.top = (r.top - GAP - Math.min(h, above)) + 'px'; pop.style.maxHeight = Math.min(320, above - GAP) + 'px'; }
   }
 
   function highlight(scroll) {
