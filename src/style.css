@@ -224,3 +224,20 @@ input[type=password] {
 /* Подпись наследует цвет страницы (opacity .75 задана в её коде) — серый текст в обеих темах */
 .appfooter { border-top: 1px solid var(--border); margin-top: var(--space-6); color: var(--ink); }
 .appfooter-row { display: flex; justify-content: flex-end; align-items: center; min-height: 56px; padding-top: var(--space-3); padding-bottom: var(--space-3); }
+
+/* ---------- Выпадающий список (src/dropdown.js) — вместо системного ---------- */
+.dd-pop {
+  position: fixed; z-index: 20; overflow-y: auto; padding: var(--space-1);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+  box-shadow: var(--shadow-popover);
+}
+.dd-opt {
+  display: flex; align-items: center; gap: var(--space-3); min-height: 36px; padding: 0 var(--space-3);
+  border-radius: var(--radius-sm); cursor: pointer; white-space: nowrap; font: 400 15px/22px var(--font-sans); color: var(--ink);
+}
+.dd-opt .dd-text { flex: 1; }
+.dd-opt.active { background: var(--surface-sunken); }
+.dd-opt.selected { font-weight: 500; }
+.dd-check { visibility: hidden; }
+.dd-opt.selected .dd-check { visibility: visible; }
+select.dd-open { border-color: var(--border-strong); box-shadow: inset 0 0 0 1px var(--border-strong); }
