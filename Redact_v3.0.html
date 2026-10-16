@@ -764,7 +764,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 // Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
-window.ANON_VERSION = '2.9';
+window.ANON_VERSION = '3.0';
 
 </script>
 <script>
@@ -1552,7 +1552,7 @@ window.ANON_VERSION = '2.9';
   ];
   const RESTORE_HINTS = {
     keep: 'Значения не меняются',
-    text: 'Псевдонимы и замены из словарей ключа заменяются исходными значениями — целиком или внутри текста',
+    text: 'Псевдонимы и другие замены из ключа заменяются исходными значениями — целиком или внутри текста',
     smart: 'Как «Вернуть названия», плюс даты в тексте сдвигаются назад на D и номера возвращаются по ключу',
     unscale: 'Числа делятся на K; значения из исходного файла возвращаются точно, по таблице ключа',
     unshift: 'Даты сдвигаются назад на D дней',
@@ -2041,10 +2041,11 @@ window.ANON_VERSION = '2.9';
   function paramsHtml(col, cfg) {
     const m = cfg.method;
     const parts = [];
-    if (m === 'pseudo') parts.push(`<label>префикс <input type="text" data-p="prefix" value="${esc(cfg.prefix || '')}"></label>`);
-    if (m === 'noise') parts.push(`<label>шум, ± % <input type="number" data-p="pct" min="0" step="1" value="${esc(cfg.pct)}"></label>`);
-    if (m === 'round') parts.push(`<label>шаг <input type="number" data-p="step" min="0" step="any" value="${esc(cfg.step)}"></label>`);
-    if (A.DICT_METHODS.has(m)) parts.push(`<label title="Столбцы с одинаковым именем словаря получают одинаковые замены для одинаковых значений">словарь <input type="text" data-p="group" value="${esc(cfg.group || col.letter)}"></label>`);
+    const tipAttr = t => `title="${esc(t)}"`;
+    if (m === 'pseudo') parts.push(`<label ${tipAttr('Начало псевдонима: «Контрагент» → «Контрагент 017 ООО». Номер подставляется автоматически')}>префикс <input type="text" data-p="prefix" value="${esc(cfg.prefix || '')}"></label>`);
+    if (m === 'noise') parts.push(`<label ${tipAttr('На сколько процентов в обе стороны случайно меняется каждое число')}>шум, ± % <input type="number" data-p="pct" min="0" step="1" value="${esc(cfg.pct)}"></label>`);
+    if (m === 'round') parts.push(`<label ${tipAttr('До какого шага округлять: 1000 → 274 800 станет 275 000')}>шаг <input type="number" data-p="step" min="0" step="any" value="${esc(cfg.step)}"></label>`);
+    if (A.DICT_METHODS.has(m)) parts.push(`<label ${tipAttr(`Одинаковые значения в столбцах одной группы получают одинаковую замену. Например, укажите одну группу у «Покупателя» и «Грузополучателя» — одна и та же компания в обоих станет одним псевдонимом. По умолчанию у каждого столбца своя группа — его буква (${col.letter})`)}>группа замен <input type="text" data-p="group" value="${esc(cfg.group || col.letter)}"></label>`);
     if (m === 'scale') parts.push('<span class="muted">K из шага 3</span>');
     if (m === 'shift' || m === 'smart') parts.push('<span class="muted">D из шага 3</span>');
     return `<div class="params">${parts.join('')}</div>`;
@@ -2385,7 +2386,7 @@ window.ANON_VERSION = '2.9';
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('Соответствия');
     ws.columns = [
-      { header: 'Словарь', key: 'dict', width: 10 },
+      { header: 'Группа замен', key: 'dict', width: 14 },
       { header: 'Столбцы', key: 'columns', width: 28 },
       { header: 'Метод', key: 'method', width: 10 },
       { header: 'Было', key: 'orig', width: 45 },
@@ -2600,7 +2601,7 @@ window.ANON_VERSION = '2.9';
     const pairs = (key.dictionaries || []).reduce((n, d) => n + d.pairs.length, 0);
     const locked = !!R.envelope;
     $('rKeyInfo').innerHTML = `${icon(locked ? 'lock-open' : 'key-round', 'i i20')}<b>${esc(R.keyName)}</b>` +
-      `<span class="muted">${key.sourceFile ? `для «${esc(key.sourceFile)}» · ` : ''}замен в словарях: ${pairs.toLocaleString('ru-RU')} · K = ${esc(key.factor)} · D = ${esc(key.shiftDays)}</span>`;
+      `<span class="muted">${key.sourceFile ? `для «${esc(key.sourceFile)}» · ` : ''}замен в ключе: ${pairs.toLocaleString('ru-RU')} · K = ${esc(key.factor)} · D = ${esc(key.shiftDays)}</span>`;
     R.envelope = null;
     // если файл уже загружен, а лист из ключа другой — переключаемся на лист из ключа
     if (R.kind === 'xlsx' && R.wb) {
@@ -2698,7 +2699,7 @@ window.ANON_VERSION = '2.9';
     }
     const irreversible = R.an.columns.map(col => A.matchKeyColumn(R.prep, col)).filter(kc => kc && kc.method !== 'keep' && !A.REVERSE_OF[kc.method]);
     if (irreversible.length) info.push(`Необратимые методы: ${irreversible.map(kc => `«${kc.name}» — ${methodLabel(kc.method).toLowerCase()}`).join('; ')}. Эти значения не восстановить.`);
-    if (R.prep.ambiguous) info.push(`Замен, которые совпали в разных словарях: ${R.prep.ambiguous}. Внутри текста они не заменяются; в своих столбцах восстанавливаются по словарю столбца.`);
+    if (R.prep.ambiguous) info.push(`Замен, которые совпали в разных группах: ${R.prep.ambiguous}. Внутри текста они не заменяются; в своих столбцах восстанавливаются по группе столбца.`);
     if (R.kind === 'xlsx' && R.wb.worksheets.length > 1) {
       const others = R.wb.worksheets.filter((_, i) => i !== R.sheetIndex).map(ws => `«${ws.name}»`).join(', ');
       info.push($('rOtherSheets').checked
@@ -2907,12 +2908,28 @@ window.ANON_VERSION = '2.9';
     return el.dataset.tip || '';
   }
 
+  // Место элемента на экране. У элементов с display: contents (подписи параметров в сетке) своего
+  // прямоугольника нет — берём общий прямоугольник их содержимого. null — элемента на экране нет
+  function boxOf(el) {
+    const r = el.getBoundingClientRect();
+    if (r.width || r.height) return r;
+    const rects = Array.from(el.getClientRects()).concat(...Array.from(el.childNodes).map(n => {
+      if (n.nodeType === 1) return Array.from(n.getClientRects());
+      if (n.nodeType === 3 && n.textContent.trim()) { const rg = document.createRange(); rg.selectNodeContents(n); return Array.from(rg.getClientRects()); }
+      return [];
+    })).filter(x => x.width || x.height);
+    if (!rects.length) return null;
+    const left = Math.min(...rects.map(x => x.left)), top = Math.min(...rects.map(x => x.top));
+    const right = Math.max(...rects.map(x => x.right)), bottom = Math.max(...rects.map(x => x.bottom));
+    return { left, top, right, bottom, width: right - left, height: bottom - top };
+  }
+
   function show(el) {
     // элемент мог исчезнуть, пока ждали задержку (список закрылся, строку таблицы перерисовали):
     // у такого элемента нет координат, и подсказка оказалась бы в левом верхнем углу
     if (!el.isConnected) return;
-    const rect = el.getBoundingClientRect();
-    if (!rect.width && !rect.height) return;
+    const rect = boxOf(el);
+    if (!rect) return;
     const text = textOf(el);
     const pop = document.querySelector('.dd-pop');
     if (!text || (pop && !pop.contains(el))) return; // пока открыт список, подсказки — только у его пунктов
@@ -2926,7 +2943,7 @@ window.ANON_VERSION = '2.9';
     tip.style.left = '0px';
     tip.style.top = '0px';
     tip.classList.add('on');
-    const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+    const r = rect, w = tip.offsetWidth, h = tip.offsetHeight;
     let top, left;
     if (pop && pop.contains(el)) {
       // у пунктов списка — сбоку от списка, чтобы не закрывать соседние пункты

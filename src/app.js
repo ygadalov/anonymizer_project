@@ -176,10 +176,11 @@
   function paramsHtml(col, cfg) {
     const m = cfg.method;
     const parts = [];
-    if (m === 'pseudo') parts.push(`<label>префикс <input type="text" data-p="prefix" value="${esc(cfg.prefix || '')}"></label>`);
-    if (m === 'noise') parts.push(`<label>шум, ± % <input type="number" data-p="pct" min="0" step="1" value="${esc(cfg.pct)}"></label>`);
-    if (m === 'round') parts.push(`<label>шаг <input type="number" data-p="step" min="0" step="any" value="${esc(cfg.step)}"></label>`);
-    if (A.DICT_METHODS.has(m)) parts.push(`<label title="Столбцы с одинаковым именем словаря получают одинаковые замены для одинаковых значений">словарь <input type="text" data-p="group" value="${esc(cfg.group || col.letter)}"></label>`);
+    const tipAttr = t => `title="${esc(t)}"`;
+    if (m === 'pseudo') parts.push(`<label ${tipAttr('Начало псевдонима: «Контрагент» → «Контрагент 017 ООО». Номер подставляется автоматически')}>префикс <input type="text" data-p="prefix" value="${esc(cfg.prefix || '')}"></label>`);
+    if (m === 'noise') parts.push(`<label ${tipAttr('На сколько процентов в обе стороны случайно меняется каждое число')}>шум, ± % <input type="number" data-p="pct" min="0" step="1" value="${esc(cfg.pct)}"></label>`);
+    if (m === 'round') parts.push(`<label ${tipAttr('До какого шага округлять: 1000 → 274 800 станет 275 000')}>шаг <input type="number" data-p="step" min="0" step="any" value="${esc(cfg.step)}"></label>`);
+    if (A.DICT_METHODS.has(m)) parts.push(`<label ${tipAttr(`Одинаковые значения в столбцах одной группы получают одинаковую замену. Например, укажите одну группу у «Покупателя» и «Грузополучателя» — одна и та же компания в обоих станет одним псевдонимом. По умолчанию у каждого столбца своя группа — его буква (${col.letter})`)}>группа замен <input type="text" data-p="group" value="${esc(cfg.group || col.letter)}"></label>`);
     if (m === 'scale') parts.push('<span class="muted">K из шага 3</span>');
     if (m === 'shift' || m === 'smart') parts.push('<span class="muted">D из шага 3</span>');
     return `<div class="params">${parts.join('')}</div>`;
@@ -520,7 +521,7 @@
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('Соответствия');
     ws.columns = [
-      { header: 'Словарь', key: 'dict', width: 10 },
+      { header: 'Группа замен', key: 'dict', width: 14 },
       { header: 'Столбцы', key: 'columns', width: 28 },
       { header: 'Метод', key: 'method', width: 10 },
       { header: 'Было', key: 'orig', width: 45 },

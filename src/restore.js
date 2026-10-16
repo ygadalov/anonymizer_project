@@ -179,7 +179,7 @@
     const pairs = (key.dictionaries || []).reduce((n, d) => n + d.pairs.length, 0);
     const locked = !!R.envelope;
     $('rKeyInfo').innerHTML = `${icon(locked ? 'lock-open' : 'key-round', 'i i20')}<b>${esc(R.keyName)}</b>` +
-      `<span class="muted">${key.sourceFile ? `для «${esc(key.sourceFile)}» · ` : ''}замен в словарях: ${pairs.toLocaleString('ru-RU')} · K = ${esc(key.factor)} · D = ${esc(key.shiftDays)}</span>`;
+      `<span class="muted">${key.sourceFile ? `для «${esc(key.sourceFile)}» · ` : ''}замен в ключе: ${pairs.toLocaleString('ru-RU')} · K = ${esc(key.factor)} · D = ${esc(key.shiftDays)}</span>`;
     R.envelope = null;
     // если файл уже загружен, а лист из ключа другой — переключаемся на лист из ключа
     if (R.kind === 'xlsx' && R.wb) {
@@ -277,7 +277,7 @@
     }
     const irreversible = R.an.columns.map(col => A.matchKeyColumn(R.prep, col)).filter(kc => kc && kc.method !== 'keep' && !A.REVERSE_OF[kc.method]);
     if (irreversible.length) info.push(`Необратимые методы: ${irreversible.map(kc => `«${kc.name}» — ${methodLabel(kc.method).toLowerCase()}`).join('; ')}. Эти значения не восстановить.`);
-    if (R.prep.ambiguous) info.push(`Замен, которые совпали в разных словарях: ${R.prep.ambiguous}. Внутри текста они не заменяются; в своих столбцах восстанавливаются по словарю столбца.`);
+    if (R.prep.ambiguous) info.push(`Замен, которые совпали в разных группах: ${R.prep.ambiguous}. Внутри текста они не заменяются; в своих столбцах восстанавливаются по группе столбца.`);
     if (R.kind === 'xlsx' && R.wb.worksheets.length > 1) {
       const others = R.wb.worksheets.filter((_, i) => i !== R.sheetIndex).map(ws => `«${ws.name}»`).join(', ');
       info.push($('rOtherSheets').checked

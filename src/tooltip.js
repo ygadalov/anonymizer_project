@@ -21,12 +21,28 @@
     return el.dataset.tip || '';
   }
 
+  // Место элемента на экране. У элементов с display: contents (подписи параметров в сетке) своего
+  // прямоугольника нет — берём общий прямоугольник их содержимого. null — элемента на экране нет
+  function boxOf(el) {
+    const r = el.getBoundingClientRect();
+    if (r.width || r.height) return r;
+    const rects = Array.from(el.getClientRects()).concat(...Array.from(el.childNodes).map(n => {
+      if (n.nodeType === 1) return Array.from(n.getClientRects());
+      if (n.nodeType === 3 && n.textContent.trim()) { const rg = document.createRange(); rg.selectNodeContents(n); return Array.from(rg.getClientRects()); }
+      return [];
+    })).filter(x => x.width || x.height);
+    if (!rects.length) return null;
+    const left = Math.min(...rects.map(x => x.left)), top = Math.min(...rects.map(x => x.top));
+    const right = Math.max(...rects.map(x => x.right)), bottom = Math.max(...rects.map(x => x.bottom));
+    return { left, top, right, bottom, width: right - left, height: bottom - top };
+  }
+
   function show(el) {
     // элемент мог исчезнуть, пока ждали задержку (список закрылся, строку таблицы перерисовали):
     // у такого элемента нет координат, и подсказка оказалась бы в левом верхнем углу
     if (!el.isConnected) return;
-    const rect = el.getBoundingClientRect();
-    if (!rect.width && !rect.height) return;
+    const rect = boxOf(el);
+    if (!rect) return;
     const text = textOf(el);
     const pop = document.querySelector('.dd-pop');
     if (!text || (pop && !pop.contains(el))) return; // пока открыт список, подсказки — только у его пунктов
@@ -40,7 +56,7 @@
     tip.style.left = '0px';
     tip.style.top = '0px';
     tip.classList.add('on');
-    const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+    const r = rect, w = tip.offsetWidth, h = tip.offsetHeight;
     let top, left;
     if (pop && pop.contains(el)) {
       // у пунктов списка — сбоку от списка, чтобы не закрывать соседние пункты
