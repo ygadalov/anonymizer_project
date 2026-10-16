@@ -368,6 +368,8 @@
       : 'Столбцы для обезличивания не выбраны. Выберите метод хотя бы для одного столбца на шаге 2.';
     const table = $('previewTable');
     $('legend').classList.toggle('hidden', !active.length);
+    // «очищено» в легенде — только если в предпросмотре есть очищенные ячейки
+    $('legendCleared').classList.toggle('hidden', !active.some(col => S.cols[col.c].method === 'clear'));
     if (!active.length) { table.innerHTML = ''; }
     else {
       const rows = S.an.dataRows.filter(r => active.some(col => changes.has(r + ':' + col.c))).slice(0, 15);

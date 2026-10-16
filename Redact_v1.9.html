@@ -325,7 +325,7 @@ td.r, th.r { text-align: right; }
 /* ---------- RedactedValue (brand/components/RedactedValue.md) ---------- */
 .rv { font: 400 14px/20px var(--font-mono); border-radius: var(--radius-bar); }
 .rv-original { color: var(--ink); }
-/* в таблицах найденное — мягкий маркер; яркий highlight — только одиночные значения, счётчики и легенда */
+/* найденное — мягкий маркер и в таблице, и в легенде; яркий highlight — только одиночные значения и счётчики */
 .rv-detected { background: var(--highlight-soft); color: var(--ink); padding: 0 var(--space-1); }
 .rv-detected-strong { background: var(--highlight); color: var(--on-highlight); padding: 0 var(--space-1); }
 .rv-token { background: var(--surface-sunken); border: 1px solid var(--border); padding: 0 var(--space-1); color: var(--ink); }
@@ -499,9 +499,9 @@ td.r, th.r { text-align: right; }
     </div>
     <div id="previewStats" class="small muted"></div>
     <div id="legend" class="legend small muted hidden">
-      <span class="item"><span class="rv rv-detected-strong">найдено</span>исходное значение</span>
+      <span class="item"><span class="rv rv-detected">найдено</span>исходное значение</span>
       <span class="item"><span class="rv rv-token">замена</span>новое значение</span>
-      <span class="item"><span class="rv rv-redacted" style="width:6ch" role="img" aria-label="Скрыто"></span>очищено</span>
+      <span class="item hidden" id="legendCleared"><span class="rv rv-redacted" style="width:6ch" role="img" aria-label="Скрыто"></span>очищено</span>
     </div>
     <div class="table-scroll"><table class="data preview" id="previewTable"></table></div>
     <div id="warnings"></div>
@@ -574,7 +574,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 // Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
-window.ANON_VERSION = '1.8';
+window.ANON_VERSION = '1.9';
 
 </script>
 <script>
@@ -1711,6 +1711,8 @@ window.ANON_VERSION = '1.8';
       : 'Столбцы для обезличивания не выбраны. Выберите метод хотя бы для одного столбца на шаге 2.';
     const table = $('previewTable');
     $('legend').classList.toggle('hidden', !active.length);
+    // «очищено» в легенде — только если в предпросмотре есть очищенные ячейки
+    $('legendCleared').classList.toggle('hidden', !active.some(col => S.cols[col.c].method === 'clear'));
     if (!active.length) { table.innerHTML = ''; }
     else {
       const rows = S.an.dataRows.filter(r => active.some(col => changes.has(r + ':' + col.c))).slice(0, 15);

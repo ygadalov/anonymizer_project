@@ -135,7 +135,7 @@ td.r, th.r { text-align: right; }
 /* ---------- RedactedValue (brand/components/RedactedValue.md) ---------- */
 .rv { font: 400 14px/20px var(--font-mono); border-radius: var(--radius-bar); }
 .rv-original { color: var(--ink); }
-/* в таблицах найденное — мягкий маркер; яркий highlight — только одиночные значения, счётчики и легенда */
+/* найденное — мягкий маркер и в таблице, и в легенде; яркий highlight — только одиночные значения и счётчики */
 .rv-detected { background: var(--highlight-soft); color: var(--ink); padding: 0 var(--space-1); }
 .rv-detected-strong { background: var(--highlight); color: var(--on-highlight); padding: 0 var(--space-1); }
 .rv-token { background: var(--surface-sunken); border: 1px solid var(--border); padding: 0 var(--space-1); color: var(--ink); }
