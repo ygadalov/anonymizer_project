@@ -97,7 +97,7 @@
       <button class="btn secondary" id="btnReset"><svg class="i i20" aria-hidden="true"><use href="#i-rotate-ccw"></use></svg>Сбросить методы</button>
       <span class="spacer"></span>
       <button class="btn ghost" id="btnSaveProfile" title="Методы по столбцам, лист, строка заголовков и флажки — чтобы в следующий раз не настраивать заново"><svg class="i i20" aria-hidden="true"><use href="#i-save"></use></svg>Сохранить настройки</button>
-      <label class="btn ghost"><svg class="i i20" aria-hidden="true"><use href="#i-folder-open"></use></svg>Загрузить настройки<input type="file" id="profileFile" accept=".json,application/json" hidden></label>
+      <label class="btn secondary"><svg class="i i20" aria-hidden="true"><use href="#i-folder-open"></use></svg>Загрузить настройки<input type="file" id="profileFile" accept=".json,application/json" hidden></label>
     </div>
     <div class="table-scroll">
       <table class="data cols" id="colsTable">
@@ -168,7 +168,7 @@
           <label class="caption" for="keyPass2">Повтор пароля</label>
           <input type="password" id="keyPass2" autocomplete="new-password">
         </div>
-        <button class="btn secondary" id="btnKey"><svg class="i i20" aria-hidden="true"><use href="#i-download"></use></svg>Скачать ключ</button>
+        <button class="btn caution" id="btnKey"><svg class="i i20" aria-hidden="true"><use href="#i-download"></use></svg>Скачать ключ</button>
       </div>
       <p class="small muted" id="keyHint">С паролем ключ сохраняется зашифрованным файлом .redactkey — без пароля его не открыть. Без пароля — обычной таблицей Excel, которую может открыть любой.</p>
     </div>
@@ -204,7 +204,7 @@
               <label class="caption" for="rPass">Пароль ключа</label>
               <input type="password" id="rPass" autocomplete="current-password">
             </div>
-            <button class="btn secondary" id="btnUnlock"><svg class="i i20" aria-hidden="true"><use href="#i-lock-open"></use></svg>Открыть ключ</button>
+            <button class="btn caution" id="btnUnlock"><svg class="i i20" aria-hidden="true"><use href="#i-lock-open"></use></svg>Открыть ключ</button>
           </div>
         </div>
       </div>

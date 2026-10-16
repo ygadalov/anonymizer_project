@@ -60,14 +60,20 @@ b, strong { font-weight: 500; }
   font: 500 15px/22px var(--font-sans); cursor: pointer; white-space: nowrap;
   border: 1px solid transparent; background: transparent; color: var(--ink);
 }
+/* Варианты по последствиям действия (brand/BRAND.md, «Кнопки»): чёрная — главный результат, охристая — ключ
+   соответствий, красноватая — необратимо, остальное нейтральное */
 .btn.primary { background: var(--ink); color: var(--paper); }
 .btn.primary:hover { opacity: 0.88; }
 .btn.secondary { background: var(--surface); border-color: var(--border); }
 .btn.ghost { background: transparent; }
-.btn.danger { background: var(--surface); color: var(--danger); border-color: var(--danger); }
 .btn.secondary:hover, .btn.ghost:hover { background: var(--surface-sunken); }
-/* у опасной кнопки — красноватая заливка из токена danger (без новых цветов), чтобы действие читалось сразу */
-.btn.danger:hover { background: color-mix(in srgb, var(--danger) 10%, var(--surface)); }
+.btn.caution { background: var(--caution-soft); color: var(--caution); border-color: var(--caution-border); }
+.btn.caution:hover { background: var(--caution-soft-hover); }
+.btn.danger { background: var(--danger-soft); color: var(--danger); border-color: var(--danger-border); }
+.btn.danger:hover { background: var(--danger-soft-hover); }
+/* только подтверждение в диалоге необратимого действия */
+.btn.danger-solid { background: var(--danger); color: var(--on-danger); }
+.btn.danger-solid:hover { opacity: 0.88; }
 .btn.icon-only { width: 40px; padding: 0; }
 .btn:disabled { opacity: 0.4; cursor: default; }
 

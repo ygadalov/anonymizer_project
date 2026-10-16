@@ -28,6 +28,14 @@
   --on-highlight: #141414;
   --success: #1E7A4C;
   --danger: #B42F25;
+  --danger-soft: #F9E8E5;
+  --danger-soft-hover: #F3DAD5;
+  --danger-border: #E8B9B2;
+  --on-danger: #FFFFFF;
+  --caution: #84501C;
+  --caution-soft: #F7EBDC;
+  --caution-soft-hover: #F0DEC7;
+  --caution-border: #E3C7A3;
   --focus: var(--ink);
   --shadow-popover: 0 8px 24px rgba(20, 20, 20, 0.12);
   color-scheme: light;
@@ -44,6 +52,14 @@
   --highlight-soft: #4A3514;
   --success: #5CC98F;
   --danger: #FF7B6E;
+  --danger-soft: #3B1D1A;
+  --danger-soft-hover: #4A2420;
+  --danger-border: #6A2E28;
+  --on-danger: #141414;
+  --caution: #E3AE78;
+  --caution-soft: #3A2A17;
+  --caution-soft-hover: #4A3720;
+  --caution-border: #5C4426;
   --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.5);
   color-scheme: dark;
 }
@@ -60,6 +76,14 @@
     --highlight-soft: #4A3514;
     --success: #5CC98F;
     --danger: #FF7B6E;
+    --danger-soft: #3B1D1A;
+    --danger-soft-hover: #4A2420;
+    --danger-border: #6A2E28;
+    --on-danger: #141414;
+    --caution: #E3AE78;
+    --caution-soft: #3A2A17;
+    --caution-soft-hover: #4A3720;
+    --caution-border: #5C4426;
     --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.5);
     color-scheme: dark;
   }
@@ -235,14 +259,20 @@ b, strong { font-weight: 500; }
   font: 500 15px/22px var(--font-sans); cursor: pointer; white-space: nowrap;
   border: 1px solid transparent; background: transparent; color: var(--ink);
 }
+/* Варианты по последствиям действия (brand/BRAND.md, «Кнопки»): чёрная — главный результат, охристая — ключ
+   соответствий, красноватая — необратимо, остальное нейтральное */
 .btn.primary { background: var(--ink); color: var(--paper); }
 .btn.primary:hover { opacity: 0.88; }
 .btn.secondary { background: var(--surface); border-color: var(--border); }
 .btn.ghost { background: transparent; }
-.btn.danger { background: var(--surface); color: var(--danger); border-color: var(--danger); }
 .btn.secondary:hover, .btn.ghost:hover { background: var(--surface-sunken); }
-/* у опасной кнопки — красноватая заливка из токена danger (без новых цветов), чтобы действие читалось сразу */
-.btn.danger:hover { background: color-mix(in srgb, var(--danger) 10%, var(--surface)); }
+.btn.caution { background: var(--caution-soft); color: var(--caution); border-color: var(--caution-border); }
+.btn.caution:hover { background: var(--caution-soft-hover); }
+.btn.danger { background: var(--danger-soft); color: var(--danger); border-color: var(--danger-border); }
+.btn.danger:hover { background: var(--danger-soft-hover); }
+/* только подтверждение в диалоге необратимого действия */
+.btn.danger-solid { background: var(--danger); color: var(--on-danger); }
+.btn.danger-solid:hover { opacity: 0.88; }
 .btn.icon-only { width: 40px; padding: 0; }
 .btn:disabled { opacity: 0.4; cursor: default; }
 
@@ -522,7 +552,7 @@ select.dd-open { border-color: var(--border-strong); box-shadow: inset 0 0 0 1px
       <button class="btn secondary" id="btnReset"><svg class="i i20" aria-hidden="true"><use href="#i-rotate-ccw"></use></svg>Сбросить методы</button>
       <span class="spacer"></span>
       <button class="btn ghost" id="btnSaveProfile" title="Методы по столбцам, лист, строка заголовков и флажки — чтобы в следующий раз не настраивать заново"><svg class="i i20" aria-hidden="true"><use href="#i-save"></use></svg>Сохранить настройки</button>
-      <label class="btn ghost"><svg class="i i20" aria-hidden="true"><use href="#i-folder-open"></use></svg>Загрузить настройки<input type="file" id="profileFile" accept=".json,application/json" hidden></label>
+      <label class="btn secondary"><svg class="i i20" aria-hidden="true"><use href="#i-folder-open"></use></svg>Загрузить настройки<input type="file" id="profileFile" accept=".json,application/json" hidden></label>
     </div>
     <div class="table-scroll">
       <table class="data cols" id="colsTable">
@@ -593,7 +623,7 @@ select.dd-open { border-color: var(--border-strong); box-shadow: inset 0 0 0 1px
           <label class="caption" for="keyPass2">Повтор пароля</label>
           <input type="password" id="keyPass2" autocomplete="new-password">
         </div>
-        <button class="btn secondary" id="btnKey"><svg class="i i20" aria-hidden="true"><use href="#i-download"></use></svg>Скачать ключ</button>
+        <button class="btn caution" id="btnKey"><svg class="i i20" aria-hidden="true"><use href="#i-download"></use></svg>Скачать ключ</button>
       </div>
       <p class="small muted" id="keyHint">С паролем ключ сохраняется зашифрованным файлом .redactkey — без пароля его не открыть. Без пароля — обычной таблицей Excel, которую может открыть любой.</p>
     </div>
@@ -629,7 +659,7 @@ select.dd-open { border-color: var(--border-strong); box-shadow: inset 0 0 0 1px
               <label class="caption" for="rPass">Пароль ключа</label>
               <input type="password" id="rPass" autocomplete="current-password">
             </div>
-            <button class="btn secondary" id="btnUnlock"><svg class="i i20" aria-hidden="true"><use href="#i-lock-open"></use></svg>Открыть ключ</button>
+            <button class="btn caution" id="btnUnlock"><svg class="i i20" aria-hidden="true"><use href="#i-lock-open"></use></svg>Открыть ключ</button>
           </div>
         </div>
       </div>
@@ -750,7 +780,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 // Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
-window.ANON_VERSION = '3.3';
+window.ANON_VERSION = '3.4';
 
 </script>
 <script>
