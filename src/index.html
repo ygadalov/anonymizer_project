@@ -77,10 +77,10 @@
   <section class="card" id="step1">
     <h2 class="h2 step"><span class="num">1</span>Файл с данными</h2>
     <label class="drop" id="drop">
-      <input type="file" id="file" accept=".xlsx,.xlsm,.csv,.txt" hidden>
+      <input type="file" id="file" accept=".xlsx,.xlsm,.xls,.csv,.txt" hidden>
       <svg class="i drop-icon" aria-hidden="true"><use href="#i-upload"></use></svg>
       <span class="body-strong">Перетащите файл сюда или нажмите, чтобы выбрать</span>
-      <span class="small muted">Поддерживаются .xlsx, .xlsm и .csv. Файл .xls сначала пересохраните в .xlsx.</span>
+      <span class="small muted">Поддерживаются .xlsx, .xlsm, .xls (Excel 97–2003) и .csv.</span>
     </label>
     <div id="fileInfo" class="small"></div>
     <div class="row-controls settings-line">
@@ -193,10 +193,10 @@
         <div>
           <div class="caption muted label-above">Обезличенный или присланный в ответ файл</div>
           <label class="drop drop-sm" id="rDropFile">
-            <input type="file" id="rFile" accept=".xlsx,.xlsm,.csv,.txt" hidden>
+            <input type="file" id="rFile" accept=".xlsx,.xlsm,.xls,.csv,.txt" hidden>
             <svg class="i drop-icon" aria-hidden="true"><use href="#i-file-spreadsheet"></use></svg>
             <span class="body-strong">Выберите файл</span>
-            <span class="small muted">.xlsx, .xlsm или .csv</span>
+            <span class="small muted">.xlsx, .xlsm, .xls или .csv</span>
           </label>
           <div id="rFileInfo" class="small file-info"></div>
         </div>
@@ -273,6 +273,10 @@
 
 <script src="../vendor/exceljs.min.js"></script>
 <script src="../vendor/jszip.min.js"></script>
+<!-- SheetJS для .xls: не выполняется на странице, build.py встраивает текст, src/xls.js запускает его в фоновом потоке -->
+<script type="text/x-worker" id="libCpexcel" src="../vendor/cpexcel.cyr.js"></script>
+<script type="text/x-worker" id="libSheetjs" src="../vendor/xlsx.core.min.js"></script>
+<script src="xls.js"></script>
 <script src="version.js"></script>
 <script src="engine.js"></script>
 <script src="app.js"></script>

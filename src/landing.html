@@ -185,8 +185,9 @@
     <b>Честно про ограничения.</b> Обычная выгрузка — псевдонимизация: по ключу данные возвращаются, поэтому ключ храните
     отдельно от файла и лучше с паролем. Умножение на коэффициент сохраняет пропорции — поэтому по файлу можно считать;
     но если получатель знает несколько точных сумм, по ним можно вычислить коэффициент. В таком случае выбирайте для сумм
-    «Случайное отклонение ±%». Файлы Excel 97–2003 (<span class="mono-small">.xls</span>) Redact не открывает — сохраните
-    их в Excel как <span class="mono-small">.xlsx</span>. Сводные таблицы и диаграммы внутри книги могут не сохраниться,
+    «Случайное отклонение ±%». Файлы <span class="mono-small">.xls</span> (Excel 97–2003) открываются, но результат
+    сохраняется в <span class="mono-small">.xlsx</span> без шрифтов, заливки и рамок — значения, форматы чисел, ширина
+    столбцов и объединения на месте. Сводные таблицы и диаграммы внутри книги могут не сохраниться,
     поэтому лучше обезличивать «плоскую» выгрузку.
   </div>
 </div></section>
@@ -199,7 +200,7 @@
       <a class="btn primary" href="{{APP}}">Открыть Redact <svg class="i i20" aria-hidden="true"><use href="#i-arrow-right"></use></svg></a>
       <a class="btn secondary" href="{{APP}}" download><svg class="i i20" aria-hidden="true"><use href="#i-download"></use></svg>Скачать {{SIZE}}</a>
     </div>
-    <p class="fmt mono-small muted">.xlsx · .csv · v{{VERSION}}</p>
+    <p class="fmt mono-small muted">.xlsx · .xls · .csv · v{{VERSION}}</p>
   </div>
 </div></section>
 </main>
