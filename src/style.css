@@ -12,14 +12,15 @@ b, strong { font-weight: 500; }
 /* ---------- Шапка приложения ---------- */
 .appbar { background: var(--surface); border-bottom: 1px solid var(--border); }
 .appbar-row { display: flex; align-items: center; gap: var(--space-3); min-height: 64px; }
-.brand { display: inline-flex; align-items: center; gap: var(--space-3); color: var(--ink); text-decoration: none; padding: var(--space-1) 0; }
-.mark { display: block; height: 24px; width: auto; }
-.mark-dark { display: none; }
-[data-theme="dark"] .mark-light { display: none; }
-[data-theme="dark"] .mark-dark { display: block; }
+/* Шапка — горизонтальный логотип целиком (brand/BRAND.md: «Шапка приложения»), не собирать из знака и текста */
+.brand { display: inline-flex; align-items: center; text-decoration: none; }
+.logo { display: block; height: 40px; width: auto; }
+.logo-dark { display: none; }
+[data-theme="dark"] .logo-light { display: none; }
+[data-theme="dark"] .logo-dark { display: block; }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .mark-light { display: none; }
-  :root:not([data-theme="light"]) .mark-dark { display: block; }
+  :root:not([data-theme="light"]) .logo-light { display: none; }
+  :root:not([data-theme="light"]) .logo-dark { display: block; }
 }
 .chip {
   color: var(--ink-muted); border: 1px solid var(--border); border-radius: var(--radius-sm);

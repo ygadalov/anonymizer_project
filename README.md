@@ -86,7 +86,7 @@ brand/           брендбук Redact: BRAND.md, токены, логотип
 src/version.js   номер версии
 src/index.html   разметка
 src/style.css    стили (только токены из brand/tokens.css)
-src/fonts/       шрифты бренда (Golos Text, JetBrains Mono, Rubik Mono One; SIL OFL), встраиваются при сборке
+src/fonts/       шрифты бренда (Golos Text, JetBrains Mono; SIL OFL), встраиваются при сборке
 src/icons/       SVG-иконки (Lucide, ISC); build.py собирает из них спрайт
 src/engine.js    логика (без DOM, можно запускать в Node)
 src/app.js       интерфейс обезличивания
