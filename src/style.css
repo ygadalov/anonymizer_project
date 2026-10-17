@@ -106,6 +106,9 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--ink); marg
 .settings-line { align-items: center; margin: var(--space-4) 0 0; }
 .grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--space-6); margin-bottom: var(--space-4); }
 .checks { display: flex; flex-wrap: wrap; gap: 0 var(--space-6); }
+/* флажок с пояснением на всю ширину: текст пояснения начинается под текстом флажка (18px флажок + 8px отступ) */
+.chk-block { flex-basis: 100%; display: grid; }
+.chk-hint { padding-left: 26px; max-width: 880px; }
 
 /* ---------- Загрузка файла ---------- */
 .drop {
