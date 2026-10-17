@@ -140,3 +140,21 @@ table.data tr.total td { font: 500 15px/22px var(--font-sans); }
 
 /* столбец с текстом договора переносится, чтобы таблица помещалась без прокрутки на широком экране */
 table.data th.text, table.data td.text { white-space: normal; min-width: 240px; }
+
+/* сноска к 152-ФЗ: звёздочка у подзаголовка, пояснение под абзацем */
+.fn-ref { color: var(--ink-muted); text-decoration: none; margin-left: 2px; }
+.fn-ref:hover { color: var(--ink); }
+.footnote { margin: var(--space-3) 0 0; max-width: 760px; }
+
+/* очищенное значение: в файле пустая ячейка, поэтому в демо — пустое место с пунктиром, а не плашка redact */
+.rv-empty {
+  display: inline-block; width: 10ch; height: 20px; vertical-align: middle;
+  border: 1px dashed var(--border); border-radius: var(--radius-bar);
+}
+.legend-group { display: inline-flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
+
+/* шесть столбцов на широком экране без прокрутки: длинные названия и тексты переносятся между значениями,
+   но само значение (плашка «найдено» или токен замены) не рвётся посередине */
+table.data th.text, table.data td.text { min-width: 200px; }
+table.data td:first-child { white-space: normal; min-width: 200px; }
+table.data td .rv-detected, table.data td .rv-token { white-space: nowrap; }
