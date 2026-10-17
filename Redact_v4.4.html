@@ -305,9 +305,6 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--ink); marg
 .settings-line { align-items: center; margin: var(--space-4) 0 0; }
 .grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--space-6); margin-bottom: var(--space-4); }
 .checks { display: flex; flex-wrap: wrap; gap: 0 var(--space-6); }
-/* флажок с пояснением на всю ширину: текст пояснения начинается под текстом флажка (18px флажок + 8px отступ) */
-.chk-block { flex-basis: 100%; display: grid; }
-.chk-hint { padding-left: 26px; max-width: 880px; }
 
 /* ---------- Загрузка файла ---------- */
 .drop {
@@ -625,13 +622,7 @@ dialog.confirm p:has(+ .confirm-list) { margin-bottom: var(--space-3); }
       <label class="chk"><input type="checkbox" id="clearNotes" checked> Удалить примечания ячеек</label>
       <label class="chk"><input type="checkbox" id="clearHF" checked> Очистить колонтитулы</label>
       <label class="chk" title="Если выключить, листы без выбранных методов попадут в результат как есть — вместе с исходными данными"><input type="checkbox" id="dropUnused" checked> Удалять из результата листы, которые не обезличиваются</label>
-      <div class="chk-block">
-        <label class="chk"><input type="checkbox" id="profileWithKey" aria-describedby="profileWithKeyHint"> Сохранять в файле настроек секретную фразу, коэффициент и сдвиг дат</label>
-        <small class="small muted chk-hint" id="profileWithKeyHint">Это три поля выше: от них зависит, какими получатся псевдонимы, суммы и даты.
-          С ними файл настроек в следующий раз даст те же замены — «Контрагент 017» останется тем же контрагентом,
-          и выгрузки за разные периоды можно сравнивать. Но по такому файлу можно вернуть суммы и даты и проверить догадки
-          о настоящих названиях, поэтому храните его так же отдельно от обезличенных файлов, как ключ.</small>
-      </div>
+      <label class="chk" title="Это три поля выше: от них зависит, какими получатся псевдонимы, суммы и даты. С ними файл настроек в следующий раз даст те же замены — «Контрагент 017» останется тем же контрагентом, и выгрузки за разные периоды можно сравнивать. Но по такому файлу можно вернуть суммы и даты и проверить догадки о настоящих названиях, поэтому храните его так же отдельно от обезличенных файлов, как ключ"><input type="checkbox" id="profileWithKey"> Сохранять в файле настроек секретную фразу, коэффициент и сдвиг дат</label>
     </div>
   </section>
 
