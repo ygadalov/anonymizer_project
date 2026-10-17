@@ -349,14 +349,16 @@
     hash: 'Короткий код вида ID-3K9F2A7B',
     digits: '000001658 → 000003708: цифры случайные, длина, разделители и ведущие нули сохраняются',
     scale: 'Все числа умножаются на один коэффициент (шаг 3) — доли и итоги сохраняются, а сами суммы скрыты',
-    noise: 'Каждое число меняется на случайные ±N %',
-    round: 'Округление до шага, например до 1000',
-    random: 'Случайное число между минимумом и максимумом столбца',
+    noise: 'Каждое число меняется на случайные ±N %. Необратимо: по ключу исходное не вернуть',
+    round: 'Округление до шага, например до 1000. Необратимо: по ключу исходное не вернуть',
+    random: 'Случайное число между минимумом и максимумом столбца. Необратимо: по ключу исходное не вернуть',
     shift: 'Все даты сдвигаются на одно и то же число дней (шаг 3) — сроки и интервалы сохраняются',
-    month: '15.03.2024 → 01.03.2024',
-    drandom: 'Случайная дата между минимальной и максимальной датой столбца',
-    clear: 'Ячейка становится пустой',
+    month: '15.03.2024 → 01.03.2024. Необратимо: по ключу точную дату не вернуть',
+    drandom: 'Случайная дата между минимальной и максимальной датой столбца. Необратимо: по ключу исходную не вернуть',
+    clear: 'Ячейка становится пустой. Значение удаляется: по ключу его не вернуть',
   };
+  // Методы, после которых исходное значение не вернуть даже по ключу соответствий
+  const IRREVERSIBLE = new Set(['noise', 'round', 'random', 'month', 'drandom', 'clear']);
   const TYPE_NAMES = { text: 'Текст', id: 'Код / ИНН', number: 'Число', date: 'Дата' };
   const DICT_METHODS = new Set(['pseudo', 'fake', 'mask', 'digits', 'hash']);
 
@@ -1218,7 +1220,7 @@
     plural, cyrb128, makeRng, randomSeed, factorFromSeed, shiftFromSeed,
     parseTextDate, formatTextDate, gridFromWorksheet, parseCsv, gridToCsv,
     detectHeaderRow, analyze, suggest, isMoneyColumn, externalColumns, transform, applyToWorksheet, clearWorkbookMeta, clearNotes, repairXlsx, normalizeFontBooleans, headerFooterText, clearHeaderFooter,
-    splitLegalForm, METHODS, METHOD_HINTS, TYPE_NAMES, DICT_METHODS, colLetter, isDate,
+    splitLegalForm, METHODS, METHOD_HINTS, IRREVERSIBLE, TYPE_NAMES, DICT_METHODS, colLetter, isDate,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Anon = api;

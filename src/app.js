@@ -40,7 +40,7 @@
     const t = $('toast');
     kind = kind || (/^(ошибк|не удалось)/i.test(msg) ? 'error' : 'ok');
     t.className = 'toast ' + kind;
-    t.innerHTML = icon(kind === 'error' ? 'circle-alert' : 'circle-check') + `<span>${esc(msg)}</span>`;
+    t.innerHTML = icon(kind === 'error' ? 'circle-alert' : kind === 'warn' ? 'triangle-alert' : 'circle-check') + `<span>${esc(msg)}</span>`;
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => t.classList.add('hidden'), ms);
   }
@@ -248,6 +248,10 @@
     if (A.DICT_METHODS.has(m)) parts.push(`<label ${tipAttr(`Одинаковые значения в столбцах одной группы получают одинаковую замену. Например, укажите одну группу у «Покупателя» и «Грузополучателя» — одна и та же компания в обоих станет одним псевдонимом. По умолчанию у каждого столбца своя группа — его буква (${col.letter})`)}>группа замен <input type="text" data-p="group" value="${esc(cfg.group || col.letter)}"></label>`);
     if (m === 'scale') parts.push('<span class="muted">коэффициент — в шаге 3</span>');
     if (m === 'shift' || m === 'smart') parts.push('<span class="muted">сдвиг дат — в шаге 3</span>');
+    // необратимые методы: пометка остаётся, пока метод выбран
+    if (A.IRREVERSIBLE.has(m)) parts.push(`<span class="irrev">${icon('triangle-alert', 'i')}${m === 'clear'
+      ? 'Значения удаляются — по ключу их не вернуть'
+      : 'Необратимо — по ключу исходные значения не вернуть'}</span>`);
     return `<div class="params">${parts.join('')}</div>`;
   }
 
@@ -289,6 +293,12 @@
     } else if (ev.target.dataset.k === 'method') {
       cfg.method = ev.target.value;
       rerenderRow(c);
+      if (A.IRREVERSIBLE.has(cfg.method)) {
+        const col = S.an.columns.find(x => x.c === c);
+        toast(cfg.method === 'clear'
+          ? `Столбец «${col.name}» будет очищен: значения удалятся из файла, и по ключу их не вернуть`
+          : `Метод для «${col.name}» необратим: по ключу исходные значения не вернуть`, 6000, 'warn');
+      }
     } else if (ev.target.dataset.p) {
       cfg[ev.target.dataset.p] = ev.target.value;
     }
@@ -495,6 +505,12 @@
       table.innerHTML = head + `<tbody>${body}</tbody>`;
     }
     const w = [...S.loadNotes, ...warnings];
+    // что не вернётся по ключу
+    const lost = usedSheets().flatMap(st => st.an.columns.filter(col => A.IRREVERSIBLE.has(st.cols[col.c].method)).map(col => {
+      const name = A.METHODS[st.cols[col.c].type].find(([k]) => k === st.cols[col.c].method)[1];
+      return `«${S.sheets.length > 1 ? st.name + ' · ' : ''}${col.name}» — ${name.toLowerCase()}`;
+    }));
+    if (lost.length) w.push(`По ключу не вернутся (${lost.length > 1 ? 'эти методы необратимы' : 'метод необратим'}): ${lost.join('; ')}.`);
     const leaks = [...S.result.leaks];
     if (S.kind === 'xlsx') {
       for (const st of resultSheets()) {
