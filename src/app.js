@@ -498,9 +498,9 @@
         if (!changes.has(key)) return `<td>${old === null ? '' : `<span class="rv rv-original">${esc(fmt(old))}</span>`}</td>`;
         const nv = changes.get(key);
         const after = (nv === null || nv === '')
-          ? `<span class="rv rv-redacted" style="width:${Math.min(40, Math.max(3, fmt(old).length))}ch" role="img" aria-label="Скрыто: ${esc(col.name)}"></span>`
+          ? `<span class="rv-empty" style="width:${Math.min(40, Math.max(6, fmt(old).length))}ch" role="img" aria-label="Пустая ячейка: значение удалено (${esc(col.name)})"></span>`
           : `<span class="rv rv-token">${esc(fmt(nv))}</span>`;
-        return `<td title="${esc(fmt(old))} → ${esc(fmt(nv) || 'скрыто')}"><div class="pair"><span class="rv rv-detected">${esc(fmt(old))}</span><span class="line"><span class="rv-arrow" aria-hidden="true">→</span>${after}</span></div></td>`;
+        return `<td title="${esc(fmt(old))} → ${esc(fmt(nv) || 'пустая ячейка')}"><div class="pair"><span class="rv rv-detected">${esc(fmt(old))}</span><span class="line"><span class="rv-arrow" aria-hidden="true">→</span>${after}</span></div></td>`;
       }).join('')}</tr>`).join('');
       table.innerHTML = head + `<tbody>${body}</tbody>`;
     }

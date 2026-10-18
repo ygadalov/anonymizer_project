@@ -158,6 +158,12 @@ td.r, th.r { text-align: right; }
 .rv-detected-strong { background: var(--highlight); color: var(--on-highlight); padding: 0 var(--space-1); }
 .rv-token { background: var(--surface-sunken); border: 1px solid var(--border); padding: 0 var(--space-1); color: var(--ink); }
 .rv-redacted { display: inline-block; height: 14px; background: var(--redact); vertical-align: -2px; }
+/* «Очистить»: в файле будет пустая ячейка, поэтому в предпросмотре — пустое место с пунктиром, а не плашка redact
+   (плашка выглядела бы как закрашивание, которого в файле нет) */
+.rv-empty {
+  display: inline-block; height: 20px; vertical-align: middle;
+  border: 1px dashed var(--border); border-radius: var(--radius-bar);
+}
 .rv-arrow { color: var(--ink-muted); font: 400 14px/20px var(--font-mono); }
 
 .preview td { white-space: nowrap; max-width: 340px; overflow: hidden; text-overflow: ellipsis; }
@@ -184,16 +190,17 @@ td.r, th.r { text-align: right; }
 .settings-info { margin-top: var(--space-3); }
 .settings-info:empty { display: none; }
 
+/* Всплывающее сообщение заметно на любом фоне: обычное — инверсное (ink/paper), предупреждение и ошибка —
+   красноватая заливка danger-soft с рамкой danger: так выглядят необратимые действия по брендбуку */
 .toast {
   position: fixed; left: 50%; bottom: var(--space-6); transform: translateX(-50%); z-index: 10;
   display: flex; align-items: center; gap: var(--space-2); max-width: calc(100vw - 2 * var(--space-4));
-  background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: var(--ink); color: var(--paper); border: 1px solid var(--ink); border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4); box-shadow: var(--shadow-popover);
 }
-.toast .i { width: 20px; height: 20px; }
-.toast.ok .i { color: var(--success); }
-.toast.error .i { color: var(--danger); }
-.toast.warn .i { color: var(--danger); }
+.toast .i { width: 20px; height: 20px; color: currentColor; }
+.toast.error, .toast.warn { background: var(--danger-soft); color: var(--ink); border-color: var(--danger); }
+.toast.error .i, .toast.warn .i { color: var(--danger); }
 
 @media (max-width: 640px) {
   .card { padding: var(--space-4); }
