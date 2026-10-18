@@ -214,7 +214,7 @@ b, strong { font-weight: 500; }
 .wrap { max-width: 1040px; margin: 0 auto; padding: 0 var(--space-4); }
 
 /* ---------- Шапка: логотип из файла, 40px (BRAND.md, «Шапка приложения») ---------- */
-.top { background: var(--surface); border-bottom: 1px solid var(--border); }
+.top { background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; }
 .top-row { display: flex; align-items: center; gap: var(--space-3); min-height: 64px; }
 .brand { display: inline-flex; align-items: center; text-decoration: none; }
 .logo { display: block; height: 40px; width: auto; }
@@ -343,6 +343,7 @@ table.data tr.total td { font: 500 15px/22px var(--font-sans); }
   .sec { padding-top: var(--space-8); }
   .sec h2 { font: 600 21px/28px var(--font-sans); }
   .top .btn.ghost:not(.icon-only) { display: none; }
+  .hide-sm { display: none; }
 }
 
 /* столбец с текстом договора переносится, чтобы таблица помещалась без прокрутки на широком экране */
@@ -365,6 +366,10 @@ table.data th.text, table.data td.text { white-space: normal; min-width: 240px; 
 table.data th.text, table.data td.text { min-width: 200px; }
 table.data td:first-child { white-space: normal; min-width: 200px; }
 table.data td .rv-detected, table.data td .rv-token { white-space: nowrap; }
+
+/* главное действие на первом экране: для тех, кто уже знает Redact и пришёл работать */
+.hero-cta { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-6); }
+.hero-cta .mono-small { margin-left: var(--space-1); }
 </style>
 <script>
   // тема до отрисовки, чтобы не мигало: та же настройка, что в приложении
@@ -417,6 +422,8 @@ table.data td .rv-detected, table.data td .rv-token { white-space: nowrap; }
     <span class="spacer"></span>
     <a class="btn ghost" href="https://github.com/ygadalov/anonymizer_project">GitHub</a>
     <button class="btn ghost icon-only" id="btnTheme" type="button" aria-label="Сменить тему"><svg class="i i20 when-light" aria-hidden="true"><use href="#i-moon"></use></svg><svg class="i i20 when-dark" aria-hidden="true"><use href="#i-sun"></use></svg></button>
+    <!-- быстрый переход к приложению: шапка закреплена, кнопка видна из любого места страницы -->
+    <a class="btn secondary top-cta" href="Redact_v4.6.html"><span>Открыть<span class="hide-sm"> Redact</span></span></a>
   </div>
 </header>
 
@@ -431,6 +438,12 @@ table.data td .rv-detected, table.data td .rv-token { white-space: nowrap; }
   <p class="footnote small muted" id="fn152">* Федеральный закон от 27.07.2006 № 152-ФЗ «О персональных данных» — основной
     закон о защите персональных данных в России. Обезличивание — его термин: действия, после которых без дополнительной
     информации нельзя определить, кому принадлежат данные.</p>
+
+  <div class="hero-cta">
+    <a class="btn primary" href="Redact_v4.6.html">Открыть Redact <svg class="i i20" aria-hidden="true"><use href="#i-arrow-right"></use></svg></a>
+    <a class="btn secondary" href="Redact_v4.6.html" download><svg class="i i20" aria-hidden="true"><use href="#i-download"></use></svg>Скачать 1,8 МБ</a>
+    <span class="mono-small muted">.xlsx · .xls · .csv · v4.6 · работает без интернета</span>
+  </div>
 
   <div class="values">
     <div class="value"><svg class="i i20" aria-hidden="true"><use href="#i-shield-check"></use></svg>

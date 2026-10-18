@@ -9,7 +9,7 @@ b, strong { font-weight: 500; }
 .wrap { max-width: 1040px; margin: 0 auto; padding: 0 var(--space-4); }
 
 /* ---------- Шапка: логотип из файла, 40px (BRAND.md, «Шапка приложения») ---------- */
-.top { background: var(--surface); border-bottom: 1px solid var(--border); }
+.top { background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; }
 .top-row { display: flex; align-items: center; gap: var(--space-3); min-height: 64px; }
 .brand { display: inline-flex; align-items: center; text-decoration: none; }
 .logo { display: block; height: 40px; width: auto; }
@@ -138,6 +138,7 @@ table.data tr.total td { font: 500 15px/22px var(--font-sans); }
   .sec { padding-top: var(--space-8); }
   .sec h2 { font: 600 21px/28px var(--font-sans); }
   .top .btn.ghost:not(.icon-only) { display: none; }
+  .hide-sm { display: none; }
 }
 
 /* столбец с текстом договора переносится, чтобы таблица помещалась без прокрутки на широком экране */
@@ -160,3 +161,7 @@ table.data th.text, table.data td.text { white-space: normal; min-width: 240px; 
 table.data th.text, table.data td.text { min-width: 200px; }
 table.data td:first-child { white-space: normal; min-width: 200px; }
 table.data td .rv-detected, table.data td .rv-token { white-space: nowrap; }
+
+/* главное действие на первом экране: для тех, кто уже знает Redact и пришёл работать */
+.hero-cta { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-6); }
+.hero-cta .mono-small { margin-left: var(--space-1); }
