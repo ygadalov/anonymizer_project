@@ -274,6 +274,8 @@ b, strong { font-weight: 500; }
 .legend { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--ink-muted); }
 .demo-arrow { display: flex; justify-content: center; color: var(--ink-muted); margin: var(--space-4) 0; transform: rotate(90deg); }
 .demo-note { margin: var(--space-4) 0 0; }
+.demo-note p { margin: 0; }
+.demo-note ul { margin: var(--space-2) 0; padding-left: var(--space-6); display: grid; gap: 2px; }
 .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-md); }
 table.data { border-collapse: collapse; width: 100%; background: var(--surface); }
 table.data th, table.data td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
@@ -479,11 +481,23 @@ table.data td .rv-detected, table.data td .rv-token { white-space: nowrap; }
         </tbody>
       </table>
     </div>
-    <p class="demo-note small muted">Названия, ФИО и ИНН выдуманы, а замены — настоящий результат Redact на этих строках. Один и тот же
-      контрагент стал одним псевдонимом и в столбце, и внутри названия договора; ФИО предпринимателя найдено в тексте
-      и с инициалами. Все суммы умножены на одно число, поэтому «Итого» по-прежнему
-      равно сумме строк. Даты сдвинуты на одинаковое число дней, а форма организации (ООО, АО, ИП) осталась на месте. Столбец «Менеджер»
-      очищен: в файле это пустые ячейки — значения удалены, а не закрыты плашкой, и восстановить их нельзя даже по ключу.</p>
+    <div class="demo-note small muted">
+      <p>В исходной выгрузке данные вымышленные, а замены — настоящий результат Redact на этих строках. Метод выбирается
+        для каждого столбца в зависимости от типа данных. В примере применены:</p>
+      <ul>
+        <li>«Контрагент» — «Псевдоним с номером»;</li>
+        <li>«ИНН» — «Случайные цифры»;</li>
+        <li>«Договор» — «Замена внутри текста»;</li>
+        <li>«Сумма, руб» — «Умножить на коэффициент»;</li>
+        <li>«Дата» — «Сдвинуть даты»;</li>
+        <li>«Менеджер» — «Очистить».</li>
+      </ul>
+      <p>Поэтому один и тот же контрагент стал одним псевдонимом и в столбце, и внутри названия договора, а ФИО
+        предпринимателя найдено в тексте даже в виде инициалов. Все суммы умножены на одно число, и «Итого» по-прежнему
+        равно сумме строк. Даты сдвинуты на одинаковое число дней, форма организации (ООО, АО, ИП) осталась на месте.
+        Столбец «Менеджер» очищен: в файле это пустые ячейки, и вернуть значения нельзя даже по ключу. Если выбрать для
+        него «Псевдоним с номером», ФИО станут «Сотрудник 001», «Сотрудник 002», и по ключу их можно будет вернуть.</p>
+    </div>
   </div>
 </div></section>
 
