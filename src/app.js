@@ -310,6 +310,14 @@
     for (const col of S.an.columns) S.cols[col.c] = A.suggest(col);
     renderColumns(); rememberLayout(); schedulePreview();
   });
+  // все непустые столбцы листа — восстанавливаемыми методами (по названию или по типу данных)
+  $('btnAll').addEventListener('click', () => {
+    let n = 0;
+    for (const col of S.an.columns) { S.cols[col.c] = A.suggestAll(col); if (S.cols[col.c].method !== 'keep') n++; }
+    linkGroupsAcrossSheets();
+    renderColumns(); rememberLayout(); schedulePreview();
+    toast(`Метод задан для ${n} ${A.plural(n, 'столбца', 'столбцов', 'столбцов')} из ${S.an.columns.length}: все восстанавливаются по ключу. Проверьте и при необходимости измените вручную`, 6000);
+  });
   $('btnReset').addEventListener('click', () => {
     for (const col of S.an.columns) S.cols[col.c].method = 'keep';
     renderColumns(); rememberLayout(); schedulePreview();

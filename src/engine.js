@@ -387,6 +387,19 @@
     return { ...base, type: col.detected, method: 'keep' };
   }
 
+  // «Обезличить все»: метод для каждого непустого столбца. Где название подсказывает метод (контрагенты, ИНН,
+  // тексты договоров) — он; остальное — по типу данных и только восстанавливаемыми по ключу методами
+  function suggestAll(col) {
+    const s = suggest(col);
+    if (s.method !== 'keep' || !col.nonEmpty) return s;
+    const type = TYPE_NAMES[col.detected] ? col.detected : 'text';
+    const method = type === 'number' ? 'scale'
+      : type === 'date' ? 'shift'
+      : type === 'id' ? (col.samples.some(v => /\p{L}/u.test(String(v))) ? 'mask' : 'digits')
+      : 'pseudo';
+    return { ...s, type, method };
+  }
+
   // ---------- Внешняя передача ----------
   // Денежные столбцы по названию: при выгрузке для внешней передачи они умножаются на коэффициент, даже если
   // на шаге 2 оставлены как есть — по точным суммам контрагента можно узнать и без ключа
@@ -1219,7 +1232,7 @@
     REVERSE_OF, RESTORE_ACTIONS, RESTORE_HINTS,
     plural, cyrb128, makeRng, randomSeed, factorFromSeed, shiftFromSeed,
     parseTextDate, formatTextDate, gridFromWorksheet, parseCsv, gridToCsv,
-    detectHeaderRow, analyze, suggest, isMoneyColumn, externalColumns, transform, applyToWorksheet, clearWorkbookMeta, clearNotes, repairXlsx, normalizeFontBooleans, headerFooterText, clearHeaderFooter,
+    detectHeaderRow, analyze, suggest, suggestAll, isMoneyColumn, externalColumns, transform, applyToWorksheet, clearWorkbookMeta, clearNotes, repairXlsx, normalizeFontBooleans, headerFooterText, clearHeaderFooter,
     splitLegalForm, METHODS, METHOD_HINTS, IRREVERSIBLE, TYPE_NAMES, DICT_METHODS, colLetter, isDate,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
