@@ -587,6 +587,7 @@ dialog.confirm p:has(+ .confirm-list) { margin-bottom: var(--space-3); }
     <div class="small muted" id="rowsInfo"></div>
     <div class="row-controls toolbar">
       <button class="btn secondary" id="btnAuto" title="Подобрать методы по названиям столбцов"><svg class="i i20" aria-hidden="true"><use href="#i-wand-sparkles"></use></svg>Подобрать методы</button>
+      <button class="btn secondary" id="btnAll" title="Задать метод каждому столбцу этого листа: по названию, а остальным — по типу данных. Только методы, которые восстанавливаются по ключу; нужное иначе можно изменить вручную"><svg class="i i20" aria-hidden="true"><use href="#i-eye-off"></use></svg>Обезличить все</button>
       <button class="btn secondary" id="btnReset"><svg class="i i20" aria-hidden="true"><use href="#i-rotate-ccw"></use></svg>Сбросить методы</button>
       <span class="spacer"></span>
       <button class="btn ghost" id="btnSaveProfile" title="Методы по столбцам, лист, строка заголовков и флажки — чтобы в следующий раз не настраивать заново"><svg class="i i20" aria-hidden="true"><use href="#i-save"></use></svg>Сохранить настройки</button>
@@ -1551,7 +1552,7 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
 </script>
 <script>
 // Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
-window.ANON_VERSION = '4.7';
+window.ANON_VERSION = '4.8';
 
 </script>
 <script>
@@ -1942,6 +1943,19 @@ window.ANON_VERSION = '4.7';
     if (/^(договор|документ|основание|комментар|описание|назначение)/.test(n) && col.detected === 'text')
       return { ...base, type: 'text', method: 'smart' };
     return { ...base, type: col.detected, method: 'keep' };
+  }
+
+  // «Обезличить все»: метод для каждого непустого столбца. Где название подсказывает метод (контрагенты, ИНН,
+  // тексты договоров) — он; остальное — по типу данных и только восстанавливаемыми по ключу методами
+  function suggestAll(col) {
+    const s = suggest(col);
+    if (s.method !== 'keep' || !col.nonEmpty) return s;
+    const type = TYPE_NAMES[col.detected] ? col.detected : 'text';
+    const method = type === 'number' ? 'scale'
+      : type === 'date' ? 'shift'
+      : type === 'id' ? (col.samples.some(v => /\p{L}/u.test(String(v))) ? 'mask' : 'digits')
+      : 'pseudo';
+    return { ...s, type, method };
   }
 
   // ---------- Внешняя передача ----------
@@ -2776,7 +2790,7 @@ window.ANON_VERSION = '4.7';
     REVERSE_OF, RESTORE_ACTIONS, RESTORE_HINTS,
     plural, cyrb128, makeRng, randomSeed, factorFromSeed, shiftFromSeed,
     parseTextDate, formatTextDate, gridFromWorksheet, parseCsv, gridToCsv,
-    detectHeaderRow, analyze, suggest, isMoneyColumn, externalColumns, transform, applyToWorksheet, clearWorkbookMeta, clearNotes, repairXlsx, normalizeFontBooleans, headerFooterText, clearHeaderFooter,
+    detectHeaderRow, analyze, suggest, suggestAll, isMoneyColumn, externalColumns, transform, applyToWorksheet, clearWorkbookMeta, clearNotes, repairXlsx, normalizeFontBooleans, headerFooterText, clearHeaderFooter,
     splitLegalForm, METHODS, METHOD_HINTS, IRREVERSIBLE, TYPE_NAMES, DICT_METHODS, colLetter, isDate,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
@@ -3096,6 +3110,14 @@ window.ANON_VERSION = '4.7';
   $('btnAuto').addEventListener('click', () => {
     for (const col of S.an.columns) S.cols[col.c] = A.suggest(col);
     renderColumns(); rememberLayout(); schedulePreview();
+  });
+  // все непустые столбцы листа — восстанавливаемыми методами (по названию или по типу данных)
+  $('btnAll').addEventListener('click', () => {
+    let n = 0;
+    for (const col of S.an.columns) { S.cols[col.c] = A.suggestAll(col); if (S.cols[col.c].method !== 'keep') n++; }
+    linkGroupsAcrossSheets();
+    renderColumns(); rememberLayout(); schedulePreview();
+    toast(`Метод задан для ${n} ${A.plural(n, 'столбца', 'столбцов', 'столбцов')} из ${S.an.columns.length}: все восстанавливаются по ключу. Проверьте и при необходимости измените вручную`, 6000);
   });
   $('btnReset').addEventListener('click', () => {
     for (const col of S.an.columns) S.cols[col.c].method = 'keep';

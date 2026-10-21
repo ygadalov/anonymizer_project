@@ -197,3 +197,27 @@ test('внешняя передача: денежные столбцы умно�
   assert.strictEqual(columns[an.columns.find(c => c.name === 'Дни').c].method, 'keep');
   assert.strictEqual(cols[an.columns.find(c => c.name === 'Сумма').c].method, 'keep', 'исходные настройки не меняются');
 });
+
+test('«Обезличить все»: каждый непустой столбец обезличен, и по ключу файл возвращается один в один', () => {
+  const grid = makeGrid(120);
+  const an = A.analyze(grid, A.detectHeaderRow(grid));
+  for (let i = 0; i < 8; i++) {
+    const seed = 'all-' + i;
+    const cfg = { seed, factor: A.factorFromSeed(seed), shiftDays: A.shiftFromSeed(seed), keepForm: true, keepTotals: true, columns: {} };
+    for (const c of an.columns) cfg.columns[c.c] = A.suggestAll(c);
+    for (const c of an.columns) {
+      if (c.nonEmpty) assert.notStrictEqual(cfg.columns[c.c].method, 'keep', `«${c.name}» не обезличен`);
+      assert.ok(!A.IRREVERSIBLE.has(cfg.columns[c.c].method), `«${c.name}»: необратимый метод`);
+    }
+    const res = A.transform(grid, an, cfg);
+    const key = JSON.parse(JSON.stringify(A.buildKey({ an, config: cfg, result: res, sourceFile: 'all.xlsx', sheet: 'Лист1' })));
+    const anon = { ...grid, rows: grid.rows.map((row, r) => row && row.map((cell, c) => res.changes.has(r + ':' + c) ? { v: res.changes.get(r + ':' + c) } : cell)) };
+    const back = restore(anon, key);
+    for (const r of an.dataRows) for (const c of an.columns) {
+      const k = r + ':' + c.c;
+      const got = back.changes.has(k) ? back.changes.get(k) : (anon.rows[r][c.c] ? anon.rows[r][c.c].v : null);
+      const orig = grid.rows[r][c.c] ? grid.rows[r][c.c].v : null;
+      assert.strictEqual(val(got), val(orig), `${seed}, строка ${r}, «${c.name}»`);
+    }
+  }
+});
