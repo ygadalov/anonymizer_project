@@ -16,8 +16,8 @@
   const inKey = name => !!(R.prep && name != null && R.prep.keySheets.has(name));
 
   // ---------- Переключение режимов ----------
-  // вкладки: Обезличить (таблица) · Восстановить по ключу · Документ Word
-  const MODES = [['redact', 'tabRedact', 'modeRedact'], ['restore', 'tabRestore', 'modeRestore'], ['doc', 'tabDoc', 'modeDoc']];
+  // вкладки по порядку: Таблица Excel · Документ Word · Восстановить по ключу
+  const MODES = [['redact', 'tabRedact', 'modeRedact'], ['doc', 'tabDoc', 'modeDoc'], ['restore', 'tabRestore', 'modeRestore']];
   function setMode(mode) {
     for (const [m, tab, panel] of MODES) {
       $(panel).classList.toggle('hidden', m !== mode);
