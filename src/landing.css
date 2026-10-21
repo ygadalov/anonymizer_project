@@ -166,3 +166,13 @@ table.data td .rv-detected, table.data td .rv-token { white-space: nowrap; }
 /* главное действие на первом экране: для тех, кто уже знает Redact и пришёл работать */
 .hero-cta { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-6); }
 .hero-cta .mono-small { margin-left: var(--space-1); }
+
+/* пример с договором: текст как на странице документа, найденное и замены — прямо в строке */
+.doc-page { border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); padding: var(--space-4) var(--space-6); display: grid; gap: var(--space-3); }
+.doc-page p { margin: 0; font: 400 15px/28px var(--font-sans); overflow-wrap: anywhere; }
+.doc-page .rv-detected, .doc-page .rv-token { font: 400 14px/20px var(--font-mono); }
+.doc-page .rv-detected, .doc-page .rv-token { white-space: nowrap; }
+@media (max-width: 760px) {
+  .doc-page { padding: var(--space-3) var(--space-4); }
+  .doc-page .rv-detected, .doc-page .rv-token { white-space: normal; }
+}

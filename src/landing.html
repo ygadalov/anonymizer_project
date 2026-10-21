@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- Страница проекта (GitHub Pages). Исходник: src/landing.html, build.py собирает из него index.html в корне
      и подставляет версию, имя и размер файла приложения. Править здесь, не в index.html. -->
-<title>Redact — обезличивание таблиц</title>
-<meta name="description" content="Скрывает названия контрагентов, ИНН, суммы и даты в Excel и CSV прямо в браузере: структура, итоги и сроки остаются, по ключу всё возвращается обратно. Файл никуда не отправляется.">
-<meta property="og:title" content="Redact — обезличивание таблиц">
-<meta property="og:description" content="Скрывает названия контрагентов, ИНН, суммы и даты в Excel и CSV прямо в браузере. Файл никуда не отправляется.">
+<title>Redact — обезличивание таблиц и документов</title>
+<meta name="description" content="Скрывает названия контрагентов, ИНН, суммы и даты в Excel, CSV и Word прямо в браузере: структура, итоги и сроки остаются, по ключу всё возвращается обратно. Файл никуда не отправляется.">
+<meta property="og:title" content="Redact — обезличивание таблиц и документов">
+<meta property="og:description" content="Скрывает названия контрагентов, ИНН, суммы и даты в Excel, CSV и Word прямо в браузере. Файл никуда не отправляется.">
 <meta property="og:type" content="website">
 <link rel="icon" type="image/svg+xml" href="../brand/logo/redact-favicon.svg">
 <link rel="stylesheet" href="../brand/tokens.css">
@@ -74,7 +74,7 @@
 <main>
 <section class="hero"><div class="wrap">
   <p class="eyebrow caption">Обезличивание по 152-ФЗ<a class="fn-ref" href="#fn152" aria-describedby="fn152">*</a></p>
-  <h1>Отдавайте таблицы аудитору, подрядчику или&nbsp;ИИ-сервису без персональных данных и&nbsp;коммерческой тайны</h1>
+  <h1>Отдавайте таблицы и документы аудитору, подрядчику или&nbsp;ИИ-сервису без персональных данных и&nbsp;коммерческой тайны</h1>
   <p class="lead">Redact заменяет ФИО, названия контрагентов, ИНН, суммы и даты прямо в книге Excel или документе Word — методом введения
     идентификаторов, который закон о персональных данных относит к обезличиванию. Без ключа, который остаётся у вас,
     получатель не может определить, к кому относятся данные. А анализировать их может: суммы и итоги сходятся,
@@ -156,6 +156,35 @@
         Столбец «Менеджер» очищен: в файле это пустые ячейки, и вернуть значения нельзя даже по ключу. Если выбрать для
         него «Псевдоним с номером», ФИО станут «Сотрудник 001», «Сотрудник 002», и по ключу их можно будет вернуть.</p>
     </div>
+  </div>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <h2>И договоры в Word</h2>
+  <p class="note">В документе .docx нет столбцов, поэтому Redact сам находит в тексте реквизиты, организации, ФИО, телефоны,
+    суммы и даты и заменяет их, не трогая оформление. Вымышленные ФИО ставятся в том же падеже, а подпись с инициалами
+    остаётся тем же человеком.</p>
+  <div class="demo doc-demo">
+    <div class="demo-head">
+      <span class="caption muted">Исходный договор</span>
+      <span class="legend small"><span class="rv rv-detected">найдено</span></span>
+    </div>
+    <div class="doc-page">
+      <p>Общество с ограниченной ответственностью «<span class="rv-detected">Вересков</span>» (ИНН <span class="rv-detected">7748214918</span>), в лице генерального директора <span class="rv-detected">Мирошева Глеба Аркадьевича</span>, и ИП <span class="rv-detected">Образцова Анна Ильинична</span>, тел. <span class="rv-detected">+7 (495) 123-45-67</span>, заключили договор на сумму <span class="rv-detected">1 250 000,00</span> руб. (<span class="rv-detected">Один миллион двести пятьдесят тысяч рублей 00 копеек</span>) со сроком поставки до <span class="rv-detected">03.06.2025</span>.</p>
+      <p>Поставщик _____________ /<span class="rv-detected">Мирошев Г. А.</span>/&emsp;&emsp;Покупатель _____________ /<span class="rv-detected">А. И. Образцова</span>/</p>
+    </div>
+    <div class="demo-arrow" aria-hidden="true"><svg class="i i20"><use href="#i-arrow-right"></use></svg></div>
+    <div class="demo-head">
+      <span class="caption muted">Что получит аналитик</span>
+      <span class="legend small"><span class="rv rv-token">замена</span></span>
+    </div>
+    <div class="doc-page">
+      <p>Общество с ограниченной ответственностью «<span class="rv-token">Контрагент 001</span>» (ИНН <span class="rv-token">7779267510</span>), в лице генерального директора <span class="rv-token">Сергеева Максима Викторовича</span>, и ИП <span class="rv-token">Голубева Алина Михайловна</span>, тел. <span class="rv-token">+7 (836) 279-61-82</span>, заключили договор на сумму <span class="rv-token">1 705 750,00</span> руб. (<span class="rv-token">сумма прописью 001</span>) со сроком поставки до <span class="rv-token">19.02.2026</span>.</p>
+      <p>Поставщик _____________ /<span class="rv-token">Сергеев М. В.</span>/&emsp;&emsp;Покупатель _____________ /<span class="rv-token">А. М. Голубева</span>/</p>
+    </div>
+    <p class="demo-note small muted">Данные вымышленные, замены — настоящий результат Redact. Заменяется везде: в основном
+      тексте, таблицах, колонтитулах, сносках и примечаниях; удалённый в режиме исправлений текст и имена авторов правок
+      убираются из файла. По ключу документ — или ответ на него — возвращается к исходным данным.</p>
   </div>
 </div></section>
 
