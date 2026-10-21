@@ -208,8 +208,9 @@ td.r, th.r { text-align: right; }
 }
 
 /* ---------- Режимы: обезличить / восстановить ---------- */
+/* три вкладки на узком экране переносятся на вторую строку, а не вылезают за край */
 .tabs {
-  display: inline-flex; gap: var(--space-1); padding: var(--space-1); margin-bottom: var(--space-6);
+  display: inline-flex; flex-wrap: wrap; max-width: 100%; gap: var(--space-1); padding: var(--space-1); margin-bottom: var(--space-6);
   background: var(--surface-sunken); border: 1px solid var(--border); border-radius: var(--radius-md);
 }
 .tab {
@@ -293,3 +294,25 @@ dialog.confirm p { margin: var(--space-3) 0 var(--space-6); }
 dialog.confirm:has(.confirm-list) { width: min(560px, calc(100vw - 2 * var(--space-4))); }
 dialog.confirm p:has(+ .confirm-list) { margin-bottom: var(--space-3); }
 .confirm-list { margin: 0 0 var(--space-6); padding-left: var(--space-6); color: var(--ink-muted); display: grid; gap: var(--space-2); }
+
+/* ---------- Документ Word (src/docapp.js) ---------- */
+.doc-found .c-chk { width: 40px; }
+.doc-found td { vertical-align: middle; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+textarea {
+  font: 400 14px/20px var(--font-mono); color: var(--ink); background: var(--surface); width: 100%; resize: vertical;
+  border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-2) var(--space-3);
+}
+textarea:focus { outline: none; border-color: var(--border-strong); box-shadow: inset 0 0 0 1px var(--border-strong); }
+.doc-extra { margin: var(--space-4) 0 var(--space-2); align-items: start; }
+.doc-params { display: grid; gap: var(--space-3); align-content: start; }
+/* абзацы документа с заменами: обычный текст + пары «найдено → замена» прямо в строке */
+.doc-preview { display: grid; gap: var(--space-2); margin-top: var(--space-3); max-height: 560px; overflow-y: auto; }
+.doc-preview p, .doc-cell { margin: 0; padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); font: 400 15px/26px var(--font-sans); }
+.doc-cell { border: 0; }
+.doc-part { display: block; margin-bottom: var(--space-1); }
+.pair-inline { display: inline; white-space: normal; }
+/* длинные значения (номера счетов, сумма прописью) переносятся внутри абзаца, а не вылезают за край */
+.doc-preview p, .doc-cell { min-width: 0; overflow-wrap: anywhere; }
+.pair-inline .rv { padding: 0 var(--space-1); white-space: normal; overflow-wrap: anywhere; }
+.pair-inline .rv-arrow { margin: 0 2px; }

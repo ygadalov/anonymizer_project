@@ -28,6 +28,7 @@
 <symbol id="i-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /><path d="m2 2 20 20" /></symbol>
 <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" /></symbol>
 <symbol id="i-file-spreadsheet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M8 13h2" /><path d="M14 13h2" /><path d="M8 17h2" /><path d="M14 17h2" /></symbol>
+<symbol id="i-file-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M10 9H8" /><path d="M16 13H8" /><path d="M16 17H8" /></symbol>
 <symbol id="i-folder-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" /></symbol>
 <symbol id="i-key-round" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z" /><circle cx="16.5" cy="7.5" r=".5" fill="currentColor" /></symbol>
 <symbol id="i-lock-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" /></symbol>
@@ -62,13 +63,14 @@
 
 <main class="wrap">
   <div class="intro">
-    <h1 class="h1">Обезличивание таблиц</h1>
-    <p class="body muted">Excel или CSV → выбор столбцов → файл со скрытыми данными. Обработка идёт в браузере, файл никуда не отправляется.</p>
+    <h1 class="h1">Обезличивание таблиц и документов</h1>
+    <p class="body muted">Excel, CSV или Word → выбор того, что скрыть → файл со скрытыми данными. Обработка идёт в браузере, файл никуда не отправляется.</p>
   </div>
 
   <div class="tabs" role="tablist" aria-label="Режим">
     <button class="tab" role="tab" id="tabRedact" aria-selected="true" aria-controls="modeRedact"><svg class="i i20" aria-hidden="true"><use href="#i-eye-off"></use></svg>Обезличить</button>
     <button class="tab" role="tab" id="tabRestore" aria-selected="false" aria-controls="modeRestore"><svg class="i i20" aria-hidden="true"><use href="#i-undo-2"></use></svg>Восстановить по ключу</button>
+    <button class="tab" role="tab" id="tabDoc" aria-selected="false" aria-controls="modeDoc"><svg class="i i20" aria-hidden="true"><use href="#i-file-text"></use></svg>Документ Word</button>
   </div>
 
   <div id="modeRedact" role="tabpanel" aria-labelledby="tabRedact">
@@ -186,6 +188,89 @@
   </section>
   </div>
 
+  <!-- ===== Режим «Документ Word» (src/docapp.js, src/docx.js) ===== -->
+  <div id="modeDoc" role="tabpanel" aria-labelledby="tabDoc" class="hidden">
+    <section class="card" id="d1">
+      <h2 class="h2 step"><span class="num">1</span>Документ</h2>
+      <label class="drop" id="dDrop">
+        <input type="file" id="dFile" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+        <svg class="i drop-icon" aria-hidden="true"><use href="#i-file-text"></use></svg>
+        <span class="body-strong">Перетащите документ сюда или нажмите, чтобы выбрать</span>
+        <span class="small muted">Документы Word .docx. Файл .doc (Word 97–2003) сначала сохраните в Word как .docx.</span>
+      </label>
+      <div id="dFileInfo" class="small file-info"></div>
+      <div class="row-controls settings-line hidden" id="dClearRow">
+        <span class="spacer"></span>
+        <button class="btn danger" id="btnDClear" title="Убрать документ и найденное, чтобы начать с другим документом"><svg class="i i20" aria-hidden="true"><use href="#i-eraser"></use></svg>Очистить</button>
+      </div>
+    </section>
+
+    <section class="card hidden" id="d2">
+      <h2 class="h2 step"><span class="num">2</span>Что найдено</h2>
+      <p class="small muted" id="dSummary"></p>
+      <div class="checks" id="dTypes"></div>
+      <div class="table-scroll">
+        <table class="data doc-found" id="dFound">
+          <thead><tr><th class="c-chk"><span class="visually-hidden">Заменять</span></th><th>Тип</th><th>Найдено в документе</th><th class="r">Раз</th><th>Замена</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="grid2 doc-extra">
+        <div class="field">
+          <label class="caption" for="dCustom">Добавить своё</label>
+          <textarea id="dCustom" rows="4" spellcheck="false" placeholder="Каждое значение с новой строки: адрес, название проекта, фамилия без инициалов"></textarea>
+          <small class="small muted">Найдётся во всём документе и заменится на «Значение 001», «Значение 002»… — по ключу вернётся.</small>
+        </div>
+        <div class="doc-params">
+          <div class="field">
+            <label class="caption" for="dFactor">Коэффициент для сумм</label>
+            <span class="inline"><input class="mono-input" type="number" id="dFactor" step="0.0001"><button class="btn secondary icon-only" id="btnDFactor" title="Новый случайный коэффициент" aria-label="Новый случайный коэффициент"><svg class="i i20" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
+          </div>
+          <div class="field">
+            <label class="caption" for="dShift">Сдвиг дат, дней</label>
+            <span class="inline"><input class="mono-input" type="number" id="dShift" step="1"><button class="btn secondary icon-only" id="btnDShift" title="Новый случайный сдвиг" aria-label="Новый случайный сдвиг"><svg class="i i20" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
+          </div>
+        </div>
+      </div>
+      <div class="checks">
+        <label class="chk" title="Удалённый в режиме исправлений текст остаётся внутри файла, даже если его не видно. Флажок убирает его, а вставленный текст делает обычным"><input type="checkbox" id="dRevisions" checked> Принять исправления (удалённый текст убирается из файла)</label>
+        <label class="chk"><input type="checkbox" id="dComments" checked> Удалить примечания</label>
+        <label class="chk"><input type="checkbox" id="dMeta" checked> Очистить свойства файла (автор, организация)</label>
+      </div>
+    </section>
+
+    <section class="card hidden" id="d3">
+      <h2 class="h2 step"><span class="num">3</span>Проверка и результат</h2>
+      <div class="row-controls toolbar">
+        <span class="small muted" id="dStats"></span>
+        <span class="spacer"></span>
+        <button class="btn primary" id="btnDDownload"><svg class="i i20" aria-hidden="true"><use href="#i-download"></use></svg>Обезличить и скачать</button>
+      </div>
+      <div class="legend small muted">
+        <span class="item"><span class="rv rv-detected">найдено</span>исходное значение</span>
+        <span class="item"><span class="rv rv-token">замена</span>новое значение</span>
+      </div>
+      <div class="doc-preview" id="dPreview"></div>
+      <div id="dWarnings"></div>
+      <div class="keybox">
+        <h3 class="body-strong keybox-title"><svg class="i i20" aria-hidden="true"><use href="#i-key-round"></use></svg>Ключ соответствий</h3>
+        <p class="small muted">По ключу документ — или ответ на него — возвращается к исходным данным на вкладке «Восстановить по ключу». Храните ключ отдельно от документа.</p>
+        <div class="keybox-row">
+          <div class="field">
+            <label class="caption" for="dKeyPass">Пароль</label>
+            <input type="password" id="dKeyPass" autocomplete="new-password" placeholder="Не меньше 8 символов">
+          </div>
+          <div class="field">
+            <label class="caption" for="dKeyPass2">Повтор пароля</label>
+            <input type="password" id="dKeyPass2" autocomplete="new-password">
+          </div>
+          <button class="btn caution" id="btnDKey"><svg class="i i20" aria-hidden="true"><use href="#i-download"></use></svg>Скачать ключ</button>
+        </div>
+        <p class="small muted">С паролем ключ сохраняется зашифрованным файлом .redactkey — без пароля его не открыть. Без пароля — обычной таблицей Excel, которую может открыть любой.</p>
+      </div>
+    </section>
+  </div>
+
   <!-- ===== Режим восстановления ===== -->
   <div id="modeRestore" role="tabpanel" aria-labelledby="tabRestore" class="hidden">
     <section class="card" id="r1">
@@ -194,10 +279,10 @@
         <div>
           <div class="caption muted label-above">Обезличенный или присланный в ответ файл</div>
           <label class="drop drop-sm" id="rDropFile">
-            <input type="file" id="rFile" accept=".xlsx,.xlsm,.xls,.csv,.txt" hidden>
+            <input type="file" id="rFile" accept=".xlsx,.xlsm,.xls,.csv,.txt,.docx" hidden>
             <svg class="i drop-icon" aria-hidden="true"><use href="#i-file-spreadsheet"></use></svg>
             <span class="body-strong">Выберите файл</span>
-            <span class="small muted">.xlsx, .xlsm, .xls или .csv</span>
+            <span class="small muted">.xlsx, .xlsm, .xls, .csv или .docx</span>
           </label>
           <div id="rFileInfo" class="small file-info"></div>
         </div>
@@ -278,6 +363,7 @@
 <script type="text/x-worker" id="libCpexcel" src="../vendor/cpexcel.cyr.js"></script>
 <script type="text/x-worker" id="libSheetjs" src="../vendor/xlsx.core.min.js"></script>
 <script src="xls.js"></script>
+<script src="docx.js"></script>
 <script src="version.js"></script>
 <script src="engine.js"></script>
 <script src="app.js"></script>
@@ -285,5 +371,6 @@
 <script src="dropdown.js"></script>
 <script src="tooltip.js"></script>
 <script src="dialog.js"></script>
+<script src="docapp.js"></script>
 </body>
 </html>

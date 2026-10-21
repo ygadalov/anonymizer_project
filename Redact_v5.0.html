@@ -407,8 +407,9 @@ td.r, th.r { text-align: right; }
 }
 
 /* ---------- Режимы: обезличить / восстановить ---------- */
+/* три вкладки на узком экране переносятся на вторую строку, а не вылезают за край */
 .tabs {
-  display: inline-flex; gap: var(--space-1); padding: var(--space-1); margin-bottom: var(--space-6);
+  display: inline-flex; flex-wrap: wrap; max-width: 100%; gap: var(--space-1); padding: var(--space-1); margin-bottom: var(--space-6);
   background: var(--surface-sunken); border: 1px solid var(--border); border-radius: var(--radius-md);
 }
 .tab {
@@ -492,6 +493,28 @@ dialog.confirm p { margin: var(--space-3) 0 var(--space-6); }
 dialog.confirm:has(.confirm-list) { width: min(560px, calc(100vw - 2 * var(--space-4))); }
 dialog.confirm p:has(+ .confirm-list) { margin-bottom: var(--space-3); }
 .confirm-list { margin: 0 0 var(--space-6); padding-left: var(--space-6); color: var(--ink-muted); display: grid; gap: var(--space-2); }
+
+/* ---------- Документ Word (src/docapp.js) ---------- */
+.doc-found .c-chk { width: 40px; }
+.doc-found td { vertical-align: middle; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+textarea {
+  font: 400 14px/20px var(--font-mono); color: var(--ink); background: var(--surface); width: 100%; resize: vertical;
+  border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-2) var(--space-3);
+}
+textarea:focus { outline: none; border-color: var(--border-strong); box-shadow: inset 0 0 0 1px var(--border-strong); }
+.doc-extra { margin: var(--space-4) 0 var(--space-2); align-items: start; }
+.doc-params { display: grid; gap: var(--space-3); align-content: start; }
+/* абзацы документа с заменами: обычный текст + пары «найдено → замена» прямо в строке */
+.doc-preview { display: grid; gap: var(--space-2); margin-top: var(--space-3); max-height: 560px; overflow-y: auto; }
+.doc-preview p, .doc-cell { margin: 0; padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); font: 400 15px/26px var(--font-sans); }
+.doc-cell { border: 0; }
+.doc-part { display: block; margin-bottom: var(--space-1); }
+.pair-inline { display: inline; white-space: normal; }
+/* длинные значения (номера счетов, сумма прописью) переносятся внутри абзаца, а не вылезают за край */
+.doc-preview p, .doc-cell { min-width: 0; overflow-wrap: anywhere; }
+.pair-inline .rv { padding: 0 var(--space-1); white-space: normal; overflow-wrap: anywhere; }
+.pair-inline .rv-arrow { margin: 0 2px; }
 </style>
 <script>
   // тема до отрисовки, чтобы не мигало: сохранённый выбор или системная
@@ -513,6 +536,7 @@ dialog.confirm p:has(+ .confirm-list) { margin-bottom: var(--space-3); }
 <symbol id="i-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /><path d="m2 2 20 20" /></symbol>
 <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" /></symbol>
 <symbol id="i-file-spreadsheet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M8 13h2" /><path d="M14 13h2" /><path d="M8 17h2" /><path d="M14 17h2" /></symbol>
+<symbol id="i-file-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M10 9H8" /><path d="M16 13H8" /><path d="M16 17H8" /></symbol>
 <symbol id="i-folder-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" /></symbol>
 <symbol id="i-key-round" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z" /><circle cx="16.5" cy="7.5" r=".5" fill="currentColor" /></symbol>
 <symbol id="i-lock-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" /></symbol>
@@ -547,13 +571,14 @@ dialog.confirm p:has(+ .confirm-list) { margin-bottom: var(--space-3); }
 
 <main class="wrap">
   <div class="intro">
-    <h1 class="h1">Обезличивание таблиц</h1>
-    <p class="body muted">Excel или CSV → выбор столбцов → файл со скрытыми данными. Обработка идёт в браузере, файл никуда не отправляется.</p>
+    <h1 class="h1">Обезличивание таблиц и документов</h1>
+    <p class="body muted">Excel, CSV или Word → выбор того, что скрыть → файл со скрытыми данными. Обработка идёт в браузере, файл никуда не отправляется.</p>
   </div>
 
   <div class="tabs" role="tablist" aria-label="Режим">
     <button class="tab" role="tab" id="tabRedact" aria-selected="true" aria-controls="modeRedact"><svg class="i i20" aria-hidden="true"><use href="#i-eye-off"></use></svg>Обезличить</button>
     <button class="tab" role="tab" id="tabRestore" aria-selected="false" aria-controls="modeRestore"><svg class="i i20" aria-hidden="true"><use href="#i-undo-2"></use></svg>Восстановить по ключу</button>
+    <button class="tab" role="tab" id="tabDoc" aria-selected="false" aria-controls="modeDoc"><svg class="i i20" aria-hidden="true"><use href="#i-file-text"></use></svg>Документ Word</button>
   </div>
 
   <div id="modeRedact" role="tabpanel" aria-labelledby="tabRedact">
@@ -671,6 +696,89 @@ dialog.confirm p:has(+ .confirm-list) { margin-bottom: var(--space-3); }
   </section>
   </div>
 
+  <!-- ===== Режим «Документ Word» (src/docapp.js, src/docx.js) ===== -->
+  <div id="modeDoc" role="tabpanel" aria-labelledby="tabDoc" class="hidden">
+    <section class="card" id="d1">
+      <h2 class="h2 step"><span class="num">1</span>Документ</h2>
+      <label class="drop" id="dDrop">
+        <input type="file" id="dFile" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+        <svg class="i drop-icon" aria-hidden="true"><use href="#i-file-text"></use></svg>
+        <span class="body-strong">Перетащите документ сюда или нажмите, чтобы выбрать</span>
+        <span class="small muted">Документы Word .docx. Файл .doc (Word 97–2003) сначала сохраните в Word как .docx.</span>
+      </label>
+      <div id="dFileInfo" class="small file-info"></div>
+      <div class="row-controls settings-line hidden" id="dClearRow">
+        <span class="spacer"></span>
+        <button class="btn danger" id="btnDClear" title="Убрать документ и найденное, чтобы начать с другим документом"><svg class="i i20" aria-hidden="true"><use href="#i-eraser"></use></svg>Очистить</button>
+      </div>
+    </section>
+
+    <section class="card hidden" id="d2">
+      <h2 class="h2 step"><span class="num">2</span>Что найдено</h2>
+      <p class="small muted" id="dSummary"></p>
+      <div class="checks" id="dTypes"></div>
+      <div class="table-scroll">
+        <table class="data doc-found" id="dFound">
+          <thead><tr><th class="c-chk"><span class="visually-hidden">Заменять</span></th><th>Тип</th><th>Найдено в документе</th><th class="r">Раз</th><th>Замена</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="grid2 doc-extra">
+        <div class="field">
+          <label class="caption" for="dCustom">Добавить своё</label>
+          <textarea id="dCustom" rows="4" spellcheck="false" placeholder="Каждое значение с новой строки: адрес, название проекта, фамилия без инициалов"></textarea>
+          <small class="small muted">Найдётся во всём документе и заменится на «Значение 001», «Значение 002»… — по ключу вернётся.</small>
+        </div>
+        <div class="doc-params">
+          <div class="field">
+            <label class="caption" for="dFactor">Коэффициент для сумм</label>
+            <span class="inline"><input class="mono-input" type="number" id="dFactor" step="0.0001"><button class="btn secondary icon-only" id="btnDFactor" title="Новый случайный коэффициент" aria-label="Новый случайный коэффициент"><svg class="i i20" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
+          </div>
+          <div class="field">
+            <label class="caption" for="dShift">Сдвиг дат, дней</label>
+            <span class="inline"><input class="mono-input" type="number" id="dShift" step="1"><button class="btn secondary icon-only" id="btnDShift" title="Новый случайный сдвиг" aria-label="Новый случайный сдвиг"><svg class="i i20" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
+          </div>
+        </div>
+      </div>
+      <div class="checks">
+        <label class="chk" title="Удалённый в режиме исправлений текст остаётся внутри файла, даже если его не видно. Флажок убирает его, а вставленный текст делает обычным"><input type="checkbox" id="dRevisions" checked> Принять исправления (удалённый текст убирается из файла)</label>
+        <label class="chk"><input type="checkbox" id="dComments" checked> Удалить примечания</label>
+        <label class="chk"><input type="checkbox" id="dMeta" checked> Очистить свойства файла (автор, организация)</label>
+      </div>
+    </section>
+
+    <section class="card hidden" id="d3">
+      <h2 class="h2 step"><span class="num">3</span>Проверка и результат</h2>
+      <div class="row-controls toolbar">
+        <span class="small muted" id="dStats"></span>
+        <span class="spacer"></span>
+        <button class="btn primary" id="btnDDownload"><svg class="i i20" aria-hidden="true"><use href="#i-download"></use></svg>Обезличить и скачать</button>
+      </div>
+      <div class="legend small muted">
+        <span class="item"><span class="rv rv-detected">найдено</span>исходное значение</span>
+        <span class="item"><span class="rv rv-token">замена</span>новое значение</span>
+      </div>
+      <div class="doc-preview" id="dPreview"></div>
+      <div id="dWarnings"></div>
+      <div class="keybox">
+        <h3 class="body-strong keybox-title"><svg class="i i20" aria-hidden="true"><use href="#i-key-round"></use></svg>Ключ соответствий</h3>
+        <p class="small muted">По ключу документ — или ответ на него — возвращается к исходным данным на вкладке «Восстановить по ключу». Храните ключ отдельно от документа.</p>
+        <div class="keybox-row">
+          <div class="field">
+            <label class="caption" for="dKeyPass">Пароль</label>
+            <input type="password" id="dKeyPass" autocomplete="new-password" placeholder="Не меньше 8 символов">
+          </div>
+          <div class="field">
+            <label class="caption" for="dKeyPass2">Повтор пароля</label>
+            <input type="password" id="dKeyPass2" autocomplete="new-password">
+          </div>
+          <button class="btn caution" id="btnDKey"><svg class="i i20" aria-hidden="true"><use href="#i-download"></use></svg>Скачать ключ</button>
+        </div>
+        <p class="small muted">С паролем ключ сохраняется зашифрованным файлом .redactkey — без пароля его не открыть. Без пароля — обычной таблицей Excel, которую может открыть любой.</p>
+      </div>
+    </section>
+  </div>
+
   <!-- ===== Режим восстановления ===== -->
   <div id="modeRestore" role="tabpanel" aria-labelledby="tabRestore" class="hidden">
     <section class="card" id="r1">
@@ -679,10 +787,10 @@ dialog.confirm p:has(+ .confirm-list) { margin-bottom: var(--space-3); }
         <div>
           <div class="caption muted label-above">Обезличенный или присланный в ответ файл</div>
           <label class="drop drop-sm" id="rDropFile">
-            <input type="file" id="rFile" accept=".xlsx,.xlsm,.xls,.csv,.txt" hidden>
+            <input type="file" id="rFile" accept=".xlsx,.xlsm,.xls,.csv,.txt,.docx" hidden>
             <svg class="i drop-icon" aria-hidden="true"><use href="#i-file-spreadsheet"></use></svg>
             <span class="body-strong">Выберите файл</span>
-            <span class="small muted">.xlsx, .xlsm, .xls или .csv</span>
+            <span class="small muted">.xlsx, .xlsm, .xls, .csv или .docx</span>
           </label>
           <div id="rFileInfo" class="small file-info"></div>
         </div>
@@ -1551,8 +1659,534 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
 
 </script>
 <script>
+/*
+ * Обезличивание документов Word (.docx) — без DOM, работает и в браузере, и в Node (тесты).
+ *
+ * .docx — ZIP-архив с XML. Текст лежит в элементах <w:t> внутри «прогонов» <w:r>; Word часто дробит одно
+ * слово на несколько прогонов (проверка орфографии, правки), поэтому поиск идёт по склеенному тексту абзаца,
+ * а замена раскладывается обратно: новый текст встаёт в первый прогон совпадения (с его оформлением),
+ * остальные части совпадения из соседних прогонов убираются.
+ *
+ * Все замены — пары «исходное → замена»: они хранятся в ключе, и восстановление — обратная подстановка.
+ */
+(function (root) {
+  'use strict';
+  // движок Redact (src/engine.js) берётся в момент вызова: на странице он может подключаться позже этого файла
+  const engine = () => root.Anon || require('./engine.js');
+
+  // ---------- XML ----------
+  const unescapeXml = s => s.replace(/&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos);/gi, (m, e) => {
+    if (e[0] === '#') return String.fromCodePoint(e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10));
+    return { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" }[e.toLowerCase()];
+  });
+  const escapeXml = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const escapeAttr = s => escapeXml(s).replace(/"/g, '&quot;');
+  const escapeRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  // Части документа с текстом: основной текст, колонтитулы, сноски, примечания
+  const TEXT_PART = /^word\/(document|header\d*|footer\d*|footnotes|endnotes|comments(Extended)?)\.xml$/;
+
+  // Разметка части на сегменты: сегмент — текст одного абзаца (или кода поля), склеенный из прогонов.
+  // Табуляция и разрыв строки становятся символом \u0001: ни один шаблон поиска его не захватывает.
+  const SEP = '\u0001';
+  const TOKENS = /<w:(t|instrText)(\s[^>]*)?>([\s\S]*?)<\/w:\1>|<w:(?:t|instrText)(?:\s[^>]*)?\/>|<\/w:p>|<w:p[\s>]|<w:tab\/>|<w:br\b[^>]*\/>|<w:cr\/>/g;
+  function segmentsOf(xml) {
+    const segs = [];
+    let cur = null;
+    const close = () => { if (cur && cur.nodes.length) segs.push(cur); cur = null; };
+    const open = kind => { if (!cur || cur.kind !== kind) { close(); cur = { kind, nodes: [], text: '' }; } };
+    TOKENS.lastIndex = 0;
+    let m;
+    while ((m = TOKENS.exec(xml))) {
+      const tok = m[0];
+      if (m[1]) {
+        const kind = m[1] === 't' ? 'text' : 'field';
+        open(kind);
+        const text = unescapeXml(m[3]);
+        cur.nodes.push({ start: m.index, end: m.index + tok.length, tag: m[1], attrs: m[2] || '', from: cur.text.length, text });
+        cur.text += text;
+      } else if (/^<w:(tab|br|cr)/.test(tok)) {
+        if (cur) cur.text += SEP;
+      } else if (tok.startsWith('<w:p') || tok === '</w:p>') {
+        close();
+      }
+    }
+    close();
+    return segs;
+  }
+
+  // Применить к XML части замены: finder(text) → [{ start, end, repl }] без пересечений, по возрастанию
+  function rewrite(xml, finder) {
+    const edits = [];   // { start, end, xml } — замены элементов <w:t> целиком
+    let count = 0;
+    for (const seg of segmentsOf(xml)) {
+      const found = finder(seg.text, seg.kind);
+      if (!found.length) continue;
+      count += found.length;
+      // новый текст каждого узла: символы вне совпадений остаются, совпадение целиком уходит в узел его начала
+      const out = seg.nodes.map(() => '');
+      const owner = i => { let k = 0; while (k + 1 < seg.nodes.length && seg.nodes[k + 1].from <= i) k++; return k; };
+      let pos = 0;
+      const copy = (a, b) => { for (let i = a; i < b; i++) { const k = owner(i); out[k] += seg.text[i]; } };
+      for (const f of found) {
+        copy(pos, f.start);
+        out[owner(f.start)] += f.repl;
+        pos = f.end;
+      }
+      copy(pos, seg.text.length);
+      seg.nodes.forEach((n, k) => {
+        const t = out[k].split(SEP).join('');
+        if (t === n.text) return;
+        let attrs = n.attrs;
+        if (/^\s|\s$/.test(t) && !/xml:space=/.test(attrs)) attrs += ' xml:space="preserve"';
+        edits.push({ start: n.start, end: n.end, xml: `<w:${n.tag}${attrs}>${escapeXml(t)}</w:${n.tag}>` });
+      });
+    }
+    if (!edits.length) return { xml, count };
+    edits.sort((a, b) => a.start - b.start);
+    let res = '', at = 0;
+    for (const e of edits) { res += xml.slice(at, e.start) + e.xml; at = e.end; }
+    return { xml: res + xml.slice(at), count };
+  }
+
+  // Поиск по словарю «исходное → замена»: самые длинные ключи первыми, совпадение — отдельное слово/число
+  function dictFinder(dict) {
+    const keys = [...dict.keys()].filter(Boolean).sort((a, b) => b.length - a.length);
+    if (!keys.length) return () => [];
+    const re = new RegExp(`(?<![\\p{L}\\p{N}])(?:${keys.map(escapeRe).join('|')})(?![\\p{L}\\p{N}])`, 'gu');
+    return text => {
+      const out = [];
+      re.lastIndex = 0;
+      let m;
+      while ((m = re.exec(text))) {
+        if (!m[0]) { re.lastIndex++; continue; }
+        out.push({ start: m.index, end: m.index + m[0].length, repl: dict.get(m[0]) });
+      }
+      return out;
+    };
+  }
+
+  // ---------- Поиск данных в тексте ----------
+  const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+  const L = 'А-ЯЁа-яё';
+  const innValid = s => {
+    const d = [...s].map(Number);
+    const chk = w => w.reduce((a, x, i) => a + x * d[i], 0) % 11 % 10;
+    if (d.length === 10) return chk([2, 4, 10, 3, 5, 9, 4, 6, 8]) === d[9];
+    if (d.length === 12) return chk([7, 2, 4, 10, 3, 5, 9, 4, 6, 8]) === d[10] && chk([3, 7, 2, 4, 10, 3, 5, 9, 4, 6, 8]) === d[11];
+    return false;
+  };
+  const before = (text, i, n) => text.slice(Math.max(0, i - n), i);
+  const ORG_FORMS = 'ООО|ОАО|ЗАО|ПАО|НАО|АО|АНО|НКО|ГУП|МУП|ФГУП|ТОО|Общество с ограниченной ответственностью|Акционерное общество|Публичное акционерное общество|Закрытое акционерное общество|Открытое акционерное общество';
+  const PATRONYMIC = '(?:ович|евич|ич|овн|евн|ичн|инич)[а-я]{0,3}';
+
+  // Типы данных, которые находит поиск, — в порядке показа в интерфейсе
+  const TYPES = {
+    org: 'Организации', person: 'ФИО', inn: 'ИНН', ogrn: 'ОГРН', kpp: 'КПП', bik: 'БИК', account: 'Банковские счета',
+    snils: 'СНИЛС', passport: 'Паспорта', phone: 'Телефоны', email: 'Эл. почта', amount: 'Суммы', words: 'Суммы прописью',
+    date: 'Даты', custom: 'Добавлено вручную',
+  };
+
+  // Совпадения одного сегмента: [{ start, end, type, value, info }]
+  function detect(text) {
+    const hits = [];
+    const add = (start, value, type, info) => hits.push({ start, end: start + value.length, value, type, info });
+    const each = (re, fn) => { re.lastIndex = 0; let m; while ((m = re.exec(text))) { fn(m); if (!m[0]) re.lastIndex++; } };
+
+    each(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, m => add(m.index, m[0], 'email'));
+    each(/(?<![\d+])(?:\+7|8)[\s\u00a0-]*\(?\d{3}\)?[\s\u00a0-]*\d{3}[\s\u00a0-]*\d{2}[\s\u00a0-]*\d{2}(?!\d)/g, m => add(m.index, m[0], 'phone'));
+    each(/(?<!\d)\d{3}-\d{3}-\d{3}[\s\u00a0-]\d{2}(?!\d)/g, m => add(m.index, m[0], 'snils'));
+    each(/(?<!\d)\d{20}(?!\d)/g, m => add(m.index, m[0], 'account'));
+    each(/(?<!\d)\d{2}[\s\u00a0]?\d{2}[\s\u00a0]+(?:№[\s\u00a0]*)?\d{6}(?!\d)/g, m => {
+      if (/паспорт/i.test(before(text, m.index, 60))) add(m.index, m[0], 'passport');
+    });
+    each(/ОГРН(?:ИП)?[\s:\u00a0]*(\d{15}|\d{13})(?!\d)/g, m => add(m.index + m[0].length - m[1].length, m[1], 'ogrn'));
+    each(/КПП[\s:\u00a0]*(\d{9})(?!\d)/g, m => add(m.index + m[0].length - m[1].length, m[1], 'kpp'));
+    each(/БИК[\s:\u00a0]*(\d{9})(?!\d)/g, m => add(m.index + m[0].length - m[1].length, m[1], 'bik'));
+    each(/(?<!\d)(\d{12}|\d{10})(?!\d)/g, m => {
+      if (innValid(m[1]) || /ИНН[\s:\u00a0/№]*$/.test(before(text, m.index, 14))) add(m.index, m[1], 'inn');
+    });
+    // организации: форма + название в кавычках или заглавными буквами; заменяется само название
+    each(new RegExp(`(?:${ORG_FORMS})[\\s\\u00a0]*[«"“„]([^«»"“”„${SEP}]{2,80})[»"”“]`, 'g'), m => {
+      add(m.index + m[0].length - m[1].length - 1, m[1], 'org');
+    });
+    each(new RegExp(`(?<![${L}])(?:ООО|ОАО|ЗАО|ПАО|АО)[\\s\\u00a0]+([А-ЯЁ][А-ЯЁ-]{2,}(?:[\\s\\u00a0][А-ЯЁ][А-ЯЁ-]{2,})?)(?![${L}])`, 'g'), m => {
+      add(m.index + m[0].length - m[1].length, m[1], 'org');
+    });
+    // ФИО: полное с отчеством (в любом падеже) и с инициалами
+    each(new RegExp(`(?<![${L}])([А-ЯЁ][а-яё]+(?:-[А-ЯЁ][а-яё]+)?)[\\s\\u00a0]+([А-ЯЁ][а-яё]+)[\\s\\u00a0]+([А-ЯЁ][а-яё]*${PATRONYMIC})(?![${L}])`, 'g'), m => {
+      add(m.index, m[0], 'person', { kind: 'full', surname: m[1], name: m[2], patronymic: m[3] });
+    });
+    each(new RegExp(`(?<![${L}])([А-ЯЁ][а-яё]{1,}(?:-[А-ЯЁ][а-яё]+)?)[\\s\\u00a0]+([А-ЯЁ])\\.[\\s\\u00a0]?([А-ЯЁ])\\.`, 'g'), m => {
+      add(m.index, m[0], 'person', { kind: 'after', surname: m[1], i1: m[2], i2: m[3], tight: !/\.[\s\u00a0][А-ЯЁ]\.$/.test(m[0]) });
+    });
+    each(new RegExp(`(?<![${L}])([А-ЯЁ])\\.[\\s\\u00a0]?([А-ЯЁ])\\.[\\s\\u00a0]?([А-ЯЁ][а-яё]{1,}(?:-[А-ЯЁ][а-яё]+)?)(?![${L}])`, 'g'), m => {
+      add(m.index, m[0], 'person', { kind: 'before', surname: m[3], i1: m[1], i2: m[2], tight: /^[А-ЯЁ]\.[А-ЯЁ]\./.test(m[0]) });
+    });
+    // суммы с валютой и сумма прописью в скобках сразу после неё
+    each(/(?<![\d,.])(\d{1,3}(?:[ \u00a0]\d{3})+|\d+)(?:,(\d{1,2}))?(?=[\s\u00a0]*(?:руб|₽|RUB|USD|EUR|\$|€|долл))/g, m => {
+      add(m.index, m[0], 'amount');
+      const rest = text.slice(m.index + m[0].length);
+      const w = /^[\s\u00a0]*(?:руб(?:лей|ля|ль)?\.?|₽|RUB)?[\s\u00a0]*\(([^()]{3,200})\)/.exec(rest);
+      // в скобках — слова (копейки бывают цифрами: «… рублей 00 копеек»)
+      if (w && /[а-яё]{3,}[\s\u00a0]+[а-яё]{3,}/i.test(w[1])) add(m.index + m[0].length + w[0].length - w[1].length - 1, w[1], 'words');
+    });
+    // даты: 12.03.2025 и «12» марта 2025
+    each(/(?<![\d.])(\d{1,2})\.(\d{1,2})\.(\d{4})(?![\d])/g, m => {
+      if (+m[2] >= 1 && +m[2] <= 12 && +m[1] >= 1 && +m[1] <= 31) add(m.index, m[0], 'date');
+    });
+    each(new RegExp(`(?<!\\d)([«"]?)(\\d{1,2})([»"]?)[\\s\\u00a0]+(${MONTHS.join('|')})[\\s\\u00a0]+(\\d{4})`, 'g'), m => add(m.index, m[0], 'date'));
+
+    // пересечения: раньше начавшееся и более длинное побеждает
+    hits.sort((a, b) => a.start - b.start || (b.end - b.start) - (a.end - a.start));
+    const out = [];
+    let end = -1;
+    for (const h of hits) { if (h.start >= end) { out.push(h); end = h.end; } }
+    return out;
+  }
+
+  // ---------- Генераторы замен ----------
+  // Вымышленные ФИО: только формы с правильным склонением (фамилии на -ов/-ев/-ин, имена на согласную и на -а)
+  const FAKE_SURNAMES = ['Лебедев', 'Соколов', 'Морозов', 'Волков', 'Зайцев', 'Павлов', 'Семёнов', 'Голубев', 'Виноградов', 'Богданов',
+    'Воробьёв', 'Фёдоров', 'Михайлов', 'Беляев', 'Тарасов', 'Белов', 'Комаров', 'Орлов', 'Киселёв', 'Макаров', 'Андреев', 'Ковалёв',
+    'Ильин', 'Гусев', 'Титов', 'Кузьмин', 'Кудрявцев', 'Баранов', 'Куликов', 'Алексеев', 'Степанов', 'Яковлев', 'Сорокин', 'Сергеев',
+    'Романов', 'Захаров', 'Борисов', 'Королёв', 'Герасимов', 'Пономарёв', 'Григорьев', 'Лазарев', 'Медведев', 'Ершов', 'Никитин'];
+  const FAKE_MALE = ['Олег', 'Глеб', 'Роман', 'Борис', 'Денис', 'Вадим', 'Степан', 'Тимур', 'Руслан', 'Артём', 'Максим', 'Антон', 'Матвей'];
+  const FAKE_FEMALE = ['Анна', 'Ирина', 'Елена', 'Марина', 'Алина', 'Вера', 'Нина', 'Полина', 'Кристина', 'Светлана', 'Татьяна', 'Галина'];
+  const FAKE_PATRO = ['Сергеев', 'Андреев', 'Олегов', 'Петров', 'Иванов', 'Михайлов', 'Романов', 'Борисов', 'Викторов', 'Алексеев', 'Павлов'];
+  const CASES = ['nom', 'gen', 'dat', 'acc', 'ins', 'pre'];
+  // окончания по падежам
+  const END = {
+    surM: { nom: '', gen: 'а', dat: 'у', acc: 'а', ins: 'ым', pre: 'е' },
+    surF: { nom: 'а', gen: 'ой', dat: 'ой', acc: 'у', ins: 'ой', pre: 'ой' },
+    patM: { nom: 'ич', gen: 'ича', dat: 'ичу', acc: 'ича', ins: 'ичем', pre: 'иче' },
+    patF: { nom: 'на', gen: 'ны', dat: 'не', acc: 'ну', ins: 'ной', pre: 'не' },
+  };
+  function declineName(name, female, cs) {
+    if (female) {   // все женские имена списка оканчиваются на -а после н/р/л/т
+      return name.slice(0, -1) + { nom: 'а', gen: 'ы', dat: 'е', acc: 'у', ins: 'ой', pre: 'е' }[cs];
+    }
+    if (name.endsWith('й')) return name.slice(0, -1) + { nom: 'й', gen: 'я', dat: 'ю', acc: 'я', ins: 'ем', pre: 'е' }[cs];
+    return name + { nom: '', gen: 'а', dat: 'у', acc: 'а', ins: 'ом', pre: 'е' }[cs];
+  }
+  // падеж и пол по окончанию отчества
+  function caseFromPatronymic(p) {
+    const f = /(овн|евн|ичн|инич)(а|ы|е|у|ой)$/.exec(p);
+    if (f) return { female: true, cs: { а: 'nom', ы: 'gen', е: 'dat', у: 'acc', ой: 'ins' }[f[2]] };
+    const m = /ич(|а|у|ем|е)$/.exec(p);
+    if (m) return { female: false, cs: { '': 'nom', а: 'gen', у: 'dat', ем: 'ins', е: 'pre' }[m[1]] };
+    return { female: false, cs: 'nom' };
+  }
+  // основа фамилии (для узнавания одного человека в разных падежах) и падеж по окончанию
+  function surnameInfo(s, female) {
+    const m = /^(.+?(?:ов|ев|ёв|ин|ын))(а|у|ым|е|ой|ом)?$/.exec(s);
+    if (!m) return { stem: s, cs: 'nom', regular: false };
+    const e = m[2] || '';
+    if (female === true) return { stem: m[1], cs: { а: 'nom', ой: 'gen', у: 'acc' }[e] || 'nom', regular: true };
+    if (female === false) return { stem: m[1], cs: { '': 'nom', а: 'gen', у: 'dat', ым: 'ins', е: 'pre', ом: 'ins' }[e] || 'nom', regular: true };
+    // пол неизвестен (только инициалы): -а — скорее женская в им. падеже, -ой — женская в косвенном
+    if (e === 'ой') return { stem: m[1], cs: 'gen', female: true, regular: true };
+    if (e === 'а') return { stem: m[1], cs: 'nom', female: true, regular: true };
+    return { stem: m[1], cs: { '': 'nom', у: 'dat', ым: 'ins', е: 'pre', ом: 'ins' }[e] || 'nom', female: false, regular: true };
+  }
+
+  function plan(parts, opts) {
+    const seed = opts.seed || 'redact-docx';
+    const factor = Number(opts.factor) || 1, shift = Math.round(Number(opts.shiftDays) || 0);
+    const enabled = opts.types || Object.fromEntries(Object.keys(TYPES).map(t => [t, true]));
+    const skip = new Set(opts.skip || []);
+    const allText = parts.map(p => p.segs.filter(s => s.kind === 'text').map(s => s.text).join('\n')).join('\n');
+
+    // 1. Что найдено: значение → { type, count, info }
+    const found = new Map();
+    const note = (h) => {
+      const f = found.get(h.value);
+      if (f) f.count++; else found.set(h.value, { type: h.type, count: 1, info: h.info, value: h.value });
+    };
+    for (const p of parts) for (const s of p.segs) if (s.kind === 'text') detect(s.text).forEach(note);
+    for (const c of opts.custom || []) {
+      const v = String(c).trim();
+      if (v && !found.has(v)) {
+        const n = allText.split(v).length - 1;
+        found.set(v, { type: 'custom', count: n, value: v });
+      }
+    }
+
+    // 2. Замены. Ни одна замена не совпадает с исходным значением, с другой заменой или с текстом документа
+    const used = new Set(found.keys());
+    const taken = s => used.has(s) || allText.includes(s);
+    const rng = engine().makeRng(seed, 'docx');
+    const rnd = (lo, hi) => lo + Math.floor(rng() * (hi - lo + 1));
+    const pickOf = arr => arr[Math.floor(rng() * arr.length)];
+    const counters = {};
+    const numbered = (prefix, type) => {
+      let s;
+      do { counters[type] = (counters[type] || 0) + 1; s = `${prefix} ${String(counters[type]).padStart(3, '0')}`; } while (taken(s));
+      return s;
+    };
+    const digits = (v, keep = 1, fixLast) => {
+      let s, tries = 0;
+      do {
+        let k = 0;
+        s = v.replace(/\d/g, d => (k++ < keep ? d : String(rnd(0, 9))));
+        if (fixLast) s = fixLast(s);
+        tries++;
+      } while ((s === v || taken(s)) && tries < 200);
+      return s;
+    };
+    // ИНН — с заведомо неверной контрольной цифрой: такого номера нет у реальной организации или человека
+    const fakeInn = v => digits(v, 2, s => {
+      const d = s.slice(0, -1);
+      for (let x = 0; x < 10; x++) { const c = d + x; if (!innValid(c)) return c; }
+      return s;
+    });
+    // люди: один человек (основа фамилии + инициалы) — один вымышленный, в нужном падеже и роде
+    const persons = new Map();
+    const fakeFor = (key, female) => {
+      if (persons.has(key)) return persons.get(key);
+      let p, tries = 0;
+      do {
+        p = { sur: pickOf(FAKE_SURNAMES), name: female ? pickOf(FAKE_FEMALE) : pickOf(FAKE_MALE), patro: pickOf(FAKE_PATRO), female };
+        tries++;
+      } while (tries < 300 && [...persons.values()].some(q => q.sur === p.sur && q.name[0] === p.name[0] && q.patro[0] === p.patro[0]));
+      persons.set(key, p);
+      return p;
+    };
+    // «Лебедев» → «Лебедеву», «Лебедева» → «Лебедевой»; отчество из основы: «Сергеев» → «Сергеевичу», «Сергеевной»
+    const surForm = (p, cs) => p.sur + (p.female ? END.surF[cs] : END.surM[cs]);
+    const fullPatro = (p, cs) => p.patro + (p.female ? END.patF[cs] : END.patM[cs]);
+    // ключ человека по полной форме и по инициалам, пол — по отчеству или фамилии
+    const personKey = f => {
+      const i = f.info;
+      if (i.kind === 'full') {
+        const c = caseFromPatronymic(i.patronymic);
+        const s = surnameInfo(i.surname, c.female);
+        return { key: `${s.stem}|${i.name[0]}|${i.patronymic[0]}`, female: c.female, cs: c.cs };
+      }
+      const s = surnameInfo(i.surname);
+      return { key: `${s.stem}|${i.i1}|${i.i2}`, female: !!s.female, cs: s.cs };
+    };
+    // сначала полные формы — по ним точнее определяется пол
+    const order = [...found.values()].sort((a, b) => (a.type === 'person' && a.info.kind === 'full' ? 0 : 1) - (b.type === 'person' && b.info.kind === 'full' ? 0 : 1));
+    const genderOf = new Map();
+    for (const f of order) if (f.type === 'person' && f.info.kind === 'full') { const k = personKey(f); genderOf.set(k.key, k.female); }
+
+    const amounts = new Map();   // новое значение суммы → исходное (замены сумм уникальны)
+    const repl = new Map();      // исходное → замена (только включённые)
+    const rows = [];
+    for (const f of order) {
+      const on = enabled[f.type] !== false && !skip.has(f.value);
+      let r;
+      switch (f.type) {
+        case 'org': r = numbered('Контрагент', 'org'); break;
+        case 'custom': r = numbered('Значение', 'custom'); break;
+        case 'words': r = numbered('сумма прописью', 'words'); break;
+        case 'email': { let s; do { counters.email = (counters.email || 0) + 1; s = `contact${String(counters.email).padStart(3, '0')}@example.com`; } while (taken(s)); r = s; break; }
+        case 'inn': r = fakeInn(f.value); break;
+        case 'phone': r = digits(f.value, 1); break;
+        case 'account': r = digits(f.value, 5); break;
+        case 'bik': r = digits(f.value, 2); break;
+        case 'kpp': case 'ogrn': case 'snils': case 'passport': r = digits(f.value, 1); break;
+        case 'person': {
+          const k = personKey(f);
+          const female = genderOf.has(k.key) ? genderOf.get(k.key) : k.female;
+          const p = fakeFor(k.key, female);
+          const i = f.info;
+          if (i.kind === 'full') r = `${surForm(p, k.cs)} ${declineName(p.name, female, k.cs)} ${fullPatro(p, k.cs)}`;
+          else {
+            const ini = i.tight ? `${p.name[0]}.${p.patro[0]}.` : `${p.name[0]}. ${p.patro[0]}.`;
+            r = i.kind === 'after' ? `${surForm(p, k.cs)} ${ini}` : `${ini} ${surForm(p, k.cs)}`;
+          }
+          break;
+        }
+        case 'amount': {
+          const m = /^(\d{1,3}(?:([ \u00a0])\d{3})+|\d+)(?:,(\d{1,2}))?$/.exec(f.value);
+          const sep = m[2] || '', dec = m[3];
+          let v = Number(m[1].replace(/[ \u00a0]/g, '') + (dec ? '.' + dec : ''));
+          let nv = Math.round(v * factor * 100) / 100;
+          // формат как у исходной: тот же разделитель тысяч, копейки — если были или появились после умножения
+          const fmt = x => {
+            const [ip, fp] = x.toFixed(2).split('.');
+            const g = ip.replace(/\B(?=(\d{3})+(?!\d))/g, sep);
+            return dec === undefined && fp === '00' ? g : `${g},${fp}`;
+          };
+          let s = fmt(nv);
+          while (s === f.value || amounts.has(s) || taken(s)) { nv = Math.round((nv + 0.01) * 100) / 100; s = fmt(nv); }
+          amounts.set(s, f.value);
+          r = s;
+          break;
+        }
+        case 'date': r = shiftDate(f.value, shift); break;
+        default: r = numbered('Значение', 'custom');
+      }
+      if (r === f.value) r = numbered('Значение', 'custom');
+      used.add(r);
+      rows.push({ value: f.value, type: f.type, count: f.count, repl: r, on });
+      if (on) repl.set(f.value, r);
+    }
+    rows.sort((a, b) => Object.keys(TYPES).indexOf(a.type) - Object.keys(TYPES).indexOf(b.type) || b.count - a.count);
+    return { rows, repl };
+  }
+
+  function shiftDate(v, days) {
+    const DAY = 86400000;
+    let m = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec(v);
+    if (m) {
+      const d = new Date(Date.UTC(+m[3], +m[2] - 1, +m[1]) + days * DAY);
+      const pad = (x, w) => String(x).padStart(w, '0');
+      return `${m[1].length === 2 ? pad(d.getUTCDate(), 2) : d.getUTCDate()}.${m[2].length === 2 ? pad(d.getUTCMonth() + 1, 2) : d.getUTCMonth() + 1}.${d.getUTCFullYear()}`;
+    }
+    m = new RegExp(`^([«"]?)(\\d{1,2})([»"]?)([\\s\\u00a0]+)(${MONTHS.join('|')})([\\s\\u00a0]+)(\\d{4})$`).exec(v);
+    if (m) {
+      const d = new Date(Date.UTC(+m[7], MONTHS.indexOf(m[5]), +m[2]) + days * DAY);
+      const day = m[2].length === 2 ? String(d.getUTCDate()).padStart(2, '0') : String(d.getUTCDate());
+      return `${m[1]}${day}${m[3]}${m[4]}${MONTHS[d.getUTCMonth()]}${m[6]}${d.getUTCFullYear()}`;
+    }
+    return v;
+  }
+
+  // ---------- Документ целиком (zip — экземпляр JSZip) ----------
+  async function readParts(zip) {
+    const names = Object.keys(zip.files).filter(n => TEXT_PART.test(n)).sort();
+    const parts = [];
+    for (const name of names) {
+      const xml = await zip.file(name).async('string');
+      parts.push({ name, xml, segs: segmentsOf(xml) });
+    }
+    return parts;
+  }
+
+  // Анализ: что найдено и чем будет заменено. Плюс то, что Redact не может прочитать (картинки, вложения)
+  async function analyzeDocx(zip, opts = {}) {
+    const parts = await readParts(zip);
+    if (!parts.some(p => p.name === 'word/document.xml')) throw new Error('это не документ Word: в архиве нет word/document.xml');
+    const { rows, repl } = plan(parts, opts);
+    const names = Object.keys(zip.files);
+    const doc = parts.find(p => p.name === 'word/document.xml').xml;
+    const info = {
+      images: names.filter(n => /^word\/media\//.test(n) && !zip.files[n].dir).length,
+      embeddings: names.filter(n => /^word\/embeddings\//.test(n) && !zip.files[n].dir).length,
+      comments: (parts.find(p => p.name === 'word/comments.xml') || { xml: '' }).xml.split('<w:comment ').length - 1,
+      revisions: (doc.match(/<w:(del|ins|moveFrom|moveTo)\b/g) || []).length,
+      paragraphs: parts.reduce((n, p) => n + p.segs.filter(s => s.kind === 'text').length, 0),
+    };
+    return { parts, rows, repl, info };
+  }
+
+  // Записанные исправления: удалённый текст убирается из файла, вставленный становится обычным
+  const acceptRevisions = xml => xml
+    .replace(/<w:(del|moveFrom)\b[^>]*\/>/g, '')
+    .replace(/<w:(del|moveFrom)\b[^>]*>[\s\S]*?<\/w:\1>/g, '')
+    .replace(/<w:(ins|moveTo)\b[^>]*\/>/g, '')
+    .replace(/<\/?w:(ins|moveTo)\b[^>]*>/g, '')
+    .replace(/<w:(moveFromRange|moveToRange)(Start|End)\b[^>]*\/>/g, '')
+    .replace(/<w:(rPrChange|pPrChange|sectPrChange|tblPrChange|trPrChange|tcPrChange)\b[^>]*>[\s\S]*?<\/w:\1>/g, '');
+  // Примечания: метки в тексте и сами примечания
+  const dropCommentMarks = xml => xml
+    .replace(/<w:comment(RangeStart|RangeEnd)\b[^>]*\/>/g, '')
+    .replace(/<w:r\b[^>]*>(?:(?!<\/w:r>)[\s\S])*?<w:commentReference\b[^>]*\/>(?:(?!<\/w:r>)[\s\S])*?<\/w:r>/g, '');
+  // Авторы правок и примечаний
+  const dropAuthors = xml => xml.replace(/\sw:author="[^"]*"/g, ' w:author="Автор"').replace(/\sw:initials="[^"]*"/g, ' w:initials=""');
+
+  // Обезличивание: zip изменяется на месте. opts: repl (Map), clean: { revisions, comments, meta }
+  async function redactDocx(zip, { repl, clean = {} }) {
+    const finder = dictFinder(repl);
+    let replaced = 0;
+    for (const name of Object.keys(zip.files).filter(n => TEXT_PART.test(n))) {
+      let xml = await zip.file(name).async('string');
+      if (clean.revisions) xml = acceptRevisions(xml);
+      if (clean.comments) {
+        if (/^word\/comments/.test(name)) xml = xml.replace(/<w:comment\b[\s\S]*?<\/w:comment>/g, '').replace(/<w15:commentEx\b[^>]*\/>/g, '');
+        else xml = dropCommentMarks(xml);
+      }
+      xml = dropAuthors(xml);
+      const r = rewrite(xml, finder);
+      replaced += r.count;
+      zip.file(name, r.xml);
+    }
+    // ссылки mailto: и другие адреса в связях документа
+    for (const name of Object.keys(zip.files).filter(n => /^word\/_rels\/.*\.rels$/.test(n))) {
+      let xml = await zip.file(name).async('string');
+      xml = xml.replace(/Target="([^"]*)"/g, (m, t) => {
+        const plain = unescapeXml(t);
+        const out = plain.replace(/(mailto:)(.+)/i, (x, p, addr) => p + (repl.get(addr) || addr));
+        return out === plain ? m : `Target="${escapeAttr(out)}"`;
+      });
+      zip.file(name, xml);
+    }
+    if (zip.file('word/people.xml')) zip.file('word/people.xml', (await zip.file('word/people.xml').async('string')).replace(/<w15:person\b[\s\S]*?<\/w15:person>/g, ''));
+    if (clean.meta) await clearMeta(zip);
+    return { replaced };
+  }
+
+  async function clearMeta(zip) {
+    const core = zip.file('docProps/core.xml');
+    if (core) {
+      let xml = await core.async('string');
+      for (const tag of ['dc:creator', 'cp:lastModifiedBy', 'dc:title', 'dc:subject', 'dc:description', 'cp:keywords', 'cp:category']) {
+        xml = xml.replace(new RegExp(`<${tag}(\\s[^>]*)?>[\\s\\S]*?</${tag}>`, 'g'), `<${tag}$1></${tag}>`);
+      }
+      zip.file('docProps/core.xml', xml);
+    }
+    const app = zip.file('docProps/app.xml');
+    if (app) {
+      let xml = await app.async('string');
+      for (const tag of ['Company', 'Manager']) xml = xml.replace(new RegExp(`<${tag}>[\\s\\S]*?</${tag}>`, 'g'), `<${tag}></${tag}>`);
+      zip.file('docProps/app.xml', xml);
+    }
+    // свои свойства документа: сам файл остаётся (на него ссылается архив), его значения убираются
+    const custom = zip.file('docProps/custom.xml');
+    if (custom) zip.file('docProps/custom.xml', (await custom.async('string')).replace(/<property\b[\s\S]*?<\/property>/g, ''));
+  }
+
+  // Восстановление: обратная подстановка «замена → исходное» во всех частях с текстом и в ссылках
+  async function restoreDocx(zip, back) {
+    const finder = dictFinder(back);
+    let restored = 0;
+    for (const name of Object.keys(zip.files).filter(n => TEXT_PART.test(n))) {
+      const r = rewrite(await zip.file(name).async('string'), finder);
+      restored += r.count;
+      zip.file(name, r.xml);
+    }
+    for (const name of Object.keys(zip.files).filter(n => /^word\/_rels\/.*\.rels$/.test(n))) {
+      let xml = await zip.file(name).async('string');
+      xml = xml.replace(/Target="mailto:([^"]*)"/gi, (m, a) => { const o = back.get(unescapeXml(a)); return o ? `Target="mailto:${escapeAttr(o)}"` : m; });
+      zip.file(name, xml);
+    }
+    return { restored };
+  }
+
+  // Текст документа для предпросмотра: абзацы с найденным, разметка [исходное → замена]
+  function previewParagraphs(parts, repl, limit = 60) {
+    const finder = dictFinder(repl);
+    const out = [];
+    for (const p of parts) for (const s of p.segs) {
+      if (s.kind !== 'text') continue;
+      const f = finder(s.text);
+      if (!f.length) continue;
+      const pieces = [];
+      let at = 0;
+      for (const x of f) {
+        if (x.start > at) pieces.push({ text: s.text.slice(at, x.start).split(SEP).join(' ') });
+        pieces.push({ orig: s.text.slice(x.start, x.end), repl: x.repl });
+        at = x.end;
+      }
+      if (at < s.text.length) pieces.push({ text: s.text.slice(at).split(SEP).join(' ') });
+      out.push({ part: p.name, pieces });
+      if (out.length >= limit) return out;
+    }
+    return out;
+  }
+
+  const api = { TYPES, detect, segmentsOf, rewrite, dictFinder, plan, shiftDate, innValid, analyzeDocx, redactDocx, restoreDocx, previewParagraphs, acceptRevisions };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.RedactDocx = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
 // Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
-window.ANON_VERSION = '4.8';
+window.ANON_VERSION = '5.0';
 
 </script>
 <script>
@@ -2868,6 +3502,7 @@ window.ANON_VERSION = '4.8';
       S.fileName = file.name;
       S.buffer = buf;
       S.loadNotes = [];
+      if (ext === 'docx' || ext === 'doc') throw new Error('это документ Word — откройте вкладку «Документ Word»');
       const xls = window.RedactXls.isXls(buf, file.name);
       if (!xls && (ext === 'csv' || ext === 'txt')) {
         S.kind = 'csv';
@@ -3544,20 +4179,21 @@ window.ANON_VERSION = '4.8';
   const inKey = name => !!(R.prep && name != null && R.prep.keySheets.has(name));
 
   // ---------- Переключение режимов ----------
+  // вкладки: Обезличить (таблица) · Восстановить по ключу · Документ Word
+  const MODES = [['redact', 'tabRedact', 'modeRedact'], ['restore', 'tabRestore', 'modeRestore'], ['doc', 'tabDoc', 'modeDoc']];
   function setMode(mode) {
-    const restore = mode === 'restore';
-    $('modeRedact').classList.toggle('hidden', restore);
-    $('modeRestore').classList.toggle('hidden', !restore);
-    $('tabRedact').setAttribute('aria-selected', String(!restore));
-    $('tabRestore').setAttribute('aria-selected', String(restore));
+    for (const [m, tab, panel] of MODES) {
+      $(panel).classList.toggle('hidden', m !== mode);
+      $(tab).setAttribute('aria-selected', String(m === mode));
+    }
   }
-  $('tabRedact').addEventListener('click', () => setMode('redact'));
-  $('tabRestore').addEventListener('click', () => setMode('restore'));
+  for (const [m, tab] of MODES) $(tab).addEventListener('click', () => setMode(m));
   $('tabRedact').parentElement.addEventListener('keydown', ev => {
     if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
-    const next = $('tabRedact').getAttribute('aria-selected') === 'true' ? 'restore' : 'redact';
-    setMode(next);
-    $(next === 'restore' ? 'tabRestore' : 'tabRedact').focus();
+    const i = MODES.findIndex(([, tab]) => $(tab).getAttribute('aria-selected') === 'true');
+    const next = MODES[(i + (ev.key === 'ArrowRight' ? 1 : MODES.length - 1)) % MODES.length];
+    setMode(next[0]);
+    $(next[1]).focus();
   });
 
   // ---------- Загрузка файлов ----------
@@ -3578,11 +4214,17 @@ window.ANON_VERSION = '4.8';
     try {
       const buf = await file.arrayBuffer();
       const e = ext(file.name);
-      const xls = window.RedactXls.isXls(buf, file.name);
+      const docx = e === 'docx';
+      const xls = !docx && window.RedactXls.isXls(buf, file.name);
       R.fileName = file.name;
       R.buffer = buf;
       R.notes = [];
-      if (!xls && (e === 'csv' || e === 'txt')) {
+      if (docx) {
+        // документ Word: столбцов нет, восстанавливается весь текст по словарю ключа
+        R.kind = 'docx';
+        R.wb = null; R.grid = null; R.an = null;
+        R.docParts = (await window.RedactDocx.analyzeDocx(await JSZip.loadAsync(buf), { types: {} })).parts;
+      } else if (!xls && (e === 'csv' || e === 'txt')) {
         R.kind = 'csv';
         let text = new TextDecoder('utf-8').decode(buf);
         if (text.includes('�')) text = new TextDecoder('windows-1251').decode(buf);
@@ -3609,7 +4251,7 @@ window.ANON_VERSION = '4.8';
         R.grid = A.gridFromWorksheet(R.wb.worksheets[R.sheetIndex]);
       }
       $('rClearRow').classList.remove('hidden');
-      $('rFileInfo').innerHTML = `${icon('file-spreadsheet', 'i i20')}<b>${esc(file.name)}</b><span class="muted">${(file.size / 1024).toFixed(0)} КБ</span>`;
+      $('rFileInfo').innerHTML = `${icon(docx ? 'file-text' : 'file-spreadsheet', 'i i20')}<b>${esc(file.name)}</b><span class="muted">${(file.size / 1024).toFixed(0)} КБ</span>`;
       setup(true);
     } catch (e) {
       console.error(e);
@@ -3681,7 +4323,7 @@ window.ANON_VERSION = '4.8';
     Object.assign(R, {
       fileName: '', kind: null, buffer: null, wb: null, csv: null, sheetIndex: 0, grid: null, an: null, notes: [],
       key: null, keyName: '', keyNotes: [], envelope: null, prep: null, actions: {}, result: null,
-      sheetActions: new Map(),
+      sheetActions: new Map(), docParts: null,
     });
     ['r2', 'r3', 'rPassRow', 'rClearRow'].forEach(id => $(id).classList.add('hidden'));
     for (const id of ['rFileInfo', 'rKeyInfo', 'rRowsInfo', 'rStats', 'rPreview', 'rWarnings', 'rSheet']) $(id).innerHTML = '';
@@ -3753,7 +4395,30 @@ window.ANON_VERSION = '4.8';
   });
   $('rOtherSheets').addEventListener('change', preview);
 
+  // ---------- Документ Word ----------
+  // словарь «замена → исходное» из ключа (документа или таблицы): псевдонимы, коды, ФИО с инициалами
+  const backMap = () => new Map([...R.prep.global, ...(R.prep.names || [])]);
+  function setupDoc() {
+    if (!R.docParts || !R.prep) { ['r2', 'r3'].forEach(id => $(id).classList.add('hidden')); return; }
+    $('r2').classList.add('hidden');
+    $('r3').classList.remove('hidden');
+    const back = backMap();
+    const finder = window.RedactDocx.dictFinder(back);
+    let n = 0;
+    for (const p of R.docParts) for (const sg of p.segs) n += finder(sg.text).length;
+    $('rStats').textContent = n
+      ? `Будет восстановлено вхождений: ${n.toLocaleString('ru-RU')} — в тексте, таблицах, колонтитулах и сносках документа`
+      : 'В документе не найдено значений из ключа. Проверьте, что ключ от этого документа или от таблицы, по которой он написан.';
+    const paras = window.RedactDocx.previewParagraphs(R.docParts, back, 30);
+    $('rPreview').innerHTML = paras.length ? '<tbody>' + paras.map(p => `<tr><td class="doc-cell">${p.pieces.map(x => x.text !== undefined ? esc(x.text)
+      : `<span class="pair-inline" title="${esc(x.orig)} → ${esc(x.repl)}"><span class="rv rv-token">${esc(x.orig)}</span><span class="rv-arrow" aria-hidden="true">→</span><span class="rv rv-original">${esc(x.repl)}</span></span>`).join('')}</td></tr>`).join('') + '</tbody>' : '';
+    const info = [...R.keyNotes];
+    if (R.key && !R.key.document) info.push('Ключ от таблицы: в документе вернутся названия, коды и ФИО из неё. Суммы и даты в тексте документа по такому ключу не меняются.');
+    $('rWarnings').innerHTML = info.length ? `<div class="notice"><div class="notice-title">${icon('circle-alert', 'i i20')}Проверьте перед выгрузкой</div><ul>${info.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
+  }
+
   function setup(autoHeader, headerRow) {
+    if (R.kind === 'docx') { setupDoc(); return; }
     if (!R.grid || !R.prep) {
       ['r2', 'r3'].forEach(id => $(id).classList.add('hidden'));
       return;
@@ -3855,6 +4520,21 @@ window.ANON_VERSION = '4.8';
 
   // ---------- Выгрузка ----------
   $('btnRestore').addEventListener('click', async () => {
+    if (R.kind === 'docx' && R.prep && R.docParts) {
+      const btn = $('btnRestore');
+      btn.disabled = true;
+      try {
+        const zip = await JSZip.loadAsync(R.buffer);
+        const { restored } = await window.RedactDocx.restoreDocx(zip, backMap());
+        const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+        download(blob, R.fileName.replace(/\.[^.]+$/, '').replace(/_redact$/, '') + '_restored.docx');
+        toast(`Восстановлено вхождений: ${restored.toLocaleString('ru-RU')}. Документ сохранён в «Загрузки»`);
+      } catch (e) {
+        console.error(e);
+        toast('Не удалось сохранить документ: ' + e.message, 7000, 'error');
+      } finally { btn.disabled = false; }
+      return;
+    }
     if (!R.an || !R.prep) return;
     const btn = $('btnRestore');
     btn.disabled = true;
@@ -4208,6 +4888,234 @@ window.ANON_VERSION = '4.8';
   }
 
   window.RedactUI.confirm = confirmDialog;
+})();
+
+</script>
+<script>
+/* Вкладка «Документ Word»: .docx → что найдено → обезличенный .docx и ключ соответствий. Логика — в src/docx.js. */
+(function () {
+  'use strict';
+  const A = window.Anon;
+  const D = window.RedactDocx;
+  const { $, icon, esc, toast, download, KEY_SHEET } = window.RedactUI;
+  const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+  const DS = {
+    fileName: '', buffer: null, analysis: null, rows: [], repl: new Map(),
+    seed: '', types: {}, skip: new Set(),
+  };
+
+  // ---------- Загрузка ----------
+  const drop = $('dDrop');
+  ['dragenter', 'dragover'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', ev => { const f = ev.dataTransfer.files[0]; if (f) loadDoc(f); });
+  $('dFile').addEventListener('change', ev => { const f = ev.target.files[0]; ev.target.value = ''; if (f) loadDoc(f); });
+
+  async function loadDoc(file) {
+    $('dFileInfo').textContent = 'Читаем документ…';
+    try {
+      if (/\.doc$/i.test(file.name)) throw new Error('формат .doc (Word 97–2003) не поддерживается. Откройте документ в Word и сохраните как .docx');
+      const buf = await file.arrayBuffer();
+      const head = new Uint8Array(buf, 0, Math.min(4, buf.byteLength));
+      if (head[0] !== 0x50 || head[1] !== 0x4B) throw new Error('это не документ Word .docx');
+      const zip = await JSZip.loadAsync(buf);
+      DS.fileName = file.name;
+      DS.buffer = buf;
+      DS.seed = A.randomSeed();
+      DS.types = {};
+      DS.skip = new Set();
+      $('dFactor').value = A.factorFromSeed(A.randomSeed());
+      $('dShift').value = A.shiftFromSeed(A.randomSeed());
+      DS.analysis = await D.analyzeDocx(zip, opts());
+      $('dFileInfo').innerHTML = `${icon('file-text', 'i i20')}<b>${esc(file.name)}</b><span class="muted">${(file.size / 1024).toFixed(0)} КБ · абзацев с текстом: ${DS.analysis.info.paragraphs.toLocaleString('ru-RU')}</span>`;
+      $('dClearRow').classList.remove('hidden');
+      ['d2', 'd3'].forEach(id => $(id).classList.remove('hidden'));
+      replan();
+    } catch (e) {
+      console.error(e);
+      $('dFileInfo').textContent = '';
+      toast('Не удалось прочитать документ: ' + e.message, 7000, 'error');
+    }
+  }
+
+  const custom = () => $('dCustom').value.split('\n').map(s => s.trim()).filter(s => s.length >= 2);
+  const opts = () => ({
+    seed: DS.seed, factor: parseFloat($('dFactor').value) || 1, shiftDays: parseInt($('dShift').value, 10) || 0,
+    types: DS.types, skip: [...DS.skip], custom: custom(),
+  });
+
+  // ---------- Найденное ----------
+  function replan() {
+    if (!DS.analysis) return;
+    const { rows, repl } = D.plan(DS.analysis.parts, opts());
+    DS.rows = rows;
+    DS.repl = repl;
+    renderTypes();
+    renderFound();
+    renderPreview();
+  }
+
+  function renderTypes() {
+    const counts = {};
+    for (const r of DS.rows) counts[r.type] = (counts[r.type] || 0) + 1;
+    $('dTypes').innerHTML = Object.entries(D.TYPES).filter(([t]) => counts[t]).map(([t, name]) =>
+      `<label class="chk"><input type="checkbox" data-type="${t}"${DS.types[t] === false ? '' : ' checked'}> ${esc(name)} — ${counts[t]}</label>`).join('');
+    const total = DS.rows.length;
+    $('dSummary').textContent = total
+      ? `Найдено значений: ${total.toLocaleString('ru-RU')}. Снимите флажок у типа или у отдельного значения, чтобы оставить его как есть. ` +
+        'Названия без формы организации и ФИО без отчества и инициалов автоматически не находятся — добавьте их ниже в «Добавить своё».'
+      : 'Автоматически ничего не найдено. Добавьте то, что нужно скрыть, в «Добавить своё» ниже.';
+  }
+
+  function renderFound() {
+    $('dFound').tBodies[0].innerHTML = DS.rows.map((r, i) => {
+      const typeOn = DS.types[r.type] !== false;
+      return `<tr data-i="${i}" class="${r.on ? 'active' : ''}">
+        <td class="c-chk"><input type="checkbox" data-v="${i}"${r.on ? ' checked' : ''}${typeOn ? '' : ' disabled'} aria-label="Заменять «${esc(r.value)}»"></td>
+        <td class="small muted">${esc(D.TYPES[r.type])}</td>
+        <td><span class="rv ${r.on ? 'rv-detected' : 'rv-original'}">${esc(r.value)}</span></td>
+        <td class="r small">${r.count}</td>
+        <td>${r.on ? `<span class="rv rv-token">${esc(r.repl)}</span>` : '<span class="small muted">останется как есть</span>'}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  $('dTypes').addEventListener('change', ev => {
+    const t = ev.target.dataset.type;
+    if (!t) return;
+    DS.types[t] = ev.target.checked;
+    replan();
+  });
+  $('dFound').addEventListener('change', ev => {
+    const i = ev.target.dataset.v;
+    if (i === undefined) return;
+    const v = DS.rows[+i].value;
+    if (ev.target.checked) DS.skip.delete(v); else DS.skip.add(v);
+    replan();
+  });
+  let customTimer;
+  $('dCustom').addEventListener('input', () => { clearTimeout(customTimer); customTimer = setTimeout(replan, 400); });
+  ['dFactor', 'dShift'].forEach(id => $(id).addEventListener('change', replan));
+  $('btnDFactor').addEventListener('click', () => { $('dFactor').value = A.factorFromSeed(A.randomSeed()); replan(); });
+  $('btnDShift').addEventListener('click', () => { $('dShift').value = A.shiftFromSeed(A.randomSeed()); replan(); });
+
+  // ---------- Предпросмотр ----------
+  function renderPreview() {
+    const paras = D.previewParagraphs(DS.analysis.parts, DS.repl, 40);
+    const n = DS.repl.size;
+    const occ = DS.rows.filter(r => r.on).reduce((s, r) => s + r.count, 0);
+    $('dStats').textContent = n
+      ? `Будет заменено: ${n.toLocaleString('ru-RU')} ${A.plural(n, 'значение', 'значения', 'значений')}, ${occ.toLocaleString('ru-RU')} ${A.plural(occ, 'вхождение', 'вхождения', 'вхождений')}` +
+        (paras.length >= 40 ? ' · ниже — первые 40 абзацев' : '')
+      : 'Замен нет: отметьте найденное или добавьте своё на шаге 2.';
+    const partName = p => /header/.test(p) ? 'Колонтитул' : /footer/.test(p) ? 'Колонтитул' : /footnotes/.test(p) ? 'Сноска'
+      : /endnotes/.test(p) ? 'Концевая сноска' : /comments/.test(p) ? 'Примечание' : '';
+    $('dPreview').innerHTML = paras.map(p => `<p>${partName(p.part) ? `<span class="caption muted doc-part">${partName(p.part)}</span>` : ''}${p.pieces.map(x => x.text !== undefined
+      ? esc(x.text)
+      : `<span class="pair-inline" title="${esc(x.orig)} → ${esc(x.repl)}"><span class="rv rv-detected">${esc(x.orig)}</span><span class="rv-arrow" aria-hidden="true">→</span><span class="rv rv-token">${esc(x.repl)}</span></span>`).join('')}</p>`).join('');
+
+    const info = [], danger = [];
+    const i = DS.analysis.info;
+    if (i.revisions) info.push($('dRevisions').checked
+      ? `В документе есть записанные исправления (${i.revisions}): удалённый текст будет убран из файла, вставленный станет обычным.`
+      : `В документе есть записанные исправления (${i.revisions}), и удалённый текст останется внутри файла. Включите «Принять исправления» на шаге 2.`);
+    if (i.comments) (($('dComments').checked) ? info : danger).push($('dComments').checked
+      ? `Примечания (${i.comments}) будут удалены вместе с именами авторов.`
+      : `Примечания (${i.comments}) останутся; найденное в них заменится, а имена авторов — уберутся.`);
+    if (i.images) danger.push(`В документе ${i.images} ${A.plural(i.images, 'картинка', 'картинки', 'картинок')} — например, сканы подписей и печатей. Redact их не читает: картинки останутся в файле как есть.`);
+    if (i.embeddings) danger.push(`В документе ${i.embeddings} ${A.plural(i.embeddings, 'вложенный объект', 'вложенных объекта', 'вложенных объектов')} (например, таблица Excel). Redact их не читает: они останутся в файле как есть — проверьте их отдельно.`);
+    const kept = DS.rows.filter(r => !r.on);
+    if (kept.length) danger.push(`Останутся без замены: ${kept.length} ${A.plural(kept.length, 'значение', 'значения', 'значений')} (${kept.slice(0, 5).map(r => `«${r.value}»`).join(', ')}${kept.length > 5 ? '…' : ''}).`);
+    info.push('Проверьте предпросмотр: Redact находит типовые данные по шаблонам, но не понимает смысл текста. Адреса, названия без формы организации и имена без отчества добавьте в «Добавить своё».');
+    const notice = (cls, ic, title, items) => items.length
+      ? `<div class="notice ${cls}"><div class="notice-title">${icon(ic, 'i i20')}${title}</div><ul>${items.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
+    $('dWarnings').innerHTML = notice('danger', 'triangle-alert', `Возможна утечка данных: ${danger.length}`, danger) + notice('', 'circle-alert', 'Проверьте перед выгрузкой', info);
+  }
+  ['dRevisions', 'dComments'].forEach(id => $(id).addEventListener('change', () => DS.analysis && renderPreview()));
+
+  // ---------- Выгрузка ----------
+  const baseName = () => DS.fileName.replace(/\.[^.]+$/, '');
+  $('btnDDownload').addEventListener('click', async () => {
+    if (!DS.analysis) return;
+    const btn = $('btnDDownload');
+    btn.disabled = true;
+    try {
+      const zip = await JSZip.loadAsync(DS.buffer);
+      const { replaced } = await D.redactDocx(zip, {
+        repl: DS.repl, clean: { revisions: $('dRevisions').checked, comments: $('dComments').checked, meta: $('dMeta').checked },
+      });
+      const blob = await zip.generateAsync({ type: 'blob', mimeType: DOCX_MIME, compression: 'DEFLATE' });
+      download(blob, baseName() + '_redact.docx');
+      toast(`Заменено вхождений: ${replaced.toLocaleString('ru-RU')}. Документ сохранён в «Загрузки»`);
+    } catch (e) {
+      console.error(e);
+      toast('Не удалось сохранить документ: ' + e.message, 7000, 'error');
+    } finally { btn.disabled = false; }
+  });
+
+  // Ключ документа — тот же формат, что у таблиц: пары «исходное → замена»; открывается на вкладке восстановления
+  function buildKey() {
+    return {
+      app: 'Redact', kind: 'redact-key', format: 1, appVersion: A.VERSION, createdAt: new Date().toISOString(),
+      sourceFile: DS.fileName, document: true, sheet: null, sheets: [], headerRow: 1,
+      factor: parseFloat($('dFactor').value) || 1, shiftDays: parseInt($('dShift').value, 10) || 0,
+      columns: [],
+      dictionaries: [{ name: 'Документ', method: 'doc', prefix: '', columns: [], pairs: [...DS.repl] }],
+      smartDigits: [], smartNames: [], numbers: {},
+    };
+  }
+  $('btnDKey').addEventListener('click', async () => {
+    if (!DS.analysis) return;
+    const pass = $('dKeyPass').value, pass2 = $('dKeyPass2').value;
+    if (pass && pass.length < 8) { toast('Не удалось сохранить ключ: пароль должен быть не короче 8 символов', 6000, 'error'); return; }
+    if (pass !== pass2) { toast('Не удалось сохранить ключ: пароль и повтор не совпадают', 6000, 'error'); return; }
+    const btn = $('btnDKey');
+    btn.disabled = true;
+    try {
+      const key = buildKey();
+      if (pass) {
+        const env = await A.encryptKey(key, pass);
+        download(new Blob([JSON.stringify(env)], { type: 'application/json' }), baseName() + '_KEY.redactkey');
+        toast('Ключ сохранён и зашифрован паролем. Без пароля его не открыть — запомните или сохраните пароль отдельно', 6000);
+      } else {
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet('Соответствия');
+        ws.columns = [{ header: 'Тип', key: 't', width: 18 }, { header: 'Было', key: 'o', width: 50 }, { header: 'Стало', key: 'r', width: 50 }];
+        ws.getRow(1).font = { bold: true };
+        const typeOf = new Map(DS.rows.map(r => [r.value, D.TYPES[r.type]]));
+        ws.addRows([...DS.repl].map(([o, r]) => ({ t: typeOf.get(o) || '', o, r })));
+        const ks = wb.addWorksheet(KEY_SHEET, { state: 'veryHidden' });
+        const json = JSON.stringify(key);
+        ks.getCell(1, 1).value = 'redact-key';
+        for (let i = 0, row = 2; i < json.length; i += 30000, row++) ks.getCell(row, 1).value = json.slice(i, i + 30000);
+        const out = await wb.xlsx.writeBuffer();
+        download(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), baseName() + '_KEY.xlsx');
+        toast('Ключ соответствий сохранён без пароля. Храните его отдельно от документа', 5000);
+      }
+    } catch (e) {
+      console.error(e);
+      toast('Не удалось сохранить ключ: ' + e.message, 7000, 'error');
+    } finally { btn.disabled = false; }
+  });
+
+  // ---------- Очистить ----------
+  $('btnDClear').addEventListener('click', async () => {
+    const ok = await window.RedactUI.confirm({
+      title: 'Очистить и начать с другим документом?',
+      text: 'Будут убраны загруженный документ, найденное и предпросмотр. Сам документ на компьютере не затрагивается.',
+      confirm: 'Да, очистить',
+    });
+    if (!ok) return;
+    Object.assign(DS, { fileName: '', buffer: null, analysis: null, rows: [], repl: new Map(), seed: '', types: {}, skip: new Set() });
+    ['d2', 'd3', 'dClearRow'].forEach(id => $(id).classList.add('hidden'));
+    for (const id of ['dFileInfo', 'dSummary', 'dTypes', 'dPreview', 'dWarnings', 'dStats']) $(id).innerHTML = '';
+    $('dFound').tBodies[0].innerHTML = '';
+    $('dCustom').value = '';
+    $('dKeyPass').value = $('dKeyPass2').value = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast('Готово к новому документу');
+  });
 })();
 
 </script>

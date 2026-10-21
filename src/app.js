@@ -67,6 +67,7 @@
       S.fileName = file.name;
       S.buffer = buf;
       S.loadNotes = [];
+      if (ext === 'docx' || ext === 'doc') throw new Error('это документ Word — откройте вкладку «Документ Word»');
       const xls = window.RedactXls.isXls(buf, file.name);
       if (!xls && (ext === 'csv' || ext === 'txt')) {
         S.kind = 'csv';

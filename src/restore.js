@@ -16,20 +16,21 @@
   const inKey = name => !!(R.prep && name != null && R.prep.keySheets.has(name));
 
   // ---------- Переключение режимов ----------
+  // вкладки: Обезличить (таблица) · Восстановить по ключу · Документ Word
+  const MODES = [['redact', 'tabRedact', 'modeRedact'], ['restore', 'tabRestore', 'modeRestore'], ['doc', 'tabDoc', 'modeDoc']];
   function setMode(mode) {
-    const restore = mode === 'restore';
-    $('modeRedact').classList.toggle('hidden', restore);
-    $('modeRestore').classList.toggle('hidden', !restore);
-    $('tabRedact').setAttribute('aria-selected', String(!restore));
-    $('tabRestore').setAttribute('aria-selected', String(restore));
+    for (const [m, tab, panel] of MODES) {
+      $(panel).classList.toggle('hidden', m !== mode);
+      $(tab).setAttribute('aria-selected', String(m === mode));
+    }
   }
-  $('tabRedact').addEventListener('click', () => setMode('redact'));
-  $('tabRestore').addEventListener('click', () => setMode('restore'));
+  for (const [m, tab] of MODES) $(tab).addEventListener('click', () => setMode(m));
   $('tabRedact').parentElement.addEventListener('keydown', ev => {
     if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
-    const next = $('tabRedact').getAttribute('aria-selected') === 'true' ? 'restore' : 'redact';
-    setMode(next);
-    $(next === 'restore' ? 'tabRestore' : 'tabRedact').focus();
+    const i = MODES.findIndex(([, tab]) => $(tab).getAttribute('aria-selected') === 'true');
+    const next = MODES[(i + (ev.key === 'ArrowRight' ? 1 : MODES.length - 1)) % MODES.length];
+    setMode(next[0]);
+    $(next[1]).focus();
   });
 
   // ---------- Загрузка файлов ----------
@@ -50,11 +51,17 @@
     try {
       const buf = await file.arrayBuffer();
       const e = ext(file.name);
-      const xls = window.RedactXls.isXls(buf, file.name);
+      const docx = e === 'docx';
+      const xls = !docx && window.RedactXls.isXls(buf, file.name);
       R.fileName = file.name;
       R.buffer = buf;
       R.notes = [];
-      if (!xls && (e === 'csv' || e === 'txt')) {
+      if (docx) {
+        // документ Word: столбцов нет, восстанавливается весь текст по словарю ключа
+        R.kind = 'docx';
+        R.wb = null; R.grid = null; R.an = null;
+        R.docParts = (await window.RedactDocx.analyzeDocx(await JSZip.loadAsync(buf), { types: {} })).parts;
+      } else if (!xls && (e === 'csv' || e === 'txt')) {
         R.kind = 'csv';
         let text = new TextDecoder('utf-8').decode(buf);
         if (text.includes('�')) text = new TextDecoder('windows-1251').decode(buf);
@@ -81,7 +88,7 @@
         R.grid = A.gridFromWorksheet(R.wb.worksheets[R.sheetIndex]);
       }
       $('rClearRow').classList.remove('hidden');
-      $('rFileInfo').innerHTML = `${icon('file-spreadsheet', 'i i20')}<b>${esc(file.name)}</b><span class="muted">${(file.size / 1024).toFixed(0)} КБ</span>`;
+      $('rFileInfo').innerHTML = `${icon(docx ? 'file-text' : 'file-spreadsheet', 'i i20')}<b>${esc(file.name)}</b><span class="muted">${(file.size / 1024).toFixed(0)} КБ</span>`;
       setup(true);
     } catch (e) {
       console.error(e);
@@ -153,7 +160,7 @@
     Object.assign(R, {
       fileName: '', kind: null, buffer: null, wb: null, csv: null, sheetIndex: 0, grid: null, an: null, notes: [],
       key: null, keyName: '', keyNotes: [], envelope: null, prep: null, actions: {}, result: null,
-      sheetActions: new Map(),
+      sheetActions: new Map(), docParts: null,
     });
     ['r2', 'r3', 'rPassRow', 'rClearRow'].forEach(id => $(id).classList.add('hidden'));
     for (const id of ['rFileInfo', 'rKeyInfo', 'rRowsInfo', 'rStats', 'rPreview', 'rWarnings', 'rSheet']) $(id).innerHTML = '';
@@ -225,7 +232,30 @@
   });
   $('rOtherSheets').addEventListener('change', preview);
 
+  // ---------- Документ Word ----------
+  // словарь «замена → исходное» из ключа (документа или таблицы): псевдонимы, коды, ФИО с инициалами
+  const backMap = () => new Map([...R.prep.global, ...(R.prep.names || [])]);
+  function setupDoc() {
+    if (!R.docParts || !R.prep) { ['r2', 'r3'].forEach(id => $(id).classList.add('hidden')); return; }
+    $('r2').classList.add('hidden');
+    $('r3').classList.remove('hidden');
+    const back = backMap();
+    const finder = window.RedactDocx.dictFinder(back);
+    let n = 0;
+    for (const p of R.docParts) for (const sg of p.segs) n += finder(sg.text).length;
+    $('rStats').textContent = n
+      ? `Будет восстановлено вхождений: ${n.toLocaleString('ru-RU')} — в тексте, таблицах, колонтитулах и сносках документа`
+      : 'В документе не найдено значений из ключа. Проверьте, что ключ от этого документа или от таблицы, по которой он написан.';
+    const paras = window.RedactDocx.previewParagraphs(R.docParts, back, 30);
+    $('rPreview').innerHTML = paras.length ? '<tbody>' + paras.map(p => `<tr><td class="doc-cell">${p.pieces.map(x => x.text !== undefined ? esc(x.text)
+      : `<span class="pair-inline" title="${esc(x.orig)} → ${esc(x.repl)}"><span class="rv rv-token">${esc(x.orig)}</span><span class="rv-arrow" aria-hidden="true">→</span><span class="rv rv-original">${esc(x.repl)}</span></span>`).join('')}</td></tr>`).join('') + '</tbody>' : '';
+    const info = [...R.keyNotes];
+    if (R.key && !R.key.document) info.push('Ключ от таблицы: в документе вернутся названия, коды и ФИО из неё. Суммы и даты в тексте документа по такому ключу не меняются.');
+    $('rWarnings').innerHTML = info.length ? `<div class="notice"><div class="notice-title">${icon('circle-alert', 'i i20')}Проверьте перед выгрузкой</div><ul>${info.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
+  }
+
   function setup(autoHeader, headerRow) {
+    if (R.kind === 'docx') { setupDoc(); return; }
     if (!R.grid || !R.prep) {
       ['r2', 'r3'].forEach(id => $(id).classList.add('hidden'));
       return;
@@ -327,6 +357,21 @@
 
   // ---------- Выгрузка ----------
   $('btnRestore').addEventListener('click', async () => {
+    if (R.kind === 'docx' && R.prep && R.docParts) {
+      const btn = $('btnRestore');
+      btn.disabled = true;
+      try {
+        const zip = await JSZip.loadAsync(R.buffer);
+        const { restored } = await window.RedactDocx.restoreDocx(zip, backMap());
+        const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+        download(blob, R.fileName.replace(/\.[^.]+$/, '').replace(/_redact$/, '') + '_restored.docx');
+        toast(`Восстановлено вхождений: ${restored.toLocaleString('ru-RU')}. Документ сохранён в «Загрузки»`);
+      } catch (e) {
+        console.error(e);
+        toast('Не удалось сохранить документ: ' + e.message, 7000, 'error');
+      } finally { btn.disabled = false; }
+      return;
+    }
     if (!R.an || !R.prep) return;
     const btn = $('btnRestore');
     btn.disabled = true;

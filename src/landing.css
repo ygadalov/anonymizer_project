@@ -88,7 +88,8 @@ table.data tr.total td { font: 500 15px/22px var(--font-sans); }
 .sec { padding: var(--space-12) 0 0; }
 .sec h2 { margin: 0 0 var(--space-2); font: 600 24px/32px var(--font-sans); }
 .note { margin: 0 0 var(--space-6); max-width: 680px; color: var(--ink-muted); }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-3); }
+/* восемь карточек: по четыре в ряд на широком экране, по две или по одной — на узком */
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-3); }
 .flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
 .step {
   display: inline-grid !important; place-items: center; width: 28px; height: 28px; border-radius: 50%;
