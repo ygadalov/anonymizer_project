@@ -88,7 +88,7 @@ table.data tr.total td { font: 500 15px/22px var(--font-sans); }
 .sec { padding: var(--space-12) 0 0; }
 .sec h2 { margin: 0 0 var(--space-2); font: 600 24px/32px var(--font-sans); }
 .note { margin: 0 0 var(--space-6); max-width: 680px; color: var(--ink-muted); }
-/* восемь карточек: по четыре в ряд на широком экране, по две или по одной — на узком */
+/* четыре карточки: в один ряд на широком экране, по две или по одной — на узком */
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-3); }
 .flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
 .step {
@@ -103,10 +103,11 @@ table.data tr.total td { font: 500 15px/22px var(--font-sans); }
 }
 .reply-row { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; margin: var(--space-2) 0 0; }
 
-.list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+/* короткие пункты в две колонки, без карточек: разделитель снизу */
+.list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-8); }
 .list li {
-  display: flex; gap: var(--space-3); align-items: flex-start; background: var(--surface);
-  border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-3) var(--space-4);
+  display: flex; gap: var(--space-3); align-items: flex-start;
+  border-bottom: 1px solid var(--border); padding: var(--space-3) 0;
 }
 .list li .i { margin-top: 3px; color: var(--ink-muted); }
 
@@ -134,7 +135,7 @@ table.data tr.total td { font: 500 15px/22px var(--font-sans); }
   .hero { padding-top: var(--space-8); }
   .hero h1 { font: 600 27px/34px var(--font-sans); letter-spacing: 0; }
   .lead { font: 400 15px/22px var(--font-sans); }
-  .values, .flow { grid-template-columns: 1fr; }
+  .values, .flow, .list { grid-template-columns: 1fr; }
   .demo { padding: var(--space-4); }
   .sec { padding-top: var(--space-8); }
   .sec h2 { font: 600 21px/28px var(--font-sans); }
@@ -145,10 +146,17 @@ table.data tr.total td { font: 500 15px/22px var(--font-sans); }
 /* столбец с текстом договора переносится, чтобы таблица помещалась без прокрутки на широком экране */
 table.data th.text, table.data td.text { white-space: normal; min-width: 240px; }
 
-/* сноска к 152-ФЗ: звёздочка у подзаголовка, пояснение под абзацем */
-.fn-ref { color: var(--ink-muted); text-decoration: none; margin-left: 2px; }
-.fn-ref:hover { color: var(--ink); }
-.footnote { margin: var(--space-3) 0 0; max-width: 760px; }
+/* подсказка (i) к 152-ФЗ — модуль info-tooltip.css в цветах бренда: инверсия ink/paper, рамка вместо тени,
+   без акцентного цвета; в тёмной теме инвертируется сама, через токены */
+:root {
+  --tip-bg: var(--ink); --tip-fg: var(--paper); --tip-strong: var(--paper); --tip-accent: var(--paper);
+  --tip-icon: var(--ink-muted); --tip-icon-hover: var(--ink);
+}
+.eyebrow { display: flex; align-items: center; gap: var(--space-1); }
+.info-tip { border-radius: 50%; }
+.info-tip:focus-visible { box-shadow: 0 0 0 2px var(--ink); }
+.tt { font: 400 13px/19px var(--font-sans); border: 1px solid var(--ink); border-radius: var(--radius-md); box-shadow: none; }
+.tt-body b { font-weight: 500; }
 
 /* очищенное значение: в файле пустая ячейка, поэтому в демо — пустое место с пунктиром, а не плашка redact */
 .rv-empty {
@@ -176,3 +184,19 @@ table.data td .rv-detected, table.data td .rv-token { white-space: nowrap; }
   .doc-page { padding: var(--space-3) var(--space-4); }
   .doc-page .rv-detected, .doc-page .rv-token { white-space: normal; }
 }
+
+/* переключатель примера на первом экране: таблица или документ */
+.demo-switch {
+  display: inline-flex; gap: 2px; padding: 2px; margin-bottom: var(--space-4);
+  background: var(--surface-sunken); border: 1px solid var(--border); border-radius: var(--radius-md);
+}
+.demo-switch button {
+  height: 32px; padding: 0 var(--space-3); border: 1px solid transparent; border-radius: var(--radius-sm);
+  background: transparent; color: var(--ink-muted); font: 500 14px/20px var(--font-sans); cursor: pointer;
+}
+.demo-switch button:hover { color: var(--ink); }
+.demo-switch button[aria-selected="true"] { background: var(--surface); border-color: var(--border); color: var(--ink); }
+.demo-switch button:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+
+/* метод под названием столбца в таблице «стало» */
+table.data th .th-m { display: block; font: 400 12px/16px var(--font-sans); letter-spacing: 0; color: var(--ink-muted); opacity: 0.8; }

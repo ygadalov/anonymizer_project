@@ -13,6 +13,7 @@
 <link rel="icon" type="image/svg+xml" href="../brand/logo/redact-favicon.svg">
 <link rel="stylesheet" href="../brand/tokens.css">
 <link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="info-tooltip.css">
 <link rel="stylesheet" href="landing.css">
 <script>
   // тема до отрисовки, чтобы не мигало: та же настройка, что в приложении
@@ -36,6 +37,7 @@
 <symbol id="i-file-spreadsheet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M8 13h2" /><path d="M14 13h2" /><path d="M8 17h2" /><path d="M14 17h2" /></symbol>
 <symbol id="i-file-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M10 9H8" /><path d="M16 13H8" /><path d="M16 17H8" /></symbol>
 <symbol id="i-folder-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" /></symbol>
+<symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></symbol>
 <symbol id="i-key-round" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z" /><circle cx="16.5" cy="7.5" r=".5" fill="currentColor" /></symbol>
 <symbol id="i-lock-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" /></symbol>
 <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></symbol>
@@ -73,15 +75,12 @@
 
 <main>
 <section class="hero"><div class="wrap">
-  <p class="eyebrow caption">Обезличивание по 152-ФЗ<a class="fn-ref" href="#fn152" aria-describedby="fn152">*</a></p>
+  <p class="eyebrow caption">Обезличивание по 152-ФЗ<button class="info-tip" type="button" aria-label="Что такое 152-ФЗ и обезличивание"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip"><b>Федеральный закон № 152-ФЗ «О персональных данных».</b>
+    Обезличивание — действия, после которых без дополнительной информации нельзя определить, кому принадлежат данные.
+    Redact применяет метод введения идентификаторов: такой информацией служит ключ, поэтому храните его отдельно от файла.</span></button></p>
   <h1>Отдавайте таблицы и документы аудитору, подрядчику или&nbsp;ИИ-сервису без персональных данных и&nbsp;коммерческой тайны</h1>
-  <p class="lead">Redact заменяет ФИО, названия контрагентов, ИНН, суммы и даты прямо в книге Excel или документе Word — методом введения
-    идентификаторов, который закон о персональных данных относит к обезличиванию. Без ключа, который остаётся у вас,
-    получатель не может определить, к кому относятся данные. А анализировать их может: суммы и итоги сходятся,
-    интервалы между датами сохраняются.</p>
-  <p class="footnote small muted" id="fn152">* Федеральный закон от 27.07.2006 № 152-ФЗ «О персональных данных» — основной
-    закон о защите персональных данных в России. Обезличивание — его термин: действия, после которых без дополнительной
-    информации нельзя определить, кому принадлежат данные.</p>
+  <p class="lead">Redact заменяет ФИО, контрагентов, ИНН, суммы и даты в Excel и Word — получатель не узнает, о ком речь,
+    но итоги у него сходятся, а по ключу, который остаётся у вас, всё возвращается обратно.</p>
 
   <div class="hero-cta">
     <a class="btn primary" href="{{APP}}">Открыть Redact <svg class="i i20" aria-hidden="true"><use href="#i-arrow-right"></use></svg></a>
@@ -102,6 +101,11 @@
   </div>
 
   <div class="demo">
+    <div class="demo-switch" role="tablist" aria-label="Пример">
+      <button type="button" role="tab" id="tabTable" aria-controls="demoTable" aria-selected="true">Таблица Excel</button>
+      <button type="button" role="tab" id="tabDoc" aria-controls="demoDoc" aria-selected="false">Документ Word</button>
+    </div>
+    <div class="demo-pane" id="demoTable" role="tabpanel" aria-labelledby="tabTable">
     <div class="demo-head">
       <span class="caption muted">Исходная выгрузка</span>
       <span class="legend small"><span class="rv rv-detected">ВЕРЕСКОВ</span> найдено</span>
@@ -128,7 +132,7 @@
     </div>
     <div class="table-scroll">
       <table class="data">
-        <thead><tr><th>Контрагент</th><th>ИНН</th><th class="text">Договор</th><th class="num">Сумма, руб</th><th>Дата</th><th>Менеджер</th></tr></thead>
+        <thead><tr><th>Контрагент<span class="th-m">псевдоним</span></th><th>ИНН<span class="th-m">случайные цифры</span></th><th class="text">Договор<span class="th-m">замена в тексте</span></th><th class="num">Сумма, руб<span class="th-m">× коэффициент</span></th><th>Дата<span class="th-m">сдвиг дат</span></th><th>Менеджер<span class="th-m">очистить</span></th></tr></thead>
         <tbody>
           <tr><td><span class="rv rv-token">Контрагент 002</span> <span class="rv">ООО</span></td><td><span class="rv rv-token">3997591650</span></td><td class="text"><span class="rv">Поставка <span class="rv-token">Контрагент 002</span> № <span class="rv-token">643</span> от <span class="rv-token">28.11.2025</span></span></td><td class="num"><span class="rv rv-token">546 271,21</span></td><td><span class="rv rv-token">28.11.2025</span></td><td><span class="rv-empty" role="img" aria-label="Пустая ячейка: значение удалено"></span></td></tr>
           <tr><td><span class="rv">АО</span> <span class="rv rv-token">Контрагент 003</span></td><td><span class="rv rv-token">7777653972</span></td><td class="text"><span class="rv">Аренда склада № <span class="rv-token">7280</span> от <span class="rv-token">20.10.2025</span></span></td><td class="num"><span class="rv rv-token">374 992,08</span></td><td><span class="rv rv-token">20.10.2025</span></td><td><span class="rv-empty" role="img" aria-label="Пустая ячейка: значение удалено"></span></td></tr>
@@ -138,33 +142,12 @@
         </tbody>
       </table>
     </div>
-    <div class="demo-note small muted">
-      <p>В исходной выгрузке данные вымышленные, а замены — настоящий результат Redact на этих строках. Метод задаётся
-        для каждого столбца: Redact сам предлагает его по названию столбца и типу данных, а изменить или выбрать можно
-        вручную. В примере применены:</p>
-      <ul>
-        <li>«Контрагент» — «Псевдоним с номером»;</li>
-        <li>«ИНН» — «Случайные цифры»;</li>
-        <li>«Договор» — «Замена внутри текста»;</li>
-        <li>«Сумма, руб» — «Умножить на коэффициент»;</li>
-        <li>«Дата» — «Сдвинуть даты»;</li>
-        <li>«Менеджер» — «Очистить».</li>
-      </ul>
-      <p>Поэтому один и тот же контрагент стал одним псевдонимом и в столбце, и внутри названия договора, а ФИО
-        предпринимателя найдено в тексте даже в виде инициалов. Все суммы умножены на одно число, и «Итого» по-прежнему
-        равно сумме строк. Даты сдвинуты на одинаковое число дней, форма организации (ООО, АО, ИП) осталась на месте.
-        Столбец «Менеджер» очищен: в файле это пустые ячейки, и вернуть значения нельзя даже по ключу. Если выбрать для
-        него «Псевдоним с номером», ФИО станут «Сотрудник 001», «Сотрудник 002», и по ключу их можно будет вернуть.</p>
+    <p class="demo-note small muted">Данные вымышленные, замены — настоящий результат Redact. Под названием столбца —
+      метод: Redact подбирает его сам по названию и типу данных, а изменить можно вручную. Один контрагент — один псевдоним
+      и в столбце, и внутри текста; «Итого» по-прежнему равно сумме строк. Очищенный столбец — пустые ячейки, по ключу
+      их не вернуть.</p>
     </div>
-  </div>
-</div></section>
-
-<section class="sec"><div class="wrap">
-  <h2>И договоры в Word</h2>
-  <p class="note">В документе .docx нет столбцов, поэтому Redact сам находит в тексте реквизиты, организации, ФИО, телефоны,
-    суммы и даты и заменяет их, не трогая оформление. Вымышленные ФИО ставятся в том же падеже, а подпись с инициалами
-    остаётся тем же человеком.</p>
-  <div class="demo doc-demo">
+    <div class="demo-pane" id="demoDoc" role="tabpanel" aria-labelledby="tabDoc" hidden>
     <div class="demo-head">
       <span class="caption muted">Исходный договор</span>
       <span class="legend small"><span class="rv rv-detected">найдено</span></span>
@@ -182,9 +165,11 @@
       <p>Общество с ограниченной ответственностью «<span class="rv-token">Контрагент 001</span>» (ИНН <span class="rv-token">7779267510</span>), в лице генерального директора <span class="rv-token">Сергеева Максима Викторовича</span>, и ИП <span class="rv-token">Голубева Алина Михайловна</span>, тел. <span class="rv-token">+7 (836) 279-61-82</span>, заключили договор на сумму <span class="rv-token">1 705 750,00</span> руб. (<span class="rv-token">сумма прописью 001</span>) со сроком поставки до <span class="rv-token">19.02.2026</span>.</p>
       <p>Поставщик _____________ /<span class="rv-token">Сергеев М. В.</span>/&emsp;&emsp;Покупатель _____________ /<span class="rv-token">А. М. Голубева</span>/</p>
     </div>
-    <p class="demo-note small muted">Данные вымышленные, замены — настоящий результат Redact. Заменяется везде: в основном
-      тексте, таблицах, колонтитулах, сносках и примечаниях; удалённый в режиме исправлений текст и имена авторов правок
-      убираются из файла. По ключу документ — или ответ на него — возвращается к исходным данным.</p>
+    <p class="demo-note small muted">Данные вымышленные, замены — настоящий результат Redact. Столбцов в документе нет,
+      поэтому Redact сам находит реквизиты, организации, ФИО, телефоны, суммы и даты. Вымышленные ФИО ставятся в том же
+      падеже, а подпись с инициалами остаётся тем же человеком. Заменяется и в таблицах, колонтитулах, сносках
+      и примечаниях; удалённый в режиме исправлений текст и авторы правок убираются из файла.</p>
+    </div>
   </div>
 </div></section>
 
@@ -193,22 +178,14 @@
   <p class="note">Обезличенный файл можно сводить, фильтровать и считать так же, как исходный: Redact меняет значения,
     а связи между ними сохраняет.</p>
   <div class="grid">
-    <div class="tile"><svg class="i i20" aria-hidden="true"><use href="#i-sigma"></use></svg><b>Итоги сходятся</b>
-      <span>Все выбранные суммы умножаются на один коэффициент: доли, структура и строка «Итого» согласованы.</span></div>
-    <div class="tile"><svg class="i i20" aria-hidden="true"><use href="#i-calendar-range"></use></svg><b>Интервалы между датами те же</b>
-      <span>Все даты сдвигаются на одинаковое число дней: сколько прошло между событиями, по-прежнему видно и считается.</span></div>
+    <div class="tile"><svg class="i i20" aria-hidden="true"><use href="#i-sigma"></use></svg><b>Итоги и интервалы сохраняются</b>
+      <span>Суммы умножаются на один коэффициент, даты сдвигаются на одно число дней: «Итого», доли и сроки между событиями считаются как раньше.</span></div>
     <div class="tile"><svg class="i i20" aria-hidden="true"><use href="#i-users"></use></svg><b>Одна компания — один псевдоним</b>
       <span>На всех листах книги и в каждой выгрузке с той же секретной фразой. Можно сравнивать выгрузки за разные периоды.</span></div>
-    <div class="tile"><svg class="i i20" aria-hidden="true"><use href="#i-text-search"></use></svg><b>Названия в тексте тоже</b>
-      <span>Комментарии, назначения платежей, названия договоров: находит названия, ФИО (и с инициалами) и ИНН из других столбцов, меняет номера и даты.</span></div>
     <div class="tile"><svg class="i i20" aria-hidden="true"><use href="#i-table-properties"></use></svg><b>Книга остаётся книгой</b>
       <span>Форматы чисел, ширина столбцов, объединённые ячейки и формулы на месте. Выгрузки из учётных и ERP-систем читаются как есть.</span></div>
-    <div class="tile"><svg class="i i20" aria-hidden="true"><use href="#i-file-text"></use></svg><b>Договоры и письма в Word</b>
-      <span>В документе .docx находит реквизиты, организации, ФИО в любом падеже, телефоны, суммы и даты и заменяет их, не трогая оформление. Вымышленные ФИО склоняются как исходные.</span></div>
-    <div class="tile"><svg class="i i20" aria-hidden="true"><use href="#i-wand-sparkles"></use></svg><b>Методы — по названиям</b>
-      <span>Сам находит строку заголовков и «Итого» и предлагает метод для каждого столбца. Настройки можно сохранить для следующих выгрузок.</span></div>
-    <div class="tile"><svg class="i i20" aria-hidden="true"><use href="#i-eye-off"></use></svg><b>Обезличить все</b>
-      <span>Одной кнопкой задаёт метод каждому столбцу: по названию, а остальным — по типу данных, и только такие, что возвращаются по ключу.</span></div>
+    <div class="tile"><svg class="i i20" aria-hidden="true"><use href="#i-wand-sparkles"></use></svg><b>Методы подбираются сами</b>
+      <span>По названиям столбцов и типу данных — или одной кнопкой «Обезличить все», только такими, что возвращаются по ключу. Настройки можно сохранить.</span></div>
   </div>
 </div></section>
 
@@ -235,24 +212,21 @@
   <h2>Не пропускает лишнего</h2>
   <p class="note">Утечка обычно не там, где её ищут: в авторе файла, в примечании к ячейке или в соседнем листе.</p>
   <ul class="list">
-    <li><svg class="i" aria-hidden="true"><use href="#i-shield-check"></use></svg><span><b>Кнопка «Для внешней передачи»</b> — файл без ключа: одноразовые параметры, все суммы умножаются, даты сдвигаются, вернуть данные нельзя никому.</span></li>
-    <li><svg class="i" aria-hidden="true"><use href="#i-eraser"></use></svg><span><b>Свойства файла, примечания, колонтитулы</b> очищаются флажками на шаге 3.</span></li>
-    <li><svg class="i" aria-hidden="true"><use href="#i-file-spreadsheet"></use></svg><span><b>Листы без обезличивания</b> по умолчанию удаляются из результата.</span></li>
-    <li><svg class="i" aria-hidden="true"><use href="#i-circle-alert"></use></svg><span><b>Необратимые методы видны сразу:</b> при выборе «Очистить», случайных значений, округления или обобщения дат Redact предупреждает, что по ключу эти данные не вернуть, и перечисляет такие столбцы перед выгрузкой.</span></li>
-    <li><svg class="i" aria-hidden="true"><use href="#i-triangle-alert"></use></svg><span><b>Предупреждение</b>, если настоящее название встречается в столбце, который вы оставили без изменений.</span></li>
-    <li><svg class="i" aria-hidden="true"><use href="#i-sigma"></use></svg><span><b>Сохранённые результаты формул</b> убираются: в них могли остаться исходные значения. Excel пересчитает формулы при открытии.</span></li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-shield-check"></use></svg><span><b>«Для внешней передачи»</b> — файл без ключа: вернуть данные нельзя никому.</span></li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-eraser"></use></svg><span><b>Свойства, примечания, колонтитулы</b> очищаются.</span></li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-file-spreadsheet"></use></svg><span><b>Листы без обезличивания</b> удаляются из результата.</span></li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-circle-alert"></use></svg><span><b>Необратимые методы</b> помечаются ещё до выгрузки.</span></li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-triangle-alert"></use></svg><span><b>Предупреждение</b>, если настоящее название осталось в необработанном столбце.</span></li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-sigma"></use></svg><span><b>Результаты формул</b> убираются — Excel пересчитает их при открытии.</span></li>
   </ul>
 
   <div class="limits small">
     <b>Честно про ограничения.</b> Обычная выгрузка — псевдонимизация: по ключу данные возвращаются, поэтому ключ храните
-    отдельно от файла и лучше с паролем. Умножение на коэффициент сохраняет пропорции — поэтому по файлу можно считать;
-    но если получатель знает несколько точных сумм, по ним можно вычислить коэффициент. В таком случае выбирайте для сумм
-    «Случайное отклонение ±%». Файлы <span class="mono-small">.xls</span> (Excel 97–2003) открываются, но результат
-    сохраняется в <span class="mono-small">.xlsx</span> без шрифтов, заливки и рамок — значения, форматы чисел, ширина
-    столбцов и объединения на месте. Сводные таблицы и диаграммы внутри книги могут не сохраниться,
-    поэтому лучше обезличивать «плоскую» выгрузку. В документах Word данные ищутся по шаблонам: адреса, названия без
-    формы организации и имена без отчества добавляются вручную, а картинки (например, сканы подписей и печатей)
-    остаются как есть.
+    отдельно и с паролем, а для полного обезличивания выбирайте «Для внешней передачи». Если получатель знает несколько
+    точных сумм, по ним можно вычислить коэффициент — тогда для сумм подойдёт «Случайное отклонение ±%».
+    <span class="mono-small">.xls</span> сохраняется в <span class="mono-small">.xlsx</span> без шрифтов, заливки и рамок;
+    сводные таблицы и диаграммы могут не сохраниться. В Word адреса, названия без формы организации и имена без отчества
+    добавляются вручную, картинки остаются как есть.
   </div>
 </div></section>
 
@@ -279,7 +253,25 @@
   </div>
 </footer>
 
+<script src="info-tooltip.js"></script>
 <script>
+  initInfoTooltips();
+  // пример на первом экране: таблица или документ
+  const tabs = [...document.querySelectorAll('.demo-switch [role=tab]')];
+  const pick = t => tabs.forEach(b => {
+    const on = b === t;
+    b.setAttribute('aria-selected', on);
+    b.tabIndex = on ? 0 : -1;
+    document.getElementById(b.getAttribute('aria-controls')).hidden = !on;
+  });
+  tabs.forEach((b, i) => {
+    b.addEventListener('click', () => pick(b));
+    b.addEventListener('keydown', e => {
+      const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (d) { const n = tabs[(i + d + tabs.length) % tabs.length]; pick(n); n.focus(); }
+    });
+  });
+  pick(tabs[0]);
   // смена темы: та же настройка redact-theme, что в приложении
   document.getElementById('btnTheme').addEventListener('click', () => {
     const root = document.documentElement;
