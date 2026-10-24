@@ -270,6 +270,18 @@ body { margin: 0; background: var(--paper); color: var(--ink); font: 400 15px/22
 }
 </style>
 <style>
+/* Подсказки (i) — модуль info-tooltip.css в цветах бренда Redact (общий для приложения и страницы проекта):
+   инверсия ink/paper, рамка вместо тени, без акцентного цвета; в тёмной теме инвертируется сама, через токены */
+:root {
+  --tip-bg: var(--ink); --tip-fg: var(--paper); --tip-strong: var(--paper); --tip-accent: var(--paper);
+  --tip-icon: var(--ink-muted); --tip-icon-hover: var(--ink);
+}
+.info-tip { border-radius: 50%; }
+.info-tip:focus-visible { box-shadow: 0 0 0 2px var(--ink); }
+.tt { font: 400 13px/19px var(--font-sans); border: 1px solid var(--ink); border-radius: var(--radius-md); box-shadow: none; }
+.tt-body b { font-weight: 500; }
+</style>
+<style>
 /* Redact — страница проекта (src/landing.html → index.html).
    Все цвета, отступы, скругления и шрифты — только токены из brand/tokens.css (см. brand/BRAND.md):
    монохром, рамки вместо теней, маркер highlight — только на найденных данных в демо. */
@@ -418,17 +430,8 @@ table.data tr.total td { font: 500 15px/22px var(--font-sans); }
 /* столбец с текстом договора переносится, чтобы таблица помещалась без прокрутки на широком экране */
 table.data th.text, table.data td.text { white-space: normal; min-width: 240px; }
 
-/* подсказка (i) к 152-ФЗ — модуль info-tooltip.css в цветах бренда: инверсия ink/paper, рамка вместо тени,
-   без акцентного цвета; в тёмной теме инвертируется сама, через токены */
-:root {
-  --tip-bg: var(--ink); --tip-fg: var(--paper); --tip-strong: var(--paper); --tip-accent: var(--paper);
-  --tip-icon: var(--ink-muted); --tip-icon-hover: var(--ink);
-}
+/* подсказка (i) к 152-ФЗ: цвета — в info-tooltip-redact.css */
 .eyebrow { display: flex; align-items: center; gap: var(--space-1); }
-.info-tip { border-radius: 50%; }
-.info-tip:focus-visible { box-shadow: 0 0 0 2px var(--ink); }
-.tt { font: 400 13px/19px var(--font-sans); border: 1px solid var(--ink); border-radius: var(--radius-md); box-shadow: none; }
-.tt-body b { font-weight: 500; }
 
 /* очищенное значение: в файле пустая ячейка, поэтому в демо — пустое место с пунктиром, а не плашка redact */
 .rv-empty {
@@ -542,7 +545,7 @@ table.data th .th-m { display: block; font: 400 12px/16px var(--font-sans); lett
 
   <div class="hero-cta">
     <a class="btn primary" href="Redact_v5.2.html">Открыть Redact <svg class="i i20" aria-hidden="true"><use href="#i-arrow-right"></use></svg></a>
-    <a class="btn secondary" href="Redact_v5.2.html" download><svg class="i i20" aria-hidden="true"><use href="#i-download"></use></svg>Скачать 1,8 МБ</a>
+    <a class="btn secondary" href="Redact_v5.2.html" download><svg class="i i20" aria-hidden="true"><use href="#i-download"></use></svg>Скачать 1,9 МБ</a>
     <span class="mono-small muted">.xlsx · .xls · .csv · .docx · v5.2 · работает без интернета</span>
   </div>
 
@@ -694,7 +697,7 @@ table.data th .th-m { display: block; font: 400 12px/16px var(--font-sans); lett
     <p>Ни установки, ни сервера, ни учётной записи. Скачанный файл работает без интернета.</p>
     <div class="cta">
       <a class="btn primary" href="Redact_v5.2.html">Открыть Redact <svg class="i i20" aria-hidden="true"><use href="#i-arrow-right"></use></svg></a>
-      <a class="btn secondary" href="Redact_v5.2.html" download><svg class="i i20" aria-hidden="true"><use href="#i-download"></use></svg>Скачать 1,8 МБ</a>
+      <a class="btn secondary" href="Redact_v5.2.html" download><svg class="i i20" aria-hidden="true"><use href="#i-download"></use></svg>Скачать 1,9 МБ</a>
     </div>
     <p class="fmt mono-small muted">.xlsx · .xls · .csv · .docx · v5.2</p>
   </div>

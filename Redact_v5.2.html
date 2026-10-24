@@ -197,6 +197,85 @@ body { margin: 0; background: var(--paper); color: var(--ink); font: 400 15px/22
 }
 </style>
 <style>
+/* ──────────────────────────────────────────────────────────────
+   info-tooltip — подсказки по кнопке (i)
+   Один общий слой в <body>: не обрезается overflow-предками.
+   Переменные темы можно переопределить на :root своего проекта.
+   ────────────────────────────────────────────────────────────── */
+
+:root {
+    --tip-bg: #1e293b;          /* фон подсказки */
+    --tip-fg: #e2e8f0;          /* текст подсказки */
+    --tip-strong: #ffffff;      /* <b> внутри подсказки */
+    --tip-accent: #93c5fd;      /* .em внутри подсказки */
+    --tip-icon: #64748b;        /* значок (i) в покое */
+    --tip-icon-hover: #2563eb;  /* значок (i) под курсором и в фокусе */
+}
+
+/* ── Значок (i) ─────────────────────────────────────────────── */
+.info-tip {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; padding: 0;
+    border: none; background: transparent;
+    color: var(--tip-icon);
+    cursor: pointer; flex-shrink: 0; vertical-align: middle;
+    -webkit-tap-highlight-color: transparent;
+    transition: color .14s;
+}
+.info-tip svg { width: 16px; height: 16px; display: block; }
+.info-tip:hover, .info-tip:focus-visible { color: var(--tip-icon-hover); outline: none; }
+
+/* Источник текста. Лежит внутри кнопки и никогда не показывается на месте:
+   скрипт поднимает его разметку в общий слой. display:none не мешает
+   прочитать innerHTML, но убирает пузырь из потока и из-под обрезки. */
+.info-bubble { display: none !important; }
+
+/* ── Общий слой ─────────────────────────────────────────────── */
+.tt {
+    position: fixed; z-index: 9999;
+    width: max-content; max-width: min(340px, calc(100vw - 16px));
+    background: var(--tip-bg); color: var(--tip-fg);
+    font: 500 12px/1.5 inherit;
+    padding: 10px 13px; border-radius: 9px;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,.35);
+    text-align: left; text-transform: none; letter-spacing: 0; white-space: normal;
+    opacity: 0; visibility: hidden; transform: translateY(-3px);
+    transition: opacity .15s, transform .15s, visibility .15s;
+    pointer-events: none;   /* подсказка не перехватывает курсор */
+}
+.tt.show { opacity: 1; visibility: visible; transform: translateY(0); }
+.tt-body b  { color: var(--tip-strong); font-weight: 700; }
+.tt-body .em { color: var(--tip-accent); font-weight: 700; }
+
+/* Стрелка. Снизу слоя, когда подсказка под значком; сверху — когда
+   перевёрнута вверх (класс flip ставит скрипт). */
+.tt-arrow {
+    position: absolute; bottom: 100%;
+    width: 0; height: 0;
+    border: 6px solid transparent; border-bottom-color: var(--tip-bg);
+}
+.tt.flip .tt-arrow {
+    bottom: auto; top: 100%;
+    border-bottom-color: transparent; border-top-color: var(--tip-bg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tt { transition: none; }
+}
+</style>
+<style>
+/* Подсказки (i) — модуль info-tooltip.css в цветах бренда Redact (общий для приложения и страницы проекта):
+   инверсия ink/paper, рамка вместо тени, без акцентного цвета; в тёмной теме инвертируется сама, через токены */
+:root {
+  --tip-bg: var(--ink); --tip-fg: var(--paper); --tip-strong: var(--paper); --tip-accent: var(--paper);
+  --tip-icon: var(--ink-muted); --tip-icon-hover: var(--ink);
+}
+.info-tip { border-radius: 50%; }
+.info-tip:focus-visible { box-shadow: 0 0 0 2px var(--ink); }
+.tt { font: 400 13px/19px var(--font-sans); border: 1px solid var(--ink); border-radius: var(--radius-md); box-shadow: none; }
+.tt-body b { font-weight: 500; }
+</style>
+<style>
 /* Redact — стили инструмента обезличивания.
    Все цвета, отступы, скругления и шрифты — только токены из brand/tokens.css (см. brand/BRAND.md). */
 
@@ -515,6 +594,10 @@ textarea:focus { outline: none; border-color: var(--border-strong); box-shadow: 
 .doc-preview p, .doc-cell { min-width: 0; overflow-wrap: anywhere; }
 .pair-inline .rv { padding: 0 var(--space-1); white-space: normal; overflow-wrap: anywhere; }
 .pair-inline .rv-arrow { margin: 0 2px; }
+
+/* подпись поля с (i) рядом; (i) у флажка — после текста */
+.label-row { display: inline-flex; align-items: center; gap: var(--space-1); }
+.chk .info-tip, .keybox-title .info-tip { margin-left: calc(var(--space-1) * -1); }
 </style>
 <script>
   // тема до отрисовки, чтобы не мигало: сохранённый выбор или системная
@@ -596,7 +679,8 @@ textarea:focus { outline: none; border-color: var(--border-strong); box-shadow: 
     <div id="fileInfo" class="small"></div>
     <div class="row-controls settings-line">
       <label class="btn secondary"><svg class="i i20" aria-hidden="true"><use href="#i-folder-open"></use></svg>Загрузить настройки<input type="file" id="profileFile1" accept=".json,application/json" hidden></label>
-      <span class="small muted" id="pendingInfo">Сохранённые настройки (JSON) можно загрузить до или после файла с данными.</span>
+      <button class="info-tip" type="button" aria-label="О файле настроек"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">Файл настроек (JSON) — методы по столбцам, лист, строка заголовков и флажки. Сохраняется кнопкой «Сохранить настройки» на шаге 2. Загрузить его можно до или после файла с данными.</span></button>
+      <span class="small muted" id="pendingInfo"></span>
       <span class="spacer"></span>
       <button class="btn danger hidden" id="btnClear" title="Убрать файл, настройки столбцов и предпросмотр, чтобы начать с другим файлом. Общие параметры шага 3 сохраняются"><svg class="i i20" aria-hidden="true"><use href="#i-eraser"></use></svg>Очистить</button>
     </div>
@@ -608,7 +692,7 @@ textarea:focus { outline: none; border-color: var(--border-strong); box-shadow: 
     <div class="row-controls">
       <label class="field-inline"><span class="caption">Лист</span><select id="sheet"></select></label>
       <label class="field-inline"><span class="caption">Строка заголовков</span><input type="number" id="headerRow" min="1" step="1"></label>
-      <label class="chk" title="Названия и текст в итоговых строках остаются как есть. Суммы в них пересчитываются только при умножении на коэффициент и округлении — чтобы итог сходился со строками"><input type="checkbox" id="keepTotals" checked> Не обезличивать строки «Итого» и «Всего»</label>
+      <label class="chk"><input type="checkbox" id="keepTotals" checked> Не обезличивать строки «Итого» и «Всего»<button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">Названия и текст в итоговых строках остаются как есть. Суммы в них пересчитываются только при умножении на коэффициент и округлении — чтобы итог сходился со строками</span></button></label>
     </div>
     <div class="small muted" id="rowsInfo"></div>
     <div class="row-controls toolbar">
@@ -635,19 +719,16 @@ textarea:focus { outline: none; border-color: var(--border-strong); box-shadow: 
     <h2 class="h2 step"><span class="num">3</span>Общие параметры</h2>
     <div class="grid3">
       <div class="field">
-        <label class="caption" for="seed">Секретная фраза</label>
+        <span class="label-row"><label class="caption" for="seed">Секретная фраза</label><button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">От неё зависят замены: с той же фразой «ВЕРЕСКОВ» и через месяц станет «Контрагент 017» — выгрузки за разные периоды можно сравнивать. <b>Держите её в секрете.</b></span></button></span>
         <span class="inline"><input class="mono-input" type="text" id="seed" spellcheck="false"><button class="btn secondary icon-only" id="btnSeed" title="Новая случайная фраза" aria-label="Новая случайная фраза"><svg class="i i20" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
-        <small class="small muted">От неё зависят замены: с той же фразой «ВЕРЕСКОВ» и через месяц станет «Контрагент 017». Держите её в секрете.</small>
       </div>
       <div class="field">
-        <label class="caption" for="factor">Коэффициент для сумм</label>
+        <span class="label-row"><label class="caption" for="factor">Коэффициент для сумм</label><button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">Числа с методом «Умножить на коэффициент» умножаются на это число: доли и итоги сохраняются, а сами суммы скрыты.</span></button></span>
         <span class="inline"><input class="mono-input" type="number" id="factor" step="0.0001"><button class="btn secondary icon-only" id="btnFactor" title="Новый случайный коэффициент" aria-label="Новый случайный коэффициент"><svg class="i i20" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
-        <small class="small muted">Числа с методом «Умножить на коэффициент» умножаются на это число: доли и итоги сохраняются, а сами суммы скрыты.</small>
       </div>
       <div class="field">
-        <label class="caption" for="shiftDays">Сдвиг дат, дней</label>
+        <span class="label-row"><label class="caption" for="shiftDays">Сдвиг дат, дней</label><button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">Даты с методом «Сдвинуть даты» сдвигаются на это число дней: сроки, просрочка и интервалы сохраняются.</span></button></span>
         <span class="inline"><input class="mono-input" type="number" id="shiftDays" step="1"><button class="btn secondary icon-only" id="btnShift" title="Новый случайный сдвиг" aria-label="Новый случайный сдвиг"><svg class="i i20" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
-        <small class="small muted">Даты с методом «Сдвинуть даты» сдвигаются на это число дней: сроки, просрочка и интервалы сохраняются.</small>
       </div>
     </div>
     <div class="checks">
@@ -655,8 +736,8 @@ textarea:focus { outline: none; border-color: var(--border-strong); box-shadow: 
       <label class="chk"><input type="checkbox" id="clearMeta" checked> Очистить свойства файла (автор, компания)</label>
       <label class="chk"><input type="checkbox" id="clearNotes" checked> Удалить примечания ячеек</label>
       <label class="chk"><input type="checkbox" id="clearHF" checked> Очистить колонтитулы</label>
-      <label class="chk" title="Если выключить, листы без выбранных методов попадут в результат как есть — вместе с исходными данными"><input type="checkbox" id="dropUnused" checked> Удалять из результата листы, которые не обезличиваются</label>
-      <label class="chk" title="Это три поля выше: от них зависит, какими получатся псевдонимы, суммы и даты. С ними файл настроек в следующий раз даст те же замены — «Контрагент 017» останется тем же контрагентом, и выгрузки за разные периоды можно сравнивать. Но по такому файлу можно вернуть суммы и даты и проверить догадки о настоящих названиях, поэтому храните его так же отдельно от обезличенных файлов, как ключ"><input type="checkbox" id="profileWithKey"> Сохранять в файле настроек секретную фразу, коэффициент и сдвиг дат</label>
+      <label class="chk"><input type="checkbox" id="dropUnused" checked> Удалять из результата листы, которые не обезличиваются<button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">Если выключить, листы без выбранных методов попадут в результат как есть — вместе с исходными данными</span></button></label>
+      <label class="chk"><input type="checkbox" id="profileWithKey"> Сохранять в файле настроек секретную фразу, коэффициент и сдвиг дат<button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">Это три поля выше: от них зависит, какими получатся псевдонимы, суммы и даты. С ними файл настроек в следующий раз даст те же замены — «Контрагент 017» останется тем же контрагентом, и выгрузки за разные периоды можно сравнивать. Но по такому файлу можно вернуть суммы и даты и проверить догадки о настоящих названиях, поэтому храните его так же отдельно от обезличенных файлов, как ключ</span></button></label>
     </div>
   </section>
 
@@ -679,8 +760,7 @@ textarea:focus { outline: none; border-color: var(--border-strong); box-shadow: 
     <div id="warnings"></div>
 
     <div class="keybox">
-      <h3 class="body-strong keybox-title"><svg class="i i20" aria-hidden="true"><use href="#i-key-round"></use></svg>Ключ соответствий</h3>
-      <p class="small muted">По ключу можно вернуть исходные данные: в этот файл или в файл, который пришлют в ответ. Храните ключ отдельно от обезличенного файла.</p>
+      <h3 class="body-strong keybox-title"><svg class="i i20" aria-hidden="true"><use href="#i-key-round"></use></svg>Ключ соответствий<button class="info-tip" type="button" aria-label="О ключе"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">По ключу можно вернуть исходные данные: в этот файл или в файл, который пришлют в ответ. <b>Храните ключ отдельно от обезличенного файла.</b> С паролем ключ сохраняется зашифрованным файлом .redactkey — без пароля его не открыть. Без пароля — обычной таблицей Excel, которую может открыть любой.</span></button></h3>
       <div class="keybox-row">
         <div class="field">
           <label class="caption" for="keyPass">Пароль</label>
@@ -692,7 +772,6 @@ textarea:focus { outline: none; border-color: var(--border-strong); box-shadow: 
         </div>
         <button class="btn caution" id="btnKey"><svg class="i i20" aria-hidden="true"><use href="#i-download"></use></svg>Скачать ключ</button>
       </div>
-      <p class="small muted" id="keyHint">С паролем ключ сохраняется зашифрованным файлом .redactkey — без пароля его не открыть. Без пароля — обычной таблицей Excel, которую может открыть любой.</p>
     </div>
   </section>
   </div>
@@ -726,23 +805,22 @@ textarea:focus { outline: none; border-color: var(--border-strong); box-shadow: 
       </div>
       <div class="grid2 doc-extra">
         <div class="field">
-          <label class="caption" for="dCustom">Добавить своё</label>
+          <span class="label-row"><label class="caption" for="dCustom">Добавить своё</label><button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">Каждое значение — с новой строки: адрес, название без формы организации, фамилия без инициалов. Найдётся во всём документе и заменится на «Значение 001», «Значение 002»… — по ключу вернётся. Регистр и падеж учитываются: «Вересков» и «Верескова» — разные строки.</span></button></span>
           <textarea id="dCustom" rows="4" spellcheck="false" placeholder="Каждое значение с новой строки: адрес, название проекта, фамилия без инициалов"></textarea>
-          <small class="small muted">Найдётся во всём документе и заменится на «Значение 001», «Значение 002»… — по ключу вернётся.</small>
         </div>
         <div class="doc-params">
           <div class="field">
-            <label class="caption" for="dFactor">Коэффициент для сумм</label>
+            <span class="label-row"><label class="caption" for="dFactor">Коэффициент для сумм</label><button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">Все найденные суммы умножаются на это число: соотношения между ними сохраняются, а сами суммы скрыты.</span></button></span>
             <span class="inline"><input class="mono-input" type="number" id="dFactor" step="0.0001"><button class="btn secondary icon-only" id="btnDFactor" title="Новый случайный коэффициент" aria-label="Новый случайный коэффициент"><svg class="i i20" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
           </div>
           <div class="field">
-            <label class="caption" for="dShift">Сдвиг дат, дней</label>
+            <span class="label-row"><label class="caption" for="dShift">Сдвиг дат, дней</label><button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">Все найденные даты сдвигаются на это число дней: сроки и интервалы между датами сохраняются.</span></button></span>
             <span class="inline"><input class="mono-input" type="number" id="dShift" step="1"><button class="btn secondary icon-only" id="btnDShift" title="Новый случайный сдвиг" aria-label="Новый случайный сдвиг"><svg class="i i20" aria-hidden="true"><use href="#i-dices"></use></svg></button></span>
           </div>
         </div>
       </div>
       <div class="checks">
-        <label class="chk" title="Удалённый в режиме исправлений текст остаётся внутри файла, даже если его не видно. Флажок убирает его, а вставленный текст делает обычным"><input type="checkbox" id="dRevisions" checked> Принять исправления (удалённый текст убирается из файла)</label>
+        <label class="chk"><input type="checkbox" id="dRevisions" checked> Принять исправления<button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">Удалённый в режиме исправлений текст остаётся внутри файла, даже если его не видно. Флажок убирает его, а вставленный текст делает обычным</span></button></label>
         <label class="chk"><input type="checkbox" id="dComments" checked> Удалить примечания</label>
         <label class="chk"><input type="checkbox" id="dMeta" checked> Очистить свойства файла (автор, организация)</label>
       </div>
@@ -762,8 +840,7 @@ textarea:focus { outline: none; border-color: var(--border-strong); box-shadow: 
       <div class="doc-preview" id="dPreview"></div>
       <div id="dWarnings"></div>
       <div class="keybox">
-        <h3 class="body-strong keybox-title"><svg class="i i20" aria-hidden="true"><use href="#i-key-round"></use></svg>Ключ соответствий</h3>
-        <p class="small muted">По ключу документ — или ответ на него — возвращается к исходным данным на вкладке «Восстановить по ключу». Храните ключ отдельно от документа.</p>
+        <h3 class="body-strong keybox-title"><svg class="i i20" aria-hidden="true"><use href="#i-key-round"></use></svg>Ключ соответствий<button class="info-tip" type="button" aria-label="О ключе"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">По ключу документ — или ответ на него — возвращается к исходным данным на вкладке «Восстановить по ключу». <b>Храните ключ отдельно от документа.</b> С паролем ключ сохраняется зашифрованным файлом .redactkey — без пароля его не открыть. Без пароля — обычной таблицей Excel, которую может открыть любой.</span></button></h3>
         <div class="keybox-row">
           <div class="field">
             <label class="caption" for="dKeyPass">Пароль</label>
@@ -775,7 +852,6 @@ textarea:focus { outline: none; border-color: var(--border-strong); box-shadow: 
           </div>
           <button class="btn caution" id="btnDKey"><svg class="i i20" aria-hidden="true"><use href="#i-download"></use></svg>Скачать ключ</button>
         </div>
-        <p class="small muted">С паролем ключ сохраняется зашифрованным файлом .redactkey — без пароля его не открыть. Без пароля — обычной таблицей Excel, которую может открыть любой.</p>
       </div>
     </section>
   </div>
@@ -3561,7 +3637,7 @@ window.ANON_VERSION = '5.2';
     ['step2', 'step3', 'step4'].forEach(id => $(id).classList.add('hidden'));
     $('btnClear').classList.add('hidden');
     $('fileInfo').textContent = '';
-    $('pendingInfo').textContent = 'Сохранённые настройки (JSON) можно загрузить до или после файла с данными.';
+    $('pendingInfo').textContent = '';
     $('sheet').innerHTML = '';
     $('colsTable').tBodies[0].innerHTML = '';
     for (const id of ['rowsInfo', 'settingsInfo', 'previewStats', 'warnings', 'previewTable']) $(id).innerHTML = '';
@@ -4843,6 +4919,214 @@ window.ANON_VERSION = '5.2';
 
 </script>
 <script>
+/* ──────────────────────────────────────────────────────────────
+   info-tooltip — подсказки по кнопке (i)
+
+   Зачем слой, а не пузырь на месте: пузырь внутри кнопки обрезается
+   любым предком с overflow (панель, прокручиваемый список, таблица),
+   а на краю экрана уезжает за границу. Здесь один общий
+   position:fixed узел в <body>, который зажимается по горизонтали
+   и переворачивается вверх, если снизу не помещается.
+
+   Текст берётся либо из вложенного .info-bubble (разметка внутри
+   сохраняется), либо из атрибута data-tip.
+
+   ВНИМАНИЕ: по умолчанию текст вставляется как HTML — чтобы внутри
+   подсказок работали <b> и <span class="em">. Это безопасно, пока
+   строки свои, авторские. Если подсказка может прийти из
+   пользовательского ввода или из внешних данных — включите
+   { html: false }, иначе получите XSS.
+
+   Использование:
+       <button class="info-tip" type="button" aria-label="Что это">
+         <svg …>…</svg>
+         <span class="info-bubble" role="tooltip">
+           Текст с <b>выделением</b>.
+         </span>
+       </button>
+
+       initInfoTooltips();                       // с умолчаниями
+       initInfoTooltips({ trigger: '.my-hint' }); // свой селектор
+
+   Вернёт { destroy() } — снимает обработчики и убирает слой.
+   ────────────────────────────────────────────────────────────── */
+
+function initInfoTooltips(options) {
+    var o = options || {};
+    var TRIGGER   = o.trigger   || '.info-tip';
+    // Источники текста внутри триггера, в порядке приоритета.
+    var SOURCE    = o.source    || '.info-bubble';
+    // Чем ограничивать подсказку по горизонтали, кроме окна: полезно,
+    // когда контент уже окна (есть сайдбар) — иначе подсказка заезжает на него.
+    var HOST      = o.host      || null;
+    var AS_HTML   = o.html !== false;
+    // Элементы, для которых клик не должен открывать подсказку: обычно это
+    // триггеры, у которых есть собственное действие по клику.
+    var NO_CLICK  = o.noClick   || null;
+    var MARGIN    = o.margin    != null ? o.margin : 8;   // отступ от краёв окна
+    var GAP       = o.gap       != null ? o.gap    : 9;   // зазор до значка
+    var doc       = o.document  || document;
+
+    var layer = doc.createElement('div');
+    layer.className = 'tt';
+    layer.innerHTML = '<div class="tt-body"></div><div class="tt-arrow"></div>';
+    doc.body.appendChild(layer);
+    var body  = layer.querySelector('.tt-body');
+    var arrow = layer.querySelector('.tt-arrow');
+
+    var current = null;
+    // Подсказку открыл focusin, и клик её ещё не «съел». Нужно потому, что
+    // касание приходит как focusin, а следом click по тому же значку: без флага
+    // первый тап мигнул бы и закрылся. Он же разрешает прокрутке переставлять
+    // подсказку вместо закрытия, пока значок в фокусе, — иначе Tab к значку вне
+    // видимой области не показал бы ничего: браузер подкручивает элемент к себе,
+    // прокрутка срабатывает и гасит подсказку в тот же момент.
+    var focusOpened = false;
+    // Тип указателя последнего нажатия. focusin приходит и при клике мышью, так что
+    // отличить «клик мышью по уже открытой» от «первого тапа» можно только по нему.
+    var lastPointer = 'mouse';
+
+    function textOf(trigger) {
+        var src = trigger.querySelector(SOURCE);
+        if (src) return AS_HTML ? src.innerHTML : src.textContent;
+        return trigger.getAttribute('data-tip') || '';
+    }
+
+    function show(trigger) {
+        var content = textOf(trigger);
+        if (!content) return;
+        current = trigger;
+        if (AS_HTML) body.innerHTML = content; else body.textContent = content;
+
+        // Показываем до замеров: у скрытого узла нулевая ширина.
+        layer.classList.add('show');
+
+        var t = trigger.getBoundingClientRect();
+        var b = layer.getBoundingClientRect();
+
+        // Горизонталь: по центру значка, но не вылезая ни за окно, ни за host.
+        var loBound = MARGIN, hiBound = window.innerWidth - b.width - MARGIN;
+        if (HOST) {
+            var host = trigger.closest(HOST);
+            if (host) {
+                var hr = host.getBoundingClientRect();
+                loBound = Math.max(loBound, hr.left + 4);
+                hiBound = Math.min(hiBound, hr.right - b.width - 4);
+            }
+        }
+        var centered = t.left + t.width / 2 - b.width / 2;
+        var left = Math.max(loBound, Math.min(centered, hiBound));
+        // Если host уже подсказки, hiBound уходит ниже loBound — не даём отрицательной ширине
+        // выбросить подсказку влево за экран.
+        if (hiBound < loBound) left = loBound;
+
+        // Вертикаль: под значком, а если снизу не влезает и сверху влезает — над ним.
+        var below = t.bottom + GAP;
+        var above = t.top - GAP - b.height;
+        var flip = (below + b.height > window.innerHeight - MARGIN) && above >= MARGIN;
+        layer.classList.toggle('flip', flip);
+
+        layer.style.left = Math.round(left) + 'px';
+        layer.style.top  = Math.round(flip ? above : below) + 'px';
+
+        // Стрелка остаётся под значком, даже когда подсказку сдвинул клэмп.
+        var ax = Math.max(12, Math.min(t.left + t.width / 2 - left, b.width - 12));
+        arrow.style.left = (ax - 6) + 'px';
+    }
+
+    function hide() {
+        layer.classList.remove('show');
+        current = null;
+        focusOpened = false;
+    }
+
+    function onScroll() {
+        if (!current) return;
+        // Значок в фокусе — он едет вместе с содержимым, подсказку переставляем.
+        if (focusOpened && doc.activeElement === current) show(current);
+        else hide();
+    }
+
+    function closest(e) {
+        return (e.target instanceof Element) ? e.target.closest(TRIGGER) : null;
+    }
+
+    var on = {
+        // Только мышь. Касание тоже присылает pointerover/pointerout, и если
+        // реагировать на них, подсказка открывается по наведению и гаснет
+        // следующим за тем же тапом кликом — первое касание не даёт ничего.
+        // Для касания работает только ветка click ниже.
+        pointerdown: function (e) { lastPointer = e.pointerType || 'mouse'; },
+        // Наведение — только мышь. Касание тоже присылает pointerover/pointerout,
+        // и реакция на них спорила бы с веткой click.
+        pointerover: function (e) {
+            if (e.pointerType && e.pointerType !== 'mouse') return;
+            var it = closest(e);
+            if (it && it !== current) { show(it); focusOpened = false; }
+        },
+        pointerout: function (e) {
+            if (e.pointerType && e.pointerType !== 'mouse') return;
+            var it = closest(e);
+            // Переход на собственного потомка триггера — не уход.
+            if (it && it === current && !it.contains(e.relatedTarget)) hide();
+        },
+        focusin:  function (e) { var it = closest(e); if (it) { show(it); focusOpened = true; } },
+        focusout: function (e) { var it = closest(e); if (it && it === current) hide(); },
+        click: function (e) {
+            var it = closest(e);
+            if (it && !(NO_CLICK && it.matches(NO_CLICK))) {
+                e.preventDefault();
+                if (current !== it) {
+                    show(it);
+                } else if (lastPointer !== 'mouse' && focusOpened) {
+                    // Первый тап: focusin уже открыл подсказку. Переключив здесь,
+                    // мы бы мигнули и закрыли. Оставляем, но снимаем признак —
+                    // следующий тап по тому же значку закроет.
+                    focusOpened = false;
+                } else {
+                    // Мышь: подсказка и так видна по наведению, клик её убирает.
+                    hide();
+                }
+            } else if (!layer.contains(e.target)) {
+                hide();
+            }
+        },
+        keydown: function (e) { if (e.key === 'Escape') hide(); }
+    };
+
+    Object.keys(on).forEach(function (type) { doc.addEventListener(type, on[type]); });
+    // true — ловим прокрутку любого вложенного контейнера, не только окна:
+    // подсказка висит в фиксированных координатах и за содержимым не едет.
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', hide);
+
+    return {
+        show: show,
+        hide: hide,
+        destroy: function () {
+            Object.keys(on).forEach(function (type) { doc.removeEventListener(type, on[type]); });
+            window.removeEventListener('scroll', onScroll, true);
+            window.removeEventListener('resize', hide);
+            layer.remove();
+            current = null;
+        }
+    };
+}
+
+/* Значок (i) — тот же контур, что в проекте. Вставлять внутрь .info-tip. */
+var INFO_TIP_SVG =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/>' +
+    '<line x1="12" y1="8" x2="12" y2="8.01"/></svg>';
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { initInfoTooltips: initInfoTooltips, INFO_TIP_SVG: INFO_TIP_SVG };
+}
+
+</script>
+<script>initInfoTooltips();</script>
+<script>
 /*
  * Диалог подтверждения необратимого действия (brand/BRAND.md, «Кнопки»: danger-solid — только здесь).
  * RedactUI.confirm({ title, text, items, confirm, iconName }) → Promise<boolean>; items — список пояснений под текстом.
@@ -4964,8 +5248,7 @@ window.ANON_VERSION = '5.2';
       `<label class="chk"><input type="checkbox" data-type="${t}"${DS.types[t] === false ? '' : ' checked'}> ${esc(name)} — ${counts[t]}</label>`).join('');
     const total = DS.rows.length;
     $('dSummary').textContent = total
-      ? `Найдено значений: ${total.toLocaleString('ru-RU')}. Снимите флажок у типа или у отдельного значения, чтобы оставить его как есть. ` +
-        'Названия без формы организации и ФИО без отчества и инициалов автоматически не находятся — добавьте их ниже в «Добавить своё».'
+      ? `Найдено значений: ${total.toLocaleString('ru-RU')}. Снимите флажок у типа или у отдельного значения, чтобы оставить его как есть.`
       : 'Автоматически ничего не найдено. Добавьте то, что нужно скрыть, в «Добавить своё» ниже.';
   }
 
