@@ -598,6 +598,45 @@ textarea:focus { outline: none; border-color: var(--border-strong); box-shadow: 
 /* подпись поля с (i) рядом; (i) у флажка — после текста */
 .label-row { display: inline-flex; align-items: center; gap: var(--space-1); }
 .chk .info-tip, .keybox-title .info-tip { margin-left: calc(var(--space-1) * -1); }
+
+/* «Добавить своё»: режимы поиска под полем; формы найденного значения — под ним в таблице */
+.custom-modes .chk { min-height: 32px; }
+.found-forms { display: block; margin-top: 2px; }
+
+/* ---------- Справка (src/help.js): панель справа поверх приложения ---------- */
+dialog.help {
+  position: fixed; inset: 0 0 0 auto; margin: 0; width: min(760px, 100vw); height: 100dvh; max-height: none; max-width: none;
+  padding: 0; display: none; flex-direction: column;
+  background: var(--surface); color: var(--ink); border: 0; border-left: 1px solid var(--border);
+}
+dialog.help[open] { display: flex; }
+dialog.help::backdrop { background: color-mix(in srgb, var(--surface-sunken) 75%, transparent); }
+.help-head { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4) var(--space-3) var(--space-6); border-bottom: 1px solid var(--border); }
+.help-head .h2 { margin: 0; }
+.help-nav { display: flex; flex-wrap: wrap; gap: var(--space-2); padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--border); background: var(--surface-sunken); }
+.help-nav a {
+  color: var(--ink); text-decoration: none; padding: 2px var(--space-2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); background: var(--surface); font: 400 13px/20px var(--font-sans);
+}
+.help-nav a:hover { border-color: var(--ink); }
+.help-body { overflow-y: auto; padding: var(--space-2) var(--space-6) var(--space-12); font: 400 15px/24px var(--font-sans); }
+.help-body section { padding-top: var(--space-6); scroll-margin-top: var(--space-2); }
+.help-body h3 { margin: 0 0 var(--space-2); font: 600 18px/26px var(--font-sans); }
+.help-body p { margin: 0 0 var(--space-3); }
+.help-body ul, .help-body ol { margin: 0 0 var(--space-3); padding-left: var(--space-6); display: grid; gap: var(--space-1); }
+.help-body li > ul { margin: var(--space-1) 0 0; }
+.help-body dl { margin: 0; display: grid; gap: var(--space-1); }
+.help-body dt { font-weight: 500; margin-top: var(--space-2); }
+.help-body dd { margin: 0; color: var(--ink-muted); }
+.help-body b { font-weight: 500; }
+.help-methods td { white-space: normal; vertical-align: top; }
+.help-methods td:first-child { white-space: nowrap; }
+.help-irrev { color: var(--danger); }
+@media (max-width: 760px) {
+  .help-head { padding-left: var(--space-4); }
+  .help-nav, .help-body { padding-left: var(--space-4); padding-right: var(--space-4); }
+}
+@media (max-width: 760px) { .hide-sm { display: none; } #btnHelp { width: 40px; padding: 0; } }
 </style>
 <script>
   // тема до отрисовки, чтобы не мигало: сохранённый выбор или системная
@@ -613,6 +652,7 @@ textarea:focus { outline: none; border-color: var(--border-strong); box-shadow: 
 <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></symbol>
 <symbol id="i-circle-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></symbol>
 <symbol id="i-circle-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></symbol>
+<symbol id="i-circle-help" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></symbol>
 <symbol id="i-dices" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="12" height="12" x="2" y="10" rx="2" ry="2" /><path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6" /><path d="M6 18h.01" /><path d="M10 14h.01" /><path d="M15 6h.01" /><path d="M18 9h.01" /></symbol>
 <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></symbol>
 <symbol id="i-eraser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" /><path d="M22 21H7" /><path d="m5 11 9 9" /></symbol>
@@ -639,6 +679,7 @@ textarea:focus { outline: none; border-color: var(--border-strong); box-shadow: 
 <symbol id="i-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" x2="12" y1="3" y2="15" /></symbol>
 <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></symbol>
 <symbol id="i-wand-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72" /><path d="m14 7 3 3" /><path d="M5 6v4" /><path d="M19 14v4" /><path d="M10 2v2" /><path d="M7 8H3" /><path d="M21 16h-4" /><path d="M11 3H9" /></symbol>
+<symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></symbol>
 </svg>
 <!-- icons:end -->
 <header class="appbar">
@@ -649,6 +690,7 @@ textarea:focus { outline: none; border-color: var(--border-strong); box-shadow: 
     </a>
     <span class="chip mono-small" id="appVersion"></span>
     <span class="spacer"></span>
+    <button class="btn ghost" id="btnHelp" title="Справка по работе с Redact (F1)"><svg class="i i20" aria-hidden="true"><use href="#i-circle-help"></use></svg><span class="hide-sm">Справка</span></button>
     <button class="btn ghost icon-only" id="btnTheme" title="Сменить тему" aria-label="Сменить тему"><svg class="i i20 when-light" aria-hidden="true"><use href="#i-moon"></use></svg><svg class="i i20 when-dark" aria-hidden="true"><use href="#i-sun"></use></svg></button>
   </div>
 </header>
@@ -805,8 +847,9 @@ textarea:focus { outline: none; border-color: var(--border-strong); box-shadow: 
       </div>
       <div class="grid2 doc-extra">
         <div class="field">
-          <span class="label-row"><label class="caption" for="dCustom">Добавить своё</label><button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">Каждое значение — с новой строки: адрес, название без формы организации, фамилия без инициалов. Найдётся во всём документе и заменится на «Значение 001», «Значение 002»… — по ключу вернётся. Регистр и падеж учитываются: «Вересков» и «Верескова» — разные строки.</span></button></span>
+          <span class="label-row"><label class="caption" for="dCustom">Добавить своё</label><button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">Каждое значение — с новой строки: адрес, название без формы организации, фамилия без инициалов. Найдётся во всём документе и заменится на «Значение 001», «Значение 002»… — по ключу вернётся.</span></button></span>
           <textarea id="dCustom" rows="4" spellcheck="false" placeholder="Каждое значение с новой строки: адрес, название проекта, фамилия без инициалов"></textarea>
+          <div class="checks custom-modes"><label class="chk"><input type="checkbox" id="dCustomForms" checked> Во всех падежах<button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">Например, «Вересков» найдёт и «Верескова», «Верескову», «Вересковым»; «Москва» — «в Москве», «Москвой». Все формы получат одну замену, а по ключу вернутся в одной форме — введённой или, если её нет в тексте, самой частой. Нужно вернуть «один в один» — выключите флажок и включите «Учитывать регистр». Проверьте строку «также:» в таблице выше: если туда попало лишнее, введите значение точнее или выключите флажок.</span></button></label><label class="chk"><input type="checkbox" id="dCustomCase"> Учитывать регистр<button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">Без флажка «Вересков» найдёт и «ВЕРЕСКОВ», и «вересков». С флажком — только написание как в строке.</span></button></label></div>
         </div>
         <div class="doc-params">
           <div class="field">
@@ -1967,6 +2010,21 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
     return { stem: m[1], cs: { '': 'nom', у: 'dat', ым: 'ins', е: 'pre', ом: 'ins' }[e] || 'nom', female: false, regular: true };
   }
 
+  // Свои значения: слова на кириллице ищутся по основе с падежными окончаниями («Вересков» → «Верескова», «Вересковым»;
+  // «Москва» → «Москве», «Москвой»). Окончания «-ов», «-ев», «-ин» не добавляются: «Иван» не должен найти «Иванов»
+  const CUT_END = ['ая', 'яя', 'ое', 'ее', 'ый', 'ий', 'ой', 'ые', 'ие', 'а', 'я', 'о', 'е', 'ь', 'й', 'ы', 'и'];
+  const CASE_END = ['а', 'я', 'о', 'е', 'и', 'ы', 'у', 'ю', 'ь', 'й', 'ой', 'ей', 'ою', 'ею', 'ом', 'ем', 'ам', 'ям', 'ами', 'ями',
+    'ах', 'ях', 'ым', 'им', 'ую', 'юю', 'ая', 'яя', 'ое', 'ее', 'ые', 'ие', 'ого', 'его', 'ому', 'ему', 'ых', 'их', 'ыми', 'ими'];
+  function customPattern(value, { matchCase = false, forms = true } = {}) {
+    const words = value.split(/[\s\u00a0]+/).filter(Boolean).map(w => {
+      if (!forms || !/^[А-ЯЁа-яё]{4,}$/.test(w)) return escapeRe(w);
+      const end = CUT_END.find(e => w.toLowerCase().endsWith(e) && w.length - e.length >= 3);
+      const stem = end ? w.slice(0, -end.length) : w;
+      return `${escapeRe(stem)}(?:${CASE_END.join('|')})?`;
+    });
+    return new RegExp(`(?<![\\p{L}\\p{N}])${words.join('[\\s\\u00a0]+')}(?![\\p{L}\\p{N}])`, matchCase ? 'gu' : 'giu');
+  }
+
   function plan(parts, opts) {
     const seed = opts.seed || 'redact-docx';
     const factor = Number(opts.factor) || 1, shift = Math.round(Number(opts.shiftDays) || 0);
@@ -1981,12 +2039,23 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
       if (f) f.count++; else found.set(h.value, { type: h.type, count: 1, info: h.info, value: h.value });
     };
     for (const p of parts) for (const s of p.segs) if (s.kind === 'text') detect(s.text).forEach(note);
+    // «Добавить своё»: без учёта регистра (по умолчанию) и во всех падежах — все найденные формы получают одну замену
+    const claimed = new Set(found.keys());
     for (const c of opts.custom || []) {
       const v = String(c).trim();
-      if (v && !found.has(v)) {
-        const n = allText.split(v).length - 1;
-        found.set(v, { type: 'custom', count: n, value: v });
+      if (!v || found.has(v)) continue;
+      const re = customPattern(v, { matchCase: !!opts.customCase, forms: opts.customForms !== false });
+      const forms = new Map();
+      let m;
+      while ((m = re.exec(allText))) {
+        if (!m[0]) { re.lastIndex++; continue; }
+        if (!claimed.has(m[0])) forms.set(m[0], (forms.get(m[0]) || 0) + 1);
       }
+      forms.forEach((n, f) => claimed.add(f));
+      const count = [...forms.values()].reduce((a, b) => a + b, 0);
+      // в ключ — само значение, если оно есть в тексте, иначе самая частая форма: по ключу вернётся она
+      const keyValue = forms.has(v) || !forms.size ? v : [...forms].sort((a, b) => b[1] - a[1])[0][0];
+      found.set(v, { type: 'custom', count, value: v, forms: [...forms.keys()], keyValue });
     }
 
     // 2. Замены. Ни одна замена не совпадает с исходным значением, с другой заменой или с текстом документа
@@ -2098,11 +2167,17 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
       }
       if (r === f.value) r = numbered('Значение', 'custom');
       used.add(r);
-      rows.push({ value: f.value, type: f.type, count: f.count, repl: r, on });
-      if (on) repl.set(f.value, r);
+      const forms = f.forms ? f.forms.filter(x => x !== f.value) : [];
+      rows.push({ value: f.value, type: f.type, count: f.count, repl: r, on, forms, keyValue: f.keyValue || f.value });
+      if (on) {
+        repl.set(f.value, r);
+        forms.forEach(x => repl.set(x, r));
+      }
     }
     rows.sort((a, b) => Object.keys(TYPES).indexOf(a.type) - Object.keys(TYPES).indexOf(b.type) || b.count - a.count);
-    return { rows, repl };
+    // пары для ключа: одна на значение, без падежных форм — иначе у одной замены было бы несколько исходных
+    const keyPairs = rows.filter(r => r.on).map(r => [r.keyValue, r.repl]);
+    return { rows, repl, keyPairs };
   }
 
   function shiftDate(v, days) {
@@ -2255,7 +2330,7 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
     return out;
   }
 
-  const api = { TYPES, detect, segmentsOf, rewrite, dictFinder, plan, shiftDate, innValid, analyzeDocx, redactDocx, restoreDocx, previewParagraphs, acceptRevisions };
+  const api = { TYPES, detect, customPattern, segmentsOf, rewrite, dictFinder, plan, shiftDate, innValid, analyzeDocx, redactDocx, restoreDocx, previewParagraphs, acceptRevisions };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.RedactDocx = api;
 })(typeof window !== 'undefined' ? window : globalThis);
@@ -2263,7 +2338,7 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
 </script>
 <script>
 // Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
-window.ANON_VERSION = '5.3';
+window.ANON_VERSION = '5.5';
 
 </script>
 <script>
@@ -5186,7 +5261,7 @@ if (typeof module !== 'undefined' && module.exports) {
   const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
   const DS = {
-    fileName: '', buffer: null, analysis: null, rows: [], repl: new Map(),
+    fileName: '', buffer: null, analysis: null, rows: [], repl: new Map(), keyPairs: [],
     seed: '', types: {}, skip: new Set(),
   };
 
@@ -5228,14 +5303,16 @@ if (typeof module !== 'undefined' && module.exports) {
   const opts = () => ({
     seed: DS.seed, factor: parseFloat($('dFactor').value) || 1, shiftDays: parseInt($('dShift').value, 10) || 0,
     types: DS.types, skip: [...DS.skip], custom: custom(),
+    customCase: $('dCustomCase').checked, customForms: $('dCustomForms').checked,
   });
 
   // ---------- Найденное ----------
   function replan() {
     if (!DS.analysis) return;
-    const { rows, repl } = D.plan(DS.analysis.parts, opts());
+    const { rows, repl, keyPairs } = D.plan(DS.analysis.parts, opts());
     DS.rows = rows;
     DS.repl = repl;
+    DS.keyPairs = keyPairs;
     renderTypes();
     renderFound();
     renderPreview();
@@ -5258,7 +5335,8 @@ if (typeof module !== 'undefined' && module.exports) {
       return `<tr data-i="${i}" class="${r.on ? 'active' : ''}">
         <td class="c-chk"><input type="checkbox" data-v="${i}"${r.on ? ' checked' : ''}${typeOn ? '' : ' disabled'} aria-label="Заменять «${esc(r.value)}»"></td>
         <td class="small muted">${esc(D.TYPES[r.type])}</td>
-        <td><span class="rv ${r.on ? 'rv-detected' : 'rv-original'}">${esc(r.value)}</span></td>
+        <td><span class="rv ${r.on ? 'rv-detected' : 'rv-original'}">${esc(r.value)}</span>${r.forms.length
+          ? `<span class="small muted found-forms">также: ${r.forms.map(esc).join(', ')}</span>` : ''}</td>
         <td class="r small">${r.count}</td>
         <td>${r.on ? `<span class="rv rv-token">${esc(r.repl)}</span>` : '<span class="small muted">останется как есть</span>'}</td>
       </tr>`;
@@ -5280,6 +5358,7 @@ if (typeof module !== 'undefined' && module.exports) {
   });
   let customTimer;
   $('dCustom').addEventListener('input', () => { clearTimeout(customTimer); customTimer = setTimeout(replan, 400); });
+  ['dCustomCase', 'dCustomForms'].forEach(id => $(id).addEventListener('change', replan));
   ['dFactor', 'dShift'].forEach(id => $(id).addEventListener('change', replan));
   $('btnDFactor').addEventListener('click', () => { $('dFactor').value = A.factorFromSeed(A.randomSeed()); replan(); });
   $('btnDShift').addEventListener('click', () => { $('dShift').value = A.shiftFromSeed(A.randomSeed()); replan(); });
@@ -5345,7 +5424,7 @@ if (typeof module !== 'undefined' && module.exports) {
       sourceFile: DS.fileName, document: true, sheet: null, sheets: [], headerRow: 1,
       factor: parseFloat($('dFactor').value) || 1, shiftDays: parseInt($('dShift').value, 10) || 0,
       columns: [],
-      dictionaries: [{ name: 'Документ', method: 'doc', prefix: '', columns: [], pairs: [...DS.repl] }],
+      dictionaries: [{ name: 'Документ', method: 'doc', prefix: '', columns: [], pairs: DS.keyPairs }],
       smartDigits: [], smartNames: [], numbers: {},
     };
   }
@@ -5367,8 +5446,7 @@ if (typeof module !== 'undefined' && module.exports) {
         const ws = wb.addWorksheet('Соответствия');
         ws.columns = [{ header: 'Тип', key: 't', width: 18 }, { header: 'Было', key: 'o', width: 50 }, { header: 'Стало', key: 'r', width: 50 }];
         ws.getRow(1).font = { bold: true };
-        const typeOf = new Map(DS.rows.map(r => [r.value, D.TYPES[r.type]]));
-        ws.addRows([...DS.repl].map(([o, r]) => ({ t: typeOf.get(o) || '', o, r })));
+        ws.addRows(DS.rows.filter(r => r.on).map(r => ({ t: D.TYPES[r.type], o: r.keyValue, r: r.repl })));
         const ks = wb.addWorksheet(KEY_SHEET, { state: 'veryHidden' });
         const json = JSON.stringify(key);
         ks.getCell(1, 1).value = 'redact-key';
@@ -5391,7 +5469,7 @@ if (typeof module !== 'undefined' && module.exports) {
       confirm: 'Да, очистить',
     });
     if (!ok) return;
-    Object.assign(DS, { fileName: '', buffer: null, analysis: null, rows: [], repl: new Map(), seed: '', types: {}, skip: new Set() });
+    Object.assign(DS, { fileName: '', buffer: null, analysis: null, rows: [], repl: new Map(), keyPairs: [], seed: '', types: {}, skip: new Set() });
     ['d2', 'd3', 'dClearRow'].forEach(id => $(id).classList.add('hidden'));
     for (const id of ['dFileInfo', 'dSummary', 'dTypes', 'dPreview', 'dWarnings', 'dStats']) $(id).innerHTML = '';
     $('dFound').tBodies[0].innerHTML = '';
@@ -5400,6 +5478,223 @@ if (typeof module !== 'undefined' && module.exports) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     toast('Готово к новому документу');
   });
+})();
+
+</script>
+<script>
+/*
+ * Справка по работе с Redact — панель поверх приложения (кнопка «Справка» в шапке или F1).
+ * Встроена в файл: справка доступна без интернета, там же, где приложение.
+ * Таблица методов строится из engine.js (METHODS, METHOD_HINTS, IRREVERSIBLE), чтобы не расходиться с программой.
+ */
+(function () {
+  'use strict';
+  const { $, icon, esc } = window.RedactUI;
+  const A = window.Anon;
+
+  const SECTIONS = [
+    ['h-about', 'Коротко'],
+    ['h-table', 'Таблица Excel'],
+    ['h-methods', 'Методы'],
+    ['h-doc', 'Документ Word'],
+    ['h-restore', 'Восстановление'],
+    ['h-key', 'Ключ и параметры'],
+    ['h-external', 'Для внешней передачи'],
+    ['h-limits', 'Ограничения'],
+    ['h-faq', 'Вопросы'],
+  ];
+
+  function methodsTable() {
+    const seen = new Map();
+    for (const [type, list] of Object.entries(A.METHODS)) {
+      for (const [k, name] of list) {
+        if (k === 'keep') continue;
+        if (!seen.has(k)) seen.set(k, { name, types: [] });
+        seen.get(k).types.push(A.TYPE_NAMES[type]);
+      }
+    }
+    return `<div class="table-scroll"><table class="data help-methods">
+      <thead><tr><th>Метод</th><th>Для столбцов</th><th>Что делает</th><th>По ключу</th></tr></thead>
+      <tbody>${[...seen].map(([k, m]) => `<tr>
+        <td>${esc(m.name)}</td>
+        <td class="small muted">${esc(m.types.join(', '))}</td>
+        <td class="small">${esc(A.METHOD_HINTS[k] || '').replace(/\. Необратимо[^.]*$|\. Значение удаляется[^.]*$/, '')}</td>
+        <td class="small">${A.IRREVERSIBLE.has(k) ? '<span class="help-irrev">не вернуть</span>' : 'возвращается'}</td>
+      </tr>`).join('')}</tbody></table></div>`;
+  }
+
+  const content = () => `
+    <section id="h-about">
+      <h3>Коротко</h3>
+      <p>Redact скрывает в файле персональные данные и коммерческую тайну — ФИО, контрагентов, ИНН, счета, суммы и даты —
+        так, чтобы файл можно было отдать аудитору, подрядчику или ИИ-сервису. Структура остаётся: таблицу можно сводить
+        и считать, итоги сходятся, интервалы между датами сохраняются.</p>
+      <ul>
+        <li><b>Файл никуда не отправляется.</b> Всё происходит в браузере на вашем компьютере; Redact работает и без интернета.</li>
+        <li><b>Исходный файл не меняется:</b> результат скачивается отдельным файлом <span class="mono-small">&lt;имя&gt;_redact</span>.</li>
+        <li><b>Ключ соответствий</b> остаётся у вас: по нему можно вернуть настоящие данные — в этот файл или в ответ на него.</li>
+      </ul>
+      <p>Вкладки: <b>Таблица Excel</b> (.xlsx, .xlsm, .xls, .csv), <b>Документ Word</b> (.docx)
+        и <b>Восстановить по ключу</b>. У полей и флажков есть подсказки (i) — наведите курсор или нажмите.</p>
+    </section>
+
+    <section id="h-table">
+      <h3>Таблица Excel</h3>
+      <ol>
+        <li><b>Файл с данными.</b> Перетащите файл или нажмите на область загрузки. Если настройки уже сохранялись,
+          загрузите их кнопкой «Загрузить настройки» — до или после файла.</li>
+        <li><b>Столбцы и методы.</b> Выберите лист и строку заголовков (Redact находит её сам). Затем:
+          <ul>
+            <li>«Подобрать методы» — метод получают столбцы, по названию которых понятно, что в них (контрагент, ИНН, договор, сумма, дата);</li>
+            <li>«Обезличить все» — метод получает каждый столбец, и только такой, что возвращается по ключу;</li>
+            <li>метод любого столбца можно выбрать вручную в списке; «Оставить» — столбец не меняется.</li>
+          </ul>
+          Строки «Итого» и «Всего» по умолчанию не обезличиваются, а их суммы пересчитываются, чтобы итог сходился.</li>
+        <li><b>Общие параметры:</b> секретная фраза, коэффициент для сумм, сдвиг дат и флажки очистки (свойства файла,
+          примечания, колонтитулы, листы без обезличивания).</li>
+        <li><b>Проверка и результат.</b> В предпросмотре <span class="rv rv-detected">найдено</span> — исходное значение,
+          <span class="rv rv-token">замена</span> — новое. Проверьте блок «Проверьте перед выгрузкой», затем нажмите
+          «Обезличить и скачать» и <b>скачайте ключ</b> — без него вернуть данные будет нельзя.</li>
+      </ol>
+      <p>«Сохранить настройки» на шаге 2 запоминает методы по столбцам, лист и флажки в файл .json — в следующий раз
+        такую же выгрузку можно настроить одной кнопкой.</p>
+    </section>
+
+    <section id="h-methods">
+      <h3>Методы</h3>
+      <p>Метод задаётся для каждого столбца. «Возвращается» — исходное значение восстанавливается по ключу;
+        «не вернуть» — значение меняется безвозвратно, Redact предупреждает об этом при выборе и перед выгрузкой.</p>
+      ${methodsTable()}
+    </section>
+
+    <section id="h-doc">
+      <h3>Документ Word</h3>
+      <ol>
+        <li><b>Документ.</b> Загрузите файл .docx. Старый .doc сначала сохраните в Word как .docx.</li>
+        <li><b>Что найдено.</b> Redact сам находит организации с формой (ООО, АО, ИП), ФИО с отчеством или инициалами
+          в любом падеже, ИНН, ОГРН, КПП, БИК, счета, СНИЛС, паспорта, телефоны, эл. почту, суммы с валютой, сумму
+          прописью и даты. Снимите флажок у типа или отдельного значения, чтобы оставить его как есть.</li>
+        <li><b>Добавить своё</b> — то, что по шаблонам не находится: адреса, названия без формы организации, фамилии
+          без инициалов, названия проектов. Каждое значение с новой строки.
+          <ul>
+            <li>«Во всех падежах» (включён): «Вересков» найдёт и «Верескова», «Вересковым»; все формы получат одну замену;</li>
+            <li>«Учитывать регистр» (выключен): без него «Вересков» найдёт и «ВЕРЕСКОВ»;</li>
+            <li>нужно вернуть по ключу «один в один» — выключите «Во всех падежах» и включите «Учитывать регистр».</li>
+          </ul></li>
+        <li><b>Проверка и результат.</b> Просмотрите текст с заменами, скачайте документ и ключ. Оформление не меняется;
+          заменяется везде — в тексте, таблицах, колонтитулах, сносках и примечаниях. Флажками можно принять исправления
+          (удалённый текст пропадёт из файла), удалить примечания и очистить свойства файла.</li>
+      </ol>
+      <p>Вымышленные ФИО ставятся в том же падеже, что и исходные, а подпись с инициалами остаётся тем же человеком.</p>
+    </section>
+
+    <section id="h-restore">
+      <h3>Восстановление по ключу</h3>
+      <ol>
+        <li>Выберите обезличенный файл или файл, который прислали в ответ (.xlsx, .xls, .csv или .docx).</li>
+        <li>Выберите ключ (.redactkey или _KEY.xlsx). Если ключ с паролем — введите пароль.</li>
+        <li>Проверьте предпросмотр и скачайте файл <span class="mono-small">&lt;имя&gt;_restored</span>.</li>
+      </ol>
+      <p>В таблице Redact сопоставляет столбцы по названиям, поэтому получатель может переставлять столбцы и добавлять свои.
+        Псевдонимы возвращаются и внутри нового текста — например, в выводах аналитика: «Контрагент 002 — крупнейший
+        контрагент» станет «ВЕРЕСКОВ ООО — крупнейший контрагент». Суммы делятся на коэффициент, даты сдвигаются обратно.</p>
+    </section>
+
+    <section id="h-key">
+      <h3>Ключ и параметры</h3>
+      <dl>
+        <dt>Ключ соответствий</dt>
+        <dd>Таблица «было → стало» и параметры обработки. С паролем сохраняется зашифрованным файлом .redactkey
+          (без пароля его не открыть); без пароля — обычной таблицей Excel, которую может открыть любой.
+          <b>Храните ключ отдельно от обезличенного файла и не отправляйте их вместе.</b></dd>
+        <dt>Секретная фраза</dt>
+        <dd>От неё зависят замены: с той же фразой, например, контрагент «ВЕРЕСКОВ» и через месяц станет
+          «Контрагент 017» — выгрузки за разные периоды можно сравнивать. Для восстановления не нужна: оно идёт по ключу.</dd>
+        <dt>Коэффициент и сдвиг дат</dt>
+        <dd>Суммы с методом «Умножить на коэффициент» умножаются на одно число, даты с методом «Сдвинуть даты» сдвигаются
+          на одно число дней. Кнопка с кубиком выбирает новое случайное значение.</dd>
+        <dt>Файл настроек</dt>
+        <dd>Методы по столбцам и флажки. Секретная фраза, коэффициент и сдвиг попадают в него, только если включить
+          соответствующий флажок на шаге 3, — тогда храните его так же отдельно, как ключ.</dd>
+      </dl>
+    </section>
+
+    <section id="h-external">
+      <h3>Для внешней передачи</h3>
+      <p>Обычная выгрузка — псевдонимизация: по ключу данные возвращаются. Кнопка <b>«Для внешней передачи»</b>
+        на шаге 4 делает файл, который вернуть нельзя никому: параметры одноразовые и нигде не сохраняются, ключ не создаётся,
+        все суммы умножаются, даты сдвигаются. Подходит, когда ответ получателя восстанавливать не нужно.</p>
+    </section>
+
+    <section id="h-limits">
+      <h3>Ограничения</h3>
+      <ul>
+        <li>Redact находит данные по названиям столбцов и шаблонам, но не понимает смысл текста: <b>всегда проверяйте предпросмотр</b>.</li>
+        <li>Если получатель знает несколько точных сумм, по ним можно вычислить коэффициент — тогда для сумм выбирайте
+          «Случайное отклонение ±%».</li>
+        <li>.xls (Excel 97–2003) сохраняется в .xlsx без шрифтов, заливки и рамок; значения, форматы чисел, ширина
+          столбцов и объединения на месте. Сводные таблицы и диаграммы могут не сохраниться — лучше обезличивать «плоскую» выгрузку.</li>
+        <li>В Word картинки (сканы подписей и печатей) и вложенные объекты остаются как есть.</li>
+        <li>PDF и сканы пока не поддерживаются.</li>
+      </ul>
+    </section>
+
+    <section id="h-faq">
+      <h3>Вопросы</h3>
+      <dl>
+        <dt>Почта не даёт отправить файл Redact или пишет о вирусе</dt>
+        <dd>Почтовые сервисы с подозрением относятся к большим HTML-файлам со встроенными программами. Передавайте Redact
+          через облачное хранилище или общую папку.</dd>
+        <dt>После восстановления остались псевдонимы</dt>
+        <dd>Проверьте, что выбран ключ именно от этой выгрузки. Если получатель переименовал столбцы, Redact не сопоставит
+          их по названиям — верните исходные названия. Значения с необратимыми методами не возвращаются.</dd>
+        <dt>Как сообщить о проблеме</dt>
+        <dd>Опишите шаги и приложите снимок экрана и версию из шапки (например, v${esc(A.VERSION)}).
+          <b>Не пересылайте исходные файлы с настоящими данными</b> — при необходимости сделайте пример с вымышленными.</dd>
+      </dl>
+    </section>`;
+
+  let dlg = null;
+  function open(id) {
+    const back = document.activeElement;
+    if (!dlg) {
+      dlg = document.createElement('dialog');
+      dlg.className = 'help';
+      dlg.setAttribute('aria-labelledby', 'helpTitle');
+      dlg.innerHTML = `
+        <div class="help-head">
+          ${icon('circle-help', 'i i20')}<h2 class="h2" id="helpTitle">Справка</h2>
+          <span class="chip mono-small">v${esc(A.VERSION)}</span>
+          <span class="spacer"></span>
+          <button type="button" class="btn ghost icon-only" data-close aria-label="Закрыть справку" title="Закрыть (Esc)">${icon('x', 'i i20')}</button>
+        </div>
+        <nav class="help-nav" aria-label="Разделы справки">${SECTIONS.map(([sid, t]) => `<a href="#${sid}">${esc(t)}</a>`).join('')}</nav>
+        <div class="help-body">${content()}</div>`;
+      document.body.appendChild(dlg);
+      dlg.addEventListener('click', ev => {
+        if (ev.target.closest('[data-close]') || ev.target === dlg) { dlg.close(); return; }
+        const a = ev.target.closest('.help-nav a');
+        if (a) {
+          ev.preventDefault();
+          dlg.querySelector(a.getAttribute('href')).scrollIntoView({ block: 'start', behavior: 'smooth' });
+        }
+      });
+      dlg.addEventListener('close', () => { if (dlg._back && dlg._back.isConnected) dlg._back.focus(); });
+    }
+    dlg._back = back;
+    dlg.showModal();
+    const body = dlg.querySelector('.help-body');
+    if (id) dlg.querySelector('#' + id).scrollIntoView({ block: 'start' });
+    else body.scrollTop = 0;
+    dlg.querySelector('[data-close]').focus();
+  }
+
+  $('btnHelp').addEventListener('click', () => open());
+  // F1 — справка, как в настольных программах
+  document.addEventListener('keydown', ev => {
+    if (ev.key === 'F1') { ev.preventDefault(); if (!(dlg && dlg.open)) open(); }
+  });
+  window.RedactUI.help = open;
 })();
 
 </script>
