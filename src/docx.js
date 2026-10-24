@@ -229,6 +229,21 @@
     return { stem: m[1], cs: { '': 'nom', у: 'dat', ым: 'ins', е: 'pre', ом: 'ins' }[e] || 'nom', female: false, regular: true };
   }
 
+  // Свои значения: слова на кириллице ищутся по основе с падежными окончаниями («Вересков» → «Верескова», «Вересковым»;
+  // «Москва» → «Москве», «Москвой»). Окончания «-ов», «-ев», «-ин» не добавляются: «Иван» не должен найти «Иванов»
+  const CUT_END = ['ая', 'яя', 'ое', 'ее', 'ый', 'ий', 'ой', 'ые', 'ие', 'а', 'я', 'о', 'е', 'ь', 'й', 'ы', 'и'];
+  const CASE_END = ['а', 'я', 'о', 'е', 'и', 'ы', 'у', 'ю', 'ь', 'й', 'ой', 'ей', 'ою', 'ею', 'ом', 'ем', 'ам', 'ям', 'ами', 'ями',
+    'ах', 'ях', 'ым', 'им', 'ую', 'юю', 'ая', 'яя', 'ое', 'ее', 'ые', 'ие', 'ого', 'его', 'ому', 'ему', 'ых', 'их', 'ыми', 'ими'];
+  function customPattern(value, { matchCase = false, forms = true } = {}) {
+    const words = value.split(/[\s\u00a0]+/).filter(Boolean).map(w => {
+      if (!forms || !/^[А-ЯЁа-яё]{4,}$/.test(w)) return escapeRe(w);
+      const end = CUT_END.find(e => w.toLowerCase().endsWith(e) && w.length - e.length >= 3);
+      const stem = end ? w.slice(0, -end.length) : w;
+      return `${escapeRe(stem)}(?:${CASE_END.join('|')})?`;
+    });
+    return new RegExp(`(?<![\\p{L}\\p{N}])${words.join('[\\s\\u00a0]+')}(?![\\p{L}\\p{N}])`, matchCase ? 'gu' : 'giu');
+  }
+
   function plan(parts, opts) {
     const seed = opts.seed || 'redact-docx';
     const factor = Number(opts.factor) || 1, shift = Math.round(Number(opts.shiftDays) || 0);
@@ -243,12 +258,23 @@
       if (f) f.count++; else found.set(h.value, { type: h.type, count: 1, info: h.info, value: h.value });
     };
     for (const p of parts) for (const s of p.segs) if (s.kind === 'text') detect(s.text).forEach(note);
+    // «Добавить своё»: без учёта регистра (по умолчанию) и во всех падежах — все найденные формы получают одну замену
+    const claimed = new Set(found.keys());
     for (const c of opts.custom || []) {
       const v = String(c).trim();
-      if (v && !found.has(v)) {
-        const n = allText.split(v).length - 1;
-        found.set(v, { type: 'custom', count: n, value: v });
+      if (!v || found.has(v)) continue;
+      const re = customPattern(v, { matchCase: !!opts.customCase, forms: opts.customForms !== false });
+      const forms = new Map();
+      let m;
+      while ((m = re.exec(allText))) {
+        if (!m[0]) { re.lastIndex++; continue; }
+        if (!claimed.has(m[0])) forms.set(m[0], (forms.get(m[0]) || 0) + 1);
       }
+      forms.forEach((n, f) => claimed.add(f));
+      const count = [...forms.values()].reduce((a, b) => a + b, 0);
+      // в ключ — само значение, если оно есть в тексте, иначе самая частая форма: по ключу вернётся она
+      const keyValue = forms.has(v) || !forms.size ? v : [...forms].sort((a, b) => b[1] - a[1])[0][0];
+      found.set(v, { type: 'custom', count, value: v, forms: [...forms.keys()], keyValue });
     }
 
     // 2. Замены. Ни одна замена не совпадает с исходным значением, с другой заменой или с текстом документа
@@ -360,11 +386,17 @@
       }
       if (r === f.value) r = numbered('Значение', 'custom');
       used.add(r);
-      rows.push({ value: f.value, type: f.type, count: f.count, repl: r, on });
-      if (on) repl.set(f.value, r);
+      const forms = f.forms ? f.forms.filter(x => x !== f.value) : [];
+      rows.push({ value: f.value, type: f.type, count: f.count, repl: r, on, forms, keyValue: f.keyValue || f.value });
+      if (on) {
+        repl.set(f.value, r);
+        forms.forEach(x => repl.set(x, r));
+      }
     }
     rows.sort((a, b) => Object.keys(TYPES).indexOf(a.type) - Object.keys(TYPES).indexOf(b.type) || b.count - a.count);
-    return { rows, repl };
+    // пары для ключа: одна на значение, без падежных форм — иначе у одной замены было бы несколько исходных
+    const keyPairs = rows.filter(r => r.on).map(r => [r.keyValue, r.repl]);
+    return { rows, repl, keyPairs };
   }
 
   function shiftDate(v, days) {
@@ -517,7 +549,7 @@
     return out;
   }
 
-  const api = { TYPES, detect, segmentsOf, rewrite, dictFinder, plan, shiftDate, innValid, analyzeDocx, redactDocx, restoreDocx, previewParagraphs, acceptRevisions };
+  const api = { TYPES, detect, customPattern, segmentsOf, rewrite, dictFinder, plan, shiftDate, innValid, analyzeDocx, redactDocx, restoreDocx, previewParagraphs, acceptRevisions };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.RedactDocx = api;
 })(typeof window !== 'undefined' ? window : globalThis);

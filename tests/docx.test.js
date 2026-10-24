@@ -102,3 +102,24 @@ test('docx: ИНН-замена — с неверной контрольной �
   assert.strictEqual(new Set(reps).size, reps.length);
   assert.strictEqual(D.shiftDate('«31» декабря 2025', 1), '«01» января 2026');
 });
+
+test('«Добавить своё»: без учёта регистра и во всех падежах — одна замена, в ключе одна пара', () => {
+  const xml = `<w:document ${W}><w:body>${para(run('Склад на ул. Лесная, 5. Доступ на Лесной открыт; ЛЕСНАЯ, 5 — адрес Иванова, а Ивану передали ключи.'))}</w:body></w:document>`;
+  const parts = [{ name: 'word/document.xml', xml, segs: D.segmentsOf(xml) }];
+  const p = D.plan(parts, { custom: ['ул. Лесная', 'Лесная', 'Иван'] });
+  const row = v => p.rows.find(r => r.value === v);
+  // «ул. Лесная» забирает свои вхождения первой, остальные формы — у «Лесная»
+  assert.deepStrictEqual(row('ул. Лесная').forms, []);
+  assert.deepStrictEqual(row('Лесная').forms.sort(), ['ЛЕСНАЯ', 'Лесной']);
+  assert.strictEqual(p.repl.get('Лесной'), p.repl.get('ЛЕСНАЯ'));
+  // «Иван» находит «Ивану», но не «Иванова»
+  assert.deepStrictEqual(row('Иван').forms, ['Ивану']);
+  assert.strictEqual(p.repl.has('Иванова'), false);
+  // ключ: одна пара на значение, исходное — самая частая форма, если введённой в тексте нет
+  const backs = p.keyPairs.map(([, r]) => r);
+  assert.strictEqual(new Set(backs).size, backs.length);
+  assert.deepStrictEqual(p.keyPairs.find(([, r]) => r === row('Иван').repl), ['Ивану', row('Иван').repl]);
+
+  const exact = D.plan(parts, { custom: ['Лесная'], customCase: true, customForms: false });
+  assert.deepStrictEqual(exact.rows.find(r => r.value === 'Лесная').count, 1);
+});

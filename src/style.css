@@ -320,3 +320,7 @@ textarea:focus { outline: none; border-color: var(--border-strong); box-shadow: 
 /* подпись поля с (i) рядом; (i) у флажка — после текста */
 .label-row { display: inline-flex; align-items: center; gap: var(--space-1); }
 .chk .info-tip, .keybox-title .info-tip { margin-left: calc(var(--space-1) * -1); }
+
+/* «Добавить своё»: режимы поиска под полем; формы найденного значения — под ним в таблице */
+.custom-modes .chk { min-height: 32px; }
+.found-forms { display: block; margin-top: 2px; }

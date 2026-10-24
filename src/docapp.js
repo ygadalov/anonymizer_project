@@ -7,7 +7,7 @@
   const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
   const DS = {
-    fileName: '', buffer: null, analysis: null, rows: [], repl: new Map(),
+    fileName: '', buffer: null, analysis: null, rows: [], repl: new Map(), keyPairs: [],
     seed: '', types: {}, skip: new Set(),
   };
 
@@ -49,14 +49,16 @@
   const opts = () => ({
     seed: DS.seed, factor: parseFloat($('dFactor').value) || 1, shiftDays: parseInt($('dShift').value, 10) || 0,
     types: DS.types, skip: [...DS.skip], custom: custom(),
+    customCase: $('dCustomCase').checked, customForms: $('dCustomForms').checked,
   });
 
   // ---------- Найденное ----------
   function replan() {
     if (!DS.analysis) return;
-    const { rows, repl } = D.plan(DS.analysis.parts, opts());
+    const { rows, repl, keyPairs } = D.plan(DS.analysis.parts, opts());
     DS.rows = rows;
     DS.repl = repl;
+    DS.keyPairs = keyPairs;
     renderTypes();
     renderFound();
     renderPreview();
@@ -79,7 +81,8 @@
       return `<tr data-i="${i}" class="${r.on ? 'active' : ''}">
         <td class="c-chk"><input type="checkbox" data-v="${i}"${r.on ? ' checked' : ''}${typeOn ? '' : ' disabled'} aria-label="Заменять «${esc(r.value)}»"></td>
         <td class="small muted">${esc(D.TYPES[r.type])}</td>
-        <td><span class="rv ${r.on ? 'rv-detected' : 'rv-original'}">${esc(r.value)}</span></td>
+        <td><span class="rv ${r.on ? 'rv-detected' : 'rv-original'}">${esc(r.value)}</span>${r.forms.length
+          ? `<span class="small muted found-forms">также: ${r.forms.map(esc).join(', ')}</span>` : ''}</td>
         <td class="r small">${r.count}</td>
         <td>${r.on ? `<span class="rv rv-token">${esc(r.repl)}</span>` : '<span class="small muted">останется как есть</span>'}</td>
       </tr>`;
@@ -101,6 +104,7 @@
   });
   let customTimer;
   $('dCustom').addEventListener('input', () => { clearTimeout(customTimer); customTimer = setTimeout(replan, 400); });
+  ['dCustomCase', 'dCustomForms'].forEach(id => $(id).addEventListener('change', replan));
   ['dFactor', 'dShift'].forEach(id => $(id).addEventListener('change', replan));
   $('btnDFactor').addEventListener('click', () => { $('dFactor').value = A.factorFromSeed(A.randomSeed()); replan(); });
   $('btnDShift').addEventListener('click', () => { $('dShift').value = A.shiftFromSeed(A.randomSeed()); replan(); });
@@ -166,7 +170,7 @@
       sourceFile: DS.fileName, document: true, sheet: null, sheets: [], headerRow: 1,
       factor: parseFloat($('dFactor').value) || 1, shiftDays: parseInt($('dShift').value, 10) || 0,
       columns: [],
-      dictionaries: [{ name: 'Документ', method: 'doc', prefix: '', columns: [], pairs: [...DS.repl] }],
+      dictionaries: [{ name: 'Документ', method: 'doc', prefix: '', columns: [], pairs: DS.keyPairs }],
       smartDigits: [], smartNames: [], numbers: {},
     };
   }
@@ -188,8 +192,7 @@
         const ws = wb.addWorksheet('Соответствия');
         ws.columns = [{ header: 'Тип', key: 't', width: 18 }, { header: 'Было', key: 'o', width: 50 }, { header: 'Стало', key: 'r', width: 50 }];
         ws.getRow(1).font = { bold: true };
-        const typeOf = new Map(DS.rows.map(r => [r.value, D.TYPES[r.type]]));
-        ws.addRows([...DS.repl].map(([o, r]) => ({ t: typeOf.get(o) || '', o, r })));
+        ws.addRows(DS.rows.filter(r => r.on).map(r => ({ t: D.TYPES[r.type], o: r.keyValue, r: r.repl })));
         const ks = wb.addWorksheet(KEY_SHEET, { state: 'veryHidden' });
         const json = JSON.stringify(key);
         ks.getCell(1, 1).value = 'redact-key';
@@ -212,7 +215,7 @@
       confirm: 'Да, очистить',
     });
     if (!ok) return;
-    Object.assign(DS, { fileName: '', buffer: null, analysis: null, rows: [], repl: new Map(), seed: '', types: {}, skip: new Set() });
+    Object.assign(DS, { fileName: '', buffer: null, analysis: null, rows: [], repl: new Map(), keyPairs: [], seed: '', types: {}, skip: new Set() });
     ['d2', 'd3', 'dClearRow'].forEach(id => $(id).classList.add('hidden'));
     for (const id of ['dFileInfo', 'dSummary', 'dTypes', 'dPreview', 'dWarnings', 'dStats']) $(id).innerHTML = '';
     $('dFound').tBodies[0].innerHTML = '';
