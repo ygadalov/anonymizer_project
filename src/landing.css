@@ -146,17 +146,8 @@ table.data tr.total td { font: 500 15px/22px var(--font-sans); }
 /* столбец с текстом договора переносится, чтобы таблица помещалась без прокрутки на широком экране */
 table.data th.text, table.data td.text { white-space: normal; min-width: 240px; }
 
-/* подсказка (i) к 152-ФЗ — модуль info-tooltip.css в цветах бренда: инверсия ink/paper, рамка вместо тени,
-   без акцентного цвета; в тёмной теме инвертируется сама, через токены */
-:root {
-  --tip-bg: var(--ink); --tip-fg: var(--paper); --tip-strong: var(--paper); --tip-accent: var(--paper);
-  --tip-icon: var(--ink-muted); --tip-icon-hover: var(--ink);
-}
+/* подсказка (i) к 152-ФЗ: цвета — в info-tooltip-redact.css */
 .eyebrow { display: flex; align-items: center; gap: var(--space-1); }
-.info-tip { border-radius: 50%; }
-.info-tip:focus-visible { box-shadow: 0 0 0 2px var(--ink); }
-.tt { font: 400 13px/19px var(--font-sans); border: 1px solid var(--ink); border-radius: var(--radius-md); box-shadow: none; }
-.tt-body b { font-weight: 500; }
 
 /* очищенное значение: в файле пустая ячейка, поэтому в демо — пустое место с пунктиром, а не плашка redact */
 .rv-empty {

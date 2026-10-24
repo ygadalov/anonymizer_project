@@ -125,7 +125,7 @@
     ['step2', 'step3', 'step4'].forEach(id => $(id).classList.add('hidden'));
     $('btnClear').classList.add('hidden');
     $('fileInfo').textContent = '';
-    $('pendingInfo').textContent = 'Сохранённые настройки (JSON) можно загрузить до или после файла с данными.';
+    $('pendingInfo').textContent = '';
     $('sheet').innerHTML = '';
     $('colsTable').tBodies[0].innerHTML = '';
     for (const id of ['rowsInfo', 'settingsInfo', 'previewStats', 'warnings', 'previewTable']) $(id).innerHTML = '';

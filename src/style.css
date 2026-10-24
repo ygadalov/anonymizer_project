@@ -316,3 +316,7 @@ textarea:focus { outline: none; border-color: var(--border-strong); box-shadow: 
 .doc-preview p, .doc-cell { min-width: 0; overflow-wrap: anywhere; }
 .pair-inline .rv { padding: 0 var(--space-1); white-space: normal; overflow-wrap: anywhere; }
 .pair-inline .rv-arrow { margin: 0 2px; }
+
+/* подпись поля с (i) рядом; (i) у флажка — после текста */
+.label-row { display: inline-flex; align-items: center; gap: var(--space-1); }
+.chk .info-tip, .keybox-title .info-tip { margin-left: calc(var(--space-1) * -1); }
