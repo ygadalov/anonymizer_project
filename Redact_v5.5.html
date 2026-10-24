@@ -602,6 +602,41 @@ textarea:focus { outline: none; border-color: var(--border-strong); box-shadow: 
 /* «Добавить своё»: режимы поиска под полем; формы найденного значения — под ним в таблице */
 .custom-modes .chk { min-height: 32px; }
 .found-forms { display: block; margin-top: 2px; }
+
+/* ---------- Справка (src/help.js): панель справа поверх приложения ---------- */
+dialog.help {
+  position: fixed; inset: 0 0 0 auto; margin: 0; width: min(760px, 100vw); height: 100dvh; max-height: none; max-width: none;
+  padding: 0; display: none; flex-direction: column;
+  background: var(--surface); color: var(--ink); border: 0; border-left: 1px solid var(--border);
+}
+dialog.help[open] { display: flex; }
+dialog.help::backdrop { background: color-mix(in srgb, var(--surface-sunken) 75%, transparent); }
+.help-head { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4) var(--space-3) var(--space-6); border-bottom: 1px solid var(--border); }
+.help-head .h2 { margin: 0; }
+.help-nav { display: flex; flex-wrap: wrap; gap: var(--space-2); padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--border); background: var(--surface-sunken); }
+.help-nav a {
+  color: var(--ink); text-decoration: none; padding: 2px var(--space-2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); background: var(--surface); font: 400 13px/20px var(--font-sans);
+}
+.help-nav a:hover { border-color: var(--ink); }
+.help-body { overflow-y: auto; padding: var(--space-2) var(--space-6) var(--space-12); font: 400 15px/24px var(--font-sans); }
+.help-body section { padding-top: var(--space-6); scroll-margin-top: var(--space-2); }
+.help-body h3 { margin: 0 0 var(--space-2); font: 600 18px/26px var(--font-sans); }
+.help-body p { margin: 0 0 var(--space-3); }
+.help-body ul, .help-body ol { margin: 0 0 var(--space-3); padding-left: var(--space-6); display: grid; gap: var(--space-1); }
+.help-body li > ul { margin: var(--space-1) 0 0; }
+.help-body dl { margin: 0; display: grid; gap: var(--space-1); }
+.help-body dt { font-weight: 500; margin-top: var(--space-2); }
+.help-body dd { margin: 0; color: var(--ink-muted); }
+.help-body b { font-weight: 500; }
+.help-methods td { white-space: normal; vertical-align: top; }
+.help-methods td:first-child { white-space: nowrap; }
+.help-irrev { color: var(--danger); }
+@media (max-width: 760px) {
+  .help-head { padding-left: var(--space-4); }
+  .help-nav, .help-body { padding-left: var(--space-4); padding-right: var(--space-4); }
+}
+@media (max-width: 760px) { .hide-sm { display: none; } #btnHelp { width: 40px; padding: 0; } }
 </style>
 <script>
   // тема до отрисовки, чтобы не мигало: сохранённый выбор или системная
@@ -617,6 +652,7 @@ textarea:focus { outline: none; border-color: var(--border-strong); box-shadow: 
 <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></symbol>
 <symbol id="i-circle-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></symbol>
 <symbol id="i-circle-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></symbol>
+<symbol id="i-circle-help" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></symbol>
 <symbol id="i-dices" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="12" height="12" x="2" y="10" rx="2" ry="2" /><path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6" /><path d="M6 18h.01" /><path d="M10 14h.01" /><path d="M15 6h.01" /><path d="M18 9h.01" /></symbol>
 <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></symbol>
 <symbol id="i-eraser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" /><path d="M22 21H7" /><path d="m5 11 9 9" /></symbol>
@@ -643,6 +679,7 @@ textarea:focus { outline: none; border-color: var(--border-strong); box-shadow: 
 <symbol id="i-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" x2="12" y1="3" y2="15" /></symbol>
 <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></symbol>
 <symbol id="i-wand-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72" /><path d="m14 7 3 3" /><path d="M5 6v4" /><path d="M19 14v4" /><path d="M10 2v2" /><path d="M7 8H3" /><path d="M21 16h-4" /><path d="M11 3H9" /></symbol>
+<symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></symbol>
 </svg>
 <!-- icons:end -->
 <header class="appbar">
@@ -653,6 +690,7 @@ textarea:focus { outline: none; border-color: var(--border-strong); box-shadow: 
     </a>
     <span class="chip mono-small" id="appVersion"></span>
     <span class="spacer"></span>
+    <button class="btn ghost" id="btnHelp" title="Справка по работе с Redact (F1)"><svg class="i i20" aria-hidden="true"><use href="#i-circle-help"></use></svg><span class="hide-sm">Справка</span></button>
     <button class="btn ghost icon-only" id="btnTheme" title="Сменить тему" aria-label="Сменить тему"><svg class="i i20 when-light" aria-hidden="true"><use href="#i-moon"></use></svg><svg class="i i20 when-dark" aria-hidden="true"><use href="#i-sun"></use></svg></button>
   </div>
 </header>
@@ -2300,7 +2338,7 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
 </script>
 <script>
 // Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
-window.ANON_VERSION = '5.4';
+window.ANON_VERSION = '5.5';
 
 </script>
 <script>
@@ -5440,6 +5478,223 @@ if (typeof module !== 'undefined' && module.exports) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     toast('Готово к новому документу');
   });
+})();
+
+</script>
+<script>
+/*
+ * Справка по работе с Redact — панель поверх приложения (кнопка «Справка» в шапке или F1).
+ * Встроена в файл: справка доступна без интернета, там же, где приложение.
+ * Таблица методов строится из engine.js (METHODS, METHOD_HINTS, IRREVERSIBLE), чтобы не расходиться с программой.
+ */
+(function () {
+  'use strict';
+  const { $, icon, esc } = window.RedactUI;
+  const A = window.Anon;
+
+  const SECTIONS = [
+    ['h-about', 'Коротко'],
+    ['h-table', 'Таблица Excel'],
+    ['h-methods', 'Методы'],
+    ['h-doc', 'Документ Word'],
+    ['h-restore', 'Восстановление'],
+    ['h-key', 'Ключ и параметры'],
+    ['h-external', 'Для внешней передачи'],
+    ['h-limits', 'Ограничения'],
+    ['h-faq', 'Вопросы'],
+  ];
+
+  function methodsTable() {
+    const seen = new Map();
+    for (const [type, list] of Object.entries(A.METHODS)) {
+      for (const [k, name] of list) {
+        if (k === 'keep') continue;
+        if (!seen.has(k)) seen.set(k, { name, types: [] });
+        seen.get(k).types.push(A.TYPE_NAMES[type]);
+      }
+    }
+    return `<div class="table-scroll"><table class="data help-methods">
+      <thead><tr><th>Метод</th><th>Для столбцов</th><th>Что делает</th><th>По ключу</th></tr></thead>
+      <tbody>${[...seen].map(([k, m]) => `<tr>
+        <td>${esc(m.name)}</td>
+        <td class="small muted">${esc(m.types.join(', '))}</td>
+        <td class="small">${esc(A.METHOD_HINTS[k] || '').replace(/\. Необратимо[^.]*$|\. Значение удаляется[^.]*$/, '')}</td>
+        <td class="small">${A.IRREVERSIBLE.has(k) ? '<span class="help-irrev">не вернуть</span>' : 'возвращается'}</td>
+      </tr>`).join('')}</tbody></table></div>`;
+  }
+
+  const content = () => `
+    <section id="h-about">
+      <h3>Коротко</h3>
+      <p>Redact скрывает в файле персональные данные и коммерческую тайну — ФИО, контрагентов, ИНН, счета, суммы и даты —
+        так, чтобы файл можно было отдать аудитору, подрядчику или ИИ-сервису. Структура остаётся: таблицу можно сводить
+        и считать, итоги сходятся, интервалы между датами сохраняются.</p>
+      <ul>
+        <li><b>Файл никуда не отправляется.</b> Всё происходит в браузере на вашем компьютере; Redact работает и без интернета.</li>
+        <li><b>Исходный файл не меняется:</b> результат скачивается отдельным файлом <span class="mono-small">&lt;имя&gt;_redact</span>.</li>
+        <li><b>Ключ соответствий</b> остаётся у вас: по нему можно вернуть настоящие данные — в этот файл или в ответ на него.</li>
+      </ul>
+      <p>Вкладки: <b>Таблица Excel</b> (.xlsx, .xlsm, .xls, .csv), <b>Документ Word</b> (.docx)
+        и <b>Восстановить по ключу</b>. У полей и флажков есть подсказки (i) — наведите курсор или нажмите.</p>
+    </section>
+
+    <section id="h-table">
+      <h3>Таблица Excel</h3>
+      <ol>
+        <li><b>Файл с данными.</b> Перетащите файл или нажмите на область загрузки. Если настройки уже сохранялись,
+          загрузите их кнопкой «Загрузить настройки» — до или после файла.</li>
+        <li><b>Столбцы и методы.</b> Выберите лист и строку заголовков (Redact находит её сам). Затем:
+          <ul>
+            <li>«Подобрать методы» — метод получают столбцы, по названию которых понятно, что в них (контрагент, ИНН, договор, сумма, дата);</li>
+            <li>«Обезличить все» — метод получает каждый столбец, и только такой, что возвращается по ключу;</li>
+            <li>метод любого столбца можно выбрать вручную в списке; «Оставить» — столбец не меняется.</li>
+          </ul>
+          Строки «Итого» и «Всего» по умолчанию не обезличиваются, а их суммы пересчитываются, чтобы итог сходился.</li>
+        <li><b>Общие параметры:</b> секретная фраза, коэффициент для сумм, сдвиг дат и флажки очистки (свойства файла,
+          примечания, колонтитулы, листы без обезличивания).</li>
+        <li><b>Проверка и результат.</b> В предпросмотре <span class="rv rv-detected">найдено</span> — исходное значение,
+          <span class="rv rv-token">замена</span> — новое. Проверьте блок «Проверьте перед выгрузкой», затем нажмите
+          «Обезличить и скачать» и <b>скачайте ключ</b> — без него вернуть данные будет нельзя.</li>
+      </ol>
+      <p>«Сохранить настройки» на шаге 2 запоминает методы по столбцам, лист и флажки в файл .json — в следующий раз
+        такую же выгрузку можно настроить одной кнопкой.</p>
+    </section>
+
+    <section id="h-methods">
+      <h3>Методы</h3>
+      <p>Метод задаётся для каждого столбца. «Возвращается» — исходное значение восстанавливается по ключу;
+        «не вернуть» — значение меняется безвозвратно, Redact предупреждает об этом при выборе и перед выгрузкой.</p>
+      ${methodsTable()}
+    </section>
+
+    <section id="h-doc">
+      <h3>Документ Word</h3>
+      <ol>
+        <li><b>Документ.</b> Загрузите файл .docx. Старый .doc сначала сохраните в Word как .docx.</li>
+        <li><b>Что найдено.</b> Redact сам находит организации с формой (ООО, АО, ИП), ФИО с отчеством или инициалами
+          в любом падеже, ИНН, ОГРН, КПП, БИК, счета, СНИЛС, паспорта, телефоны, эл. почту, суммы с валютой, сумму
+          прописью и даты. Снимите флажок у типа или отдельного значения, чтобы оставить его как есть.</li>
+        <li><b>Добавить своё</b> — то, что по шаблонам не находится: адреса, названия без формы организации, фамилии
+          без инициалов, названия проектов. Каждое значение с новой строки.
+          <ul>
+            <li>«Во всех падежах» (включён): «Вересков» найдёт и «Верескова», «Вересковым»; все формы получат одну замену;</li>
+            <li>«Учитывать регистр» (выключен): без него «Вересков» найдёт и «ВЕРЕСКОВ»;</li>
+            <li>нужно вернуть по ключу «один в один» — выключите «Во всех падежах» и включите «Учитывать регистр».</li>
+          </ul></li>
+        <li><b>Проверка и результат.</b> Просмотрите текст с заменами, скачайте документ и ключ. Оформление не меняется;
+          заменяется везде — в тексте, таблицах, колонтитулах, сносках и примечаниях. Флажками можно принять исправления
+          (удалённый текст пропадёт из файла), удалить примечания и очистить свойства файла.</li>
+      </ol>
+      <p>Вымышленные ФИО ставятся в том же падеже, что и исходные, а подпись с инициалами остаётся тем же человеком.</p>
+    </section>
+
+    <section id="h-restore">
+      <h3>Восстановление по ключу</h3>
+      <ol>
+        <li>Выберите обезличенный файл или файл, который прислали в ответ (.xlsx, .xls, .csv или .docx).</li>
+        <li>Выберите ключ (.redactkey или _KEY.xlsx). Если ключ с паролем — введите пароль.</li>
+        <li>Проверьте предпросмотр и скачайте файл <span class="mono-small">&lt;имя&gt;_restored</span>.</li>
+      </ol>
+      <p>В таблице Redact сопоставляет столбцы по названиям, поэтому получатель может переставлять столбцы и добавлять свои.
+        Псевдонимы возвращаются и внутри нового текста — например, в выводах аналитика: «Контрагент 002 — крупнейший
+        контрагент» станет «ВЕРЕСКОВ ООО — крупнейший контрагент». Суммы делятся на коэффициент, даты сдвигаются обратно.</p>
+    </section>
+
+    <section id="h-key">
+      <h3>Ключ и параметры</h3>
+      <dl>
+        <dt>Ключ соответствий</dt>
+        <dd>Таблица «было → стало» и параметры обработки. С паролем сохраняется зашифрованным файлом .redactkey
+          (без пароля его не открыть); без пароля — обычной таблицей Excel, которую может открыть любой.
+          <b>Храните ключ отдельно от обезличенного файла и не отправляйте их вместе.</b></dd>
+        <dt>Секретная фраза</dt>
+        <dd>От неё зависят замены: с той же фразой, например, контрагент «ВЕРЕСКОВ» и через месяц станет
+          «Контрагент 017» — выгрузки за разные периоды можно сравнивать. Для восстановления не нужна: оно идёт по ключу.</dd>
+        <dt>Коэффициент и сдвиг дат</dt>
+        <dd>Суммы с методом «Умножить на коэффициент» умножаются на одно число, даты с методом «Сдвинуть даты» сдвигаются
+          на одно число дней. Кнопка с кубиком выбирает новое случайное значение.</dd>
+        <dt>Файл настроек</dt>
+        <dd>Методы по столбцам и флажки. Секретная фраза, коэффициент и сдвиг попадают в него, только если включить
+          соответствующий флажок на шаге 3, — тогда храните его так же отдельно, как ключ.</dd>
+      </dl>
+    </section>
+
+    <section id="h-external">
+      <h3>Для внешней передачи</h3>
+      <p>Обычная выгрузка — псевдонимизация: по ключу данные возвращаются. Кнопка <b>«Для внешней передачи»</b>
+        на шаге 4 делает файл, который вернуть нельзя никому: параметры одноразовые и нигде не сохраняются, ключ не создаётся,
+        все суммы умножаются, даты сдвигаются. Подходит, когда ответ получателя восстанавливать не нужно.</p>
+    </section>
+
+    <section id="h-limits">
+      <h3>Ограничения</h3>
+      <ul>
+        <li>Redact находит данные по названиям столбцов и шаблонам, но не понимает смысл текста: <b>всегда проверяйте предпросмотр</b>.</li>
+        <li>Если получатель знает несколько точных сумм, по ним можно вычислить коэффициент — тогда для сумм выбирайте
+          «Случайное отклонение ±%».</li>
+        <li>.xls (Excel 97–2003) сохраняется в .xlsx без шрифтов, заливки и рамок; значения, форматы чисел, ширина
+          столбцов и объединения на месте. Сводные таблицы и диаграммы могут не сохраниться — лучше обезличивать «плоскую» выгрузку.</li>
+        <li>В Word картинки (сканы подписей и печатей) и вложенные объекты остаются как есть.</li>
+        <li>PDF и сканы пока не поддерживаются.</li>
+      </ul>
+    </section>
+
+    <section id="h-faq">
+      <h3>Вопросы</h3>
+      <dl>
+        <dt>Почта не даёт отправить файл Redact или пишет о вирусе</dt>
+        <dd>Почтовые сервисы с подозрением относятся к большим HTML-файлам со встроенными программами. Передавайте Redact
+          через облачное хранилище или общую папку.</dd>
+        <dt>После восстановления остались псевдонимы</dt>
+        <dd>Проверьте, что выбран ключ именно от этой выгрузки. Если получатель переименовал столбцы, Redact не сопоставит
+          их по названиям — верните исходные названия. Значения с необратимыми методами не возвращаются.</dd>
+        <dt>Как сообщить о проблеме</dt>
+        <dd>Опишите шаги и приложите снимок экрана и версию из шапки (например, v${esc(A.VERSION)}).
+          <b>Не пересылайте исходные файлы с настоящими данными</b> — при необходимости сделайте пример с вымышленными.</dd>
+      </dl>
+    </section>`;
+
+  let dlg = null;
+  function open(id) {
+    const back = document.activeElement;
+    if (!dlg) {
+      dlg = document.createElement('dialog');
+      dlg.className = 'help';
+      dlg.setAttribute('aria-labelledby', 'helpTitle');
+      dlg.innerHTML = `
+        <div class="help-head">
+          ${icon('circle-help', 'i i20')}<h2 class="h2" id="helpTitle">Справка</h2>
+          <span class="chip mono-small">v${esc(A.VERSION)}</span>
+          <span class="spacer"></span>
+          <button type="button" class="btn ghost icon-only" data-close aria-label="Закрыть справку" title="Закрыть (Esc)">${icon('x', 'i i20')}</button>
+        </div>
+        <nav class="help-nav" aria-label="Разделы справки">${SECTIONS.map(([sid, t]) => `<a href="#${sid}">${esc(t)}</a>`).join('')}</nav>
+        <div class="help-body">${content()}</div>`;
+      document.body.appendChild(dlg);
+      dlg.addEventListener('click', ev => {
+        if (ev.target.closest('[data-close]') || ev.target === dlg) { dlg.close(); return; }
+        const a = ev.target.closest('.help-nav a');
+        if (a) {
+          ev.preventDefault();
+          dlg.querySelector(a.getAttribute('href')).scrollIntoView({ block: 'start', behavior: 'smooth' });
+        }
+      });
+      dlg.addEventListener('close', () => { if (dlg._back && dlg._back.isConnected) dlg._back.focus(); });
+    }
+    dlg._back = back;
+    dlg.showModal();
+    const body = dlg.querySelector('.help-body');
+    if (id) dlg.querySelector('#' + id).scrollIntoView({ block: 'start' });
+    else body.scrollTop = 0;
+    dlg.querySelector('[data-close]').focus();
+  }
+
+  $('btnHelp').addEventListener('click', () => open());
+  // F1 — справка, как в настольных программах
+  document.addEventListener('keydown', ev => {
+    if (ev.key === 'F1') { ev.preventDefault(); if (!(dlg && dlg.open)) open(); }
+  });
+  window.RedactUI.help = open;
 })();
 
 </script>

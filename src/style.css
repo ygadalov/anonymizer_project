@@ -324,3 +324,38 @@ textarea:focus { outline: none; border-color: var(--border-strong); box-shadow: 
 /* «Добавить своё»: режимы поиска под полем; формы найденного значения — под ним в таблице */
 .custom-modes .chk { min-height: 32px; }
 .found-forms { display: block; margin-top: 2px; }
+
+/* ---------- Справка (src/help.js): панель справа поверх приложения ---------- */
+dialog.help {
+  position: fixed; inset: 0 0 0 auto; margin: 0; width: min(760px, 100vw); height: 100dvh; max-height: none; max-width: none;
+  padding: 0; display: none; flex-direction: column;
+  background: var(--surface); color: var(--ink); border: 0; border-left: 1px solid var(--border);
+}
+dialog.help[open] { display: flex; }
+dialog.help::backdrop { background: color-mix(in srgb, var(--surface-sunken) 75%, transparent); }
+.help-head { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4) var(--space-3) var(--space-6); border-bottom: 1px solid var(--border); }
+.help-head .h2 { margin: 0; }
+.help-nav { display: flex; flex-wrap: wrap; gap: var(--space-2); padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--border); background: var(--surface-sunken); }
+.help-nav a {
+  color: var(--ink); text-decoration: none; padding: 2px var(--space-2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); background: var(--surface); font: 400 13px/20px var(--font-sans);
+}
+.help-nav a:hover { border-color: var(--ink); }
+.help-body { overflow-y: auto; padding: var(--space-2) var(--space-6) var(--space-12); font: 400 15px/24px var(--font-sans); }
+.help-body section { padding-top: var(--space-6); scroll-margin-top: var(--space-2); }
+.help-body h3 { margin: 0 0 var(--space-2); font: 600 18px/26px var(--font-sans); }
+.help-body p { margin: 0 0 var(--space-3); }
+.help-body ul, .help-body ol { margin: 0 0 var(--space-3); padding-left: var(--space-6); display: grid; gap: var(--space-1); }
+.help-body li > ul { margin: var(--space-1) 0 0; }
+.help-body dl { margin: 0; display: grid; gap: var(--space-1); }
+.help-body dt { font-weight: 500; margin-top: var(--space-2); }
+.help-body dd { margin: 0; color: var(--ink-muted); }
+.help-body b { font-weight: 500; }
+.help-methods td { white-space: normal; vertical-align: top; }
+.help-methods td:first-child { white-space: nowrap; }
+.help-irrev { color: var(--danger); }
+@media (max-width: 760px) {
+  .help-head { padding-left: var(--space-4); }
+  .help-nav, .help-body { padding-left: var(--space-4); padding-right: var(--space-4); }
+}
+@media (max-width: 760px) { .hide-sm { display: none; } #btnHelp { width: 40px; padding: 0; } }
