@@ -191,3 +191,10 @@ table.data td .rv-detected, table.data td .rv-token { white-space: nowrap; }
 
 /* метод под названием столбца в таблице «стало» */
 table.data th .th-m { display: block; font: 400 12px/16px var(--font-sans); letter-spacing: 0; color: var(--ink-muted); opacity: 0.8; }
+
+/* удаляемый раздел в примере договора: зачёркнут на сером фоне (как в «Структуре документа» Redact); в результате — пометка */
+.doc-cut { display: grid; gap: var(--space-1); background: var(--surface-sunken); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); }
+.doc-cut p { text-decoration: line-through; color: var(--ink-muted); }
+.doc-page .doc-h { font-weight: 500; }
+.doc-mark { font-style: italic; color: var(--ink-muted); }
+.doc-cut-sample { background: var(--surface-sunken); text-decoration: line-through; padding: 0 var(--space-1); border-radius: var(--radius-bar); }
