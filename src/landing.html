@@ -154,10 +154,15 @@
     <div class="demo-pane" id="demoDoc" role="tabpanel" aria-labelledby="tabDoc" hidden>
     <div class="demo-head">
       <span class="caption muted">Исходный договор</span>
-      <span class="legend small"><span class="rv rv-detected">найдено</span></span>
+      <span class="legend-group"><span class="legend small"><span class="rv rv-detected">найдено</span></span>
+        <span class="legend small"><span class="doc-cut-sample">раздел</span> удаляется</span></span>
     </div>
     <div class="doc-page">
       <p>Общество с ограниченной ответственностью «<span class="rv-detected">Вересков</span>» (ИНН <span class="rv-detected">7748214918</span>), в лице генерального директора <span class="rv-detected">Мирошева Глеба Аркадьевича</span>, и ИП <span class="rv-detected">Образцова Анна Ильинична</span>, тел. <span class="rv-detected">+7 (495) 123-45-67</span>, заключили договор на сумму <span class="rv-detected">1 250 000,00</span> руб. (<span class="rv-detected">Один миллион двести пятьдесят тысяч рублей 00 копеек</span>) со сроком поставки до <span class="rv-detected">03.06.2025</span>.</p>
+      <div class="doc-cut" aria-label="Раздел, который удаляется">
+        <p class="doc-h">4. Особые условия</p>
+        <p>Покупателю предоставляется скидка 12 % и отсрочка платежа 90 дней. Условия не подлежат разглашению.</p>
+      </div>
       <p>Поставщик _____________ /<span class="rv-detected">Мирошев Г. А.</span>/&emsp;&emsp;Покупатель _____________ /<span class="rv-detected">А. И. Образцова</span>/</p>
     </div>
     <div class="demo-arrow" aria-hidden="true"><svg class="i i20"><use href="#i-arrow-right"></use></svg></div>
@@ -167,12 +172,14 @@
     </div>
     <div class="doc-page">
       <p>Общество с ограниченной ответственностью «<span class="rv-token">Контрагент 001</span>» (ИНН <span class="rv-token">7779267510</span>), в лице генерального директора <span class="rv-token">Сергеева Максима Викторовича</span>, и ИП <span class="rv-token">Голубева Алина Михайловна</span>, тел. <span class="rv-token">+7 (836) 279-61-82</span>, заключили договор на сумму <span class="rv-token">1 705 750,00</span> руб. (<span class="rv-token">сумма прописью 001</span>) со сроком поставки до <span class="rv-token">19.02.2026</span>.</p>
+      <p class="doc-mark">[Раздел удалён]</p>
       <p>Поставщик _____________ /<span class="rv-token">Сергеев М. В.</span>/&emsp;&emsp;Покупатель _____________ /<span class="rv-token">А. М. Голубева</span>/</p>
     </div>
     <p class="demo-note small muted">Данные вымышленные, замены — настоящий результат Redact. Столбцов в документе нет,
       поэтому Redact сам находит реквизиты, организации, ФИО, телефоны, суммы и даты. Вымышленные ФИО ставятся в том же
       падеже, а подпись с инициалами остаётся тем же человеком. Заменяется и в таблицах, колонтитулах, сносках
-      и примечаниях; удалённый в режиме исправлений текст и авторы правок убираются из файла.</p>
+      и примечаниях; удалённый в режиме исправлений текст и авторы правок убираются из файла. Ненужный получателю раздел
+      удаляется целиком — с пометкой, как здесь, или без следа.</p>
     </div>
   </div>
 </div></section>
