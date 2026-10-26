@@ -359,3 +359,40 @@ dialog.help::backdrop { background: color-mix(in srgb, var(--surface-sunken) 75%
   .help-nav, .help-body { padding-left: var(--space-4); padding-right: var(--space-4); }
 }
 @media (max-width: 760px) { .hide-sm { display: none; } #btnHelp { width: 40px; padding: 0; } }
+
+/* ---------- Удаление разделов и абзацев (вкладка «Документ Word», шаг 2) ---------- */
+.doc-cut { margin-top: var(--space-6); padding-top: var(--space-4); border-top: 1px solid var(--border); display: grid; gap: var(--space-3); }
+.doc-cut-title { display: flex; align-items: center; gap: var(--space-2); margin: 0; }
+.doc-outline {
+  max-height: 420px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.ol-row {
+  display: flex; align-items: flex-start; gap: var(--space-2); padding: var(--space-1) var(--space-3) var(--space-1) 0;
+  border-bottom: 1px solid var(--border); font: 400 14px/20px var(--font-sans);
+}
+.ol-row:last-child { border-bottom: 0; }
+.ol-row .btn.icon-only { width: 32px; height: 28px; flex: none; color: var(--ink-muted); }
+.ol-row .btn.icon-only:hover { color: var(--ink); }
+.ol-text { flex: 1; min-width: 0; padding-top: 4px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.ol-row.h .ol-text { font-weight: 500; }
+.ol-row { padding-left: var(--ind, 0px); }
+.ol-row.tbl .ol-text, .ol-row.img .ol-text { color: var(--ink-muted); }
+.ol-row.cut { background: var(--surface-sunken); }
+.ol-row.cut .ol-text { text-decoration: line-through; color: var(--ink-muted); }
+.ol-row.cut .btn.icon-only { color: var(--ink); }
+.ol-tag { flex: none; padding-top: 4px; font: 400 12px/20px var(--font-sans); color: var(--ink-muted); }
+
+/* предпросмотр документа целиком — как страница: абзацы без рамок, заголовки, таблицы с чертой слева, пометки удалённого */
+.doc-preview.full { display: block; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); padding: var(--space-3) var(--space-6); }
+.doc-preview.full p { border: 0; border-radius: 0; background: none; padding: var(--space-1) 0; }
+.doc-preview.full p.h { font-weight: 500; padding-top: var(--space-3); }
+.doc-preview.full p.tbl { border-left: 2px solid var(--border); padding-left: var(--space-3); }
+.doc-preview p.cut-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-2); color: var(--ink-muted); }
+.cut-line .mark { font-style: italic; color: var(--ink); }
+.cut-line .cut-what { text-decoration: line-through; }
+.cut-line .cut-note { font: 400 13px/20px var(--font-sans); }
+.doc-preview.full .doc-part { display: inline; margin: 0 var(--space-2) 0 0; }
+.legend .spacer { flex: 1; }
+/* номер автонумерации Word в предпросмотре — как в документе, перед текстом абзаца */
+.num-label { display: inline-block; min-width: 2.5em; margin-right: var(--space-1); }

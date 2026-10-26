@@ -244,12 +244,24 @@
     return new RegExp(`(?<![\\p{L}\\p{N}])${words.join('[\\s\\u00a0]+')}(?![\\p{L}\\p{N}])`, matchCase ? 'gu' : 'giu');
   }
 
+  // Сегменты с текстом, кроме удаляемых разделов и абзацев (cut — диапазоны [начало, конец) в word/document.xml)
+  function liveSegs(parts, cut = []) {
+    const out = [];
+    for (const p of parts) for (const s of p.segs) {
+      if (s.kind !== 'text') continue;
+      if (cut.length && p.name === 'word/document.xml' && cut.some(([a, b]) => s.nodes[0].start >= a && s.nodes[0].start < b)) continue;
+      out.push([p, s]);
+    }
+    return out;
+  }
+
   function plan(parts, opts) {
     const seed = opts.seed || 'redact-docx';
     const factor = Number(opts.factor) || 1, shift = Math.round(Number(opts.shiftDays) || 0);
     const enabled = opts.types || Object.fromEntries(Object.keys(TYPES).map(t => [t, true]));
     const skip = new Set(opts.skip || []);
-    const allText = parts.map(p => p.segs.filter(s => s.kind === 'text').map(s => s.text).join('\n')).join('\n');
+    const live = liveSegs(parts, opts.cut);
+    const allText = live.map(([, s]) => s.text).join('\n');
 
     // 1. Что найдено: значение → { type, count, info }
     const found = new Map();
@@ -257,7 +269,7 @@
       const f = found.get(h.value);
       if (f) f.count++; else found.set(h.value, { type: h.type, count: 1, info: h.info, value: h.value });
     };
-    for (const p of parts) for (const s of p.segs) if (s.kind === 'text') detect(s.text).forEach(note);
+    for (const [, s] of live) detect(s.text).forEach(note);
     // «Добавить своё»: без учёта регистра (по умолчанию) и во всех падежах — все найденные формы получают одну замену
     const claimed = new Set(found.keys());
     for (const c of opts.custom || []) {
@@ -432,6 +444,9 @@
     const parts = await readParts(zip);
     if (!parts.some(p => p.name === 'word/document.xml')) throw new Error('это не документ Word: в архиве нет word/document.xml');
     const { rows, repl } = plan(parts, opts);
+    const stylesXml = zip.file('word/styles.xml') ? await zip.file('word/styles.xml').async('string') : '';
+    const styles = headingStyles(stylesXml);
+    const numbering = numberingDefs(zip.file('word/numbering.xml') ? await zip.file('word/numbering.xml').async('string') : '', stylesXml);
     const names = Object.keys(zip.files);
     const doc = parts.find(p => p.name === 'word/document.xml').xml;
     const info = {
@@ -441,7 +456,7 @@
       revisions: (doc.match(/<w:(del|ins|moveFrom|moveTo)\b/g) || []).length,
       paragraphs: parts.reduce((n, p) => n + p.segs.filter(s => s.kind === 'text').length, 0),
     };
-    return { parts, rows, repl, info };
+    return { parts, rows, repl, info, blocks: blocksOf(doc, styles), numbering };
   }
 
   // Записанные исправления: удалённый текст убирается из файла, вставленный становится обычным
@@ -459,10 +474,20 @@
   // Авторы правок и примечаний
   const dropAuthors = xml => xml.replace(/\sw:author="[^"]*"/g, ' w:author="Автор"').replace(/\sw:initials="[^"]*"/g, ' w:initials=""');
 
-  // Обезличивание: zip изменяется на месте. opts: repl (Map), clean: { revisions, comments, meta }
-  async function redactDocx(zip, { repl, clean = {} }) {
+  // Обезличивание: zip изменяется на месте. opts: repl (Map), clean: { revisions, comments, meta },
+  // cut — номера удаляемых блоков (blocksOf), mode — 'full' или 'mark'
+  async function redactDocx(zip, { repl, clean = {}, cut = new Set(), mode = 'full' }) {
     const finder = dictFinder(repl);
-    let replaced = 0;
+    let replaced = 0, removedFiles = 0;
+    // сначала удаление разделов: номера блоков — по исходному тексту, тому же, что видел пользователь
+    if (cut.size) {
+      const doc = await zip.file('word/document.xml').async('string');
+      const styles = zip.file('word/styles.xml') ? headingStyles(await zip.file('word/styles.xml').async('string')) : new Map();
+      const c = cutBlocks(doc, blocksOf(doc, styles), cut, mode);
+      const after = await cleanAfterCut(zip, c.xml, c.removed);
+      removedFiles = after.removedFiles;
+      zip.file('word/document.xml', after.xml);
+    }
     for (const name of Object.keys(zip.files).filter(n => TEXT_PART.test(n))) {
       let xml = await zip.file(name).async('string');
       if (clean.revisions) xml = acceptRevisions(xml);
@@ -487,7 +512,7 @@
     }
     if (zip.file('word/people.xml')) zip.file('word/people.xml', (await zip.file('word/people.xml').async('string')).replace(/<w15:person\b[\s\S]*?<\/w15:person>/g, ''));
     if (clean.meta) await clearMeta(zip);
-    return { replaced };
+    return { replaced, removedFiles };
   }
 
   async function clearMeta(zip) {
@@ -528,11 +553,10 @@
   }
 
   // Текст документа для предпросмотра: абзацы с найденным, разметка [исходное → замена]
-  function previewParagraphs(parts, repl, limit = 60) {
+  function previewParagraphs(parts, repl, limit = 60, cut = []) {
     const finder = dictFinder(repl);
     const out = [];
-    for (const p of parts) for (const s of p.segs) {
-      if (s.kind !== 'text') continue;
+    for (const [p, s] of liveSegs(parts, cut)) {
       const f = finder(s.text);
       if (!f.length) continue;
       const pieces = [];
@@ -549,7 +573,360 @@
     return out;
   }
 
-  const api = { TYPES, detect, customPattern, segmentsOf, rewrite, dictFinder, plan, shiftDate, innValid, analyzeDocx, redactDocx, restoreDocx, previewParagraphs, acceptRevisions };
+  // ---------- Автонумерация Word для предпросмотра ----------
+  // Номера списков Word рисует сам при открытии — в тексте документа их нет. Чтобы предпросмотр совпадал с документом,
+  // номера считаются по numbering.xml: формат уровня («%1.%2.»), начало, вид цифр. numPr — у абзаца или в его стиле.
+  function numberingDefs(numberingXml, stylesXml) {
+    const abs = new Map(), nums = new Map(), styleNum = new Map();
+    for (const m of (numberingXml || '').matchAll(/<w:abstractNum\b[^>]*w:abstractNumId="(\d+)"[^>]*>([\s\S]*?)<\/w:abstractNum>/g)) {
+      const lvls = [];
+      for (const l of m[2].matchAll(/<w:lvl\b[^>]*w:ilvl="(\d)"[^>]*>([\s\S]*?)<\/w:lvl>/g)) {
+        const v = tag => (new RegExp(`<w:${tag} w:val="([^"]*)"`).exec(l[2]) || [])[1];
+        lvls[+l[1]] = { start: +(v('start') || 1), fmt: v('numFmt') || 'decimal', text: v('lvlText') ?? `%${+l[1] + 1}.` };
+      }
+      abs.set(m[1], lvls);
+    }
+    for (const m of (numberingXml || '').matchAll(/<w:num\b[^>]*w:numId="(\d+)"[^>]*>([\s\S]*?)<\/w:num>/g)) {
+      const a = /<w:abstractNumId w:val="(\d+)"/.exec(m[2]);
+      const starts = new Map([...m[2].matchAll(/<w:lvlOverride w:ilvl="(\d)">(?:(?!<\/w:lvlOverride>)[\s\S])*?<w:startOverride w:val="(\d+)"/g)].map(x => [+x[1], +x[2]]));
+      if (a) nums.set(m[1], { abs: a[1], starts });
+    }
+    const styles = new Map();
+    for (const m of (stylesXml || '').matchAll(/<w:style\b[^>]*w:styleId="([^"]+)"[^>]*>([\s\S]*?)<\/w:style>/g)) {
+      const based = /<w:basedOn w:val="([^"]+)"/.exec(m[2]);
+      const id = /<w:numId w:val="(\d+)"/.exec(m[2]), lvl = /<w:ilvl w:val="(\d)"/.exec(m[2]);
+      styles.set(m[1], { based: based && based[1], numId: id && id[1], ilvl: lvl ? +lvl[1] : undefined });
+    }
+    for (const id of styles.keys()) {
+      let st = styles.get(id), numId, ilvl, guard = 0;
+      while (st && guard++ < 20) { if (numId === undefined && st.numId) numId = st.numId; if (ilvl === undefined && st.ilvl !== undefined) ilvl = st.ilvl; st = st.based && styles.get(st.based); }
+      if (numId) styleNum.set(id, { numId, ilvl: ilvl || 0 });
+    }
+    return { abs, nums, styleNum };
+  }
+  const ROMAN = [[1000, 'm'], [900, 'cm'], [500, 'd'], [400, 'cd'], [100, 'c'], [90, 'xc'], [50, 'l'], [40, 'xl'], [10, 'x'], [9, 'ix'], [5, 'v'], [4, 'iv'], [1, 'i']];
+  const RU = 'абвгдежзиклмнопрстуфхцчшщэюя';
+  function fmtNum(n, fmt) {
+    const letters = abc => { const k = (n - 1) % abc.length, rep = Math.floor((n - 1) / abc.length) + 1; return abc[k].repeat(rep); };
+    switch (fmt) {
+      case 'decimalZero': return String(n).padStart(2, '0');
+      case 'lowerLetter': return letters('abcdefghijklmnopqrstuvwxyz');
+      case 'upperLetter': return letters('abcdefghijklmnopqrstuvwxyz').toUpperCase();
+      case 'russianLower': return letters(RU);
+      case 'russianUpper': return letters(RU).toUpperCase();
+      case 'lowerRoman': case 'upperRoman': {
+        let r = '', x = n; for (const [v, t] of ROMAN) while (x >= v) { r += t; x -= v; }
+        return fmt === 'upperRoman' ? r.toUpperCase() : r;
+      }
+      case 'bullet': return '•';
+      case 'none': return '';
+      default: return String(n);
+    }
+  }
+  // Счётчик на один проход по документу: next(xml абзаца) → «2.1.» или ''
+  function numberer(defs) {
+    const counters = new Map();
+    return pXml => {
+      if (!defs) return '';
+      const pPr = (/<w:pPr\b[\s\S]*?<\/w:pPr>/.exec(pXml) || [''])[0];
+      let numId = (/<w:numId w:val="(\d+)"/.exec(pPr) || [])[1];
+      let ilvl = (/<w:ilvl w:val="(\d)"/.exec(pPr) || [])[1];
+      const st = /<w:pStyle w:val="([^"]+)"/.exec(pPr);
+      const sn = st && defs.styleNum.get(st[1]);
+      if (numId === undefined && sn) { numId = sn.numId; if (ilvl === undefined) ilvl = sn.ilvl; }
+      if (!numId || numId === '0') return '';
+      const num = defs.nums.get(numId), lvls = num && defs.abs.get(num.abs);
+      if (!lvls) return '';
+      ilvl = +(ilvl || 0);
+      const lv = lvls[ilvl];
+      if (!lv) return '';
+      const c = counters.get(numId) || [];
+      const startOf = k => num.starts.has(k) ? num.starts.get(k) : (lvls[k] ? lvls[k].start : 1);
+      c[ilvl] = c[ilvl] === undefined ? startOf(ilvl) : c[ilvl] + 1;
+      c.length = ilvl + 1;
+      counters.set(numId, c);
+      if (lv.fmt === 'bullet') return '•';
+      return lv.text.replace(/%(\d)/g, (m, k) => { k = +k - 1; return fmtNum(c[k] === undefined ? startOf(k) : c[k], lvls[k] ? lvls[k].fmt : 'decimal'); });
+    };
+  }
+  const paraXmlAt = (xml, at) => {
+    const a = Math.max(xml.lastIndexOf('<w:p>', at), xml.lastIndexOf('<w:p ', at));
+    const b = xml.indexOf('</w:p>', at);
+    return a < 0 || b < 0 ? '' : xml.slice(a, b + 6);
+  };
+
+  // Предпросмотр всего документа по порядку: абзацы основного текста (с заголовками и таблицами), затем колонтитулы,
+  // сноски и примечания. Удалённое не показывается, а в режиме «С пометкой» — одна строка на месте удалённого участка.
+  // onlyChanged — только абзацы с заменами. Абзац: { part, pieces, heading, table, mark }
+  function previewDocument(parts, repl, { blocks = [], cut = new Set(), mode = 'full', onlyChanged = false, limit = 3000, numbering = null } = {}) {
+    const nextNum = numberer(numbering);
+    const finder = dictFinder(repl);
+    const out = [];
+    const piecesOf = text => {
+      const f = finder(text);
+      const pieces = [];
+      let at = 0;
+      for (const x of f) {
+        if (x.start > at) pieces.push({ text: text.slice(at, x.start).split(SEP).join(' ') });
+        pieces.push({ orig: text.slice(x.start, x.end), repl: x.repl });
+        at = x.end;
+      }
+      if (at < text.length) pieces.push({ text: text.slice(at).split(SEP).join(' ') });
+      return { pieces, changed: f.length > 0 };
+    };
+    const push = (part, text, extra = {}) => {
+      if (!text.split(SEP).join('').trim()) return;
+      const { pieces, changed } = piecesOf(text);
+      if (onlyChanged && !changed) return;
+      out.push({ part, pieces, ...extra });
+    };
+    const doc = parts.find(p => p.name === 'word/document.xml');
+    if (doc) {
+      const segs = doc.segs.filter(s => s.kind === 'text');
+      let k = 0;
+      const runAt = new Map(cutRuns(blocks, cut).map(([a, b]) => [a, b]));
+      // номер абзаца: удалённые абзацы не считаются (Word перенумерует), пометка берёт номер первого удалённого абзаца
+      blocks.forEach((b, i) => {
+        const inBlock = [];
+        while (k < segs.length && segs[k].nodes[0].start < b.end) { if (segs[k].nodes[0].start >= b.start) inBlock.push(segs[k]); k++; }
+        if (cut.has(i)) {
+          // что удалено — первая строка участка; в файл попадает только пометка (или ничего в режиме «Полностью»)
+          if (runAt.has(i) && !onlyChanged) {
+            const j = runAt.get(i);
+            const what = blocks.slice(i, j + 1).map(x => x.text).find(Boolean) || (b.image ? 'картинка' : '');
+            const num = mode === 'mark' && b.kind === 'p' ? nextNum(doc.xml.slice(b.start, b.end)) : '';
+            out.push({ part: doc.name, pieces: [], mark: mode === 'mark' ? cutLabel(blocks, i, j) : '', cutWhat: what, cutCount: j - i + 1, num });
+          }
+          return;
+        }
+        if (b.kind !== 'tbl') { for (const s of inBlock) push(doc.name, s.text, { heading: !!b.level, num: nextNum(paraXmlAt(doc.xml, s.nodes[0].start)) }); return; }
+        // таблица — построчно: ячейки строки через « · »
+        const rows = [...doc.xml.slice(b.start, b.end).matchAll(/<w:tr\b[\s\S]*?<\/w:tr>/g)].map(m => [b.start + m.index, b.start + m.index + m[0].length]);
+        const groups = rows.map(() => []);
+        for (const s of inBlock) {
+          nextNum(paraXmlAt(doc.xml, s.nodes[0].start));
+          const r = rows.findIndex(([a, e]) => s.nodes[0].start >= a && s.nodes[0].start < e);
+          if (r >= 0) groups[r].push(s); else groups.push([s]);
+        }
+        for (const g of groups) {
+          const cells = g.map(s => piecesOf(s.text)).filter(c => c.pieces.some(x => (x.text || x.orig || '').trim()));
+          if (!cells.length || (onlyChanged && !cells.some(c => c.changed))) continue;
+          out.push({ part: doc.name, table: true, pieces: cells.flatMap((c, n) => n ? [{ text: ' · ' }, ...c.pieces] : c.pieces) });
+        }
+      });
+    }
+    for (const p of parts) if (p !== doc) for (const s of p.segs) if (s.kind === 'text') push(p.name, s.text);
+    return out.length > limit ? out.slice(0, limit) : out;
+  }
+
+  // ---------- Удаление разделов и абзацев ----------
+  // Блок — абзац, таблица или элемент управления содержимым прямо в <w:body>. Раздел — заголовок и всё до следующего
+  // заголовка того же или более высокого уровня. Уровень заголовка — из стиля («heading N», уровень структуры)
+  // или по виду строки: «5. ОТВЕТСТВЕННОСТЬ СТОРОН», «Приложение» прописными — такие заголовки помечены как угаданные.
+  function headingStyles(stylesXml) {
+    const map = new Map();
+    for (const m of (stylesXml || '').matchAll(/<w:style\b[^>]*w:styleId="([^"]+)"[^>]*>([\s\S]*?)<\/w:style>/g)) {
+      const name = /<w:name w:val="([^"]*)"/.exec(m[2]);
+      const lvl = /<w:outlineLvl w:val="(\d)"/.exec(m[2]);
+      const h = name && /^(?:heading|заголовок)\s*(\d)$/i.exec(name[1]);
+      if (h) map.set(m[1], +h[1]);
+      else if (lvl && +lvl[1] < 9) map.set(m[1], +lvl[1] + 1);
+      else if (name && /^title$/i.test(name[1])) map.set(m[1], 1);
+    }
+    return map;
+  }
+  function guessHeading(text) {
+    const t = text.split(SEP).join(' ').trim();
+    if (t.length < 3 || t.length > 90 || /[,;:]$/.test(t)) return 0;
+    if (/^\d{1,2}\.?\s+[А-ЯЁA-Z]/.test(t) && !/^\d+\.\d/.test(t) && !/\.$/.test(t)) return 1;
+    const letters = t.replace(/[^А-ЯЁа-яёA-Za-z]/g, '');
+    if (letters.length >= 4 && letters === letters.toUpperCase()) return 1;
+    return 0;
+  }
+  function blocksOf(xml, styles = new Map()) {
+    const body = /<w:body\b[^>]*>/.exec(xml);
+    if (!body) return [];
+    const blocks = [];
+    const re = /<(\/?)w:(p|tbl|sdt|body)\b[^>]*?(\/?)>/g;
+    re.lastIndex = body.index + body[0].length;
+    let depth = 0, start = -1, kind = '', m;
+    while ((m = re.exec(xml))) {
+      const [tag, close, name, self] = m;
+      if (name === 'body') break;
+      if (!close && !self) { if (depth === 0) { start = m.index; kind = name; } depth++; }
+      else if (close) { depth--; if (depth === 0) blocks.push({ start, end: m.index + tag.length, kind }); }
+      else if (self && depth === 0) blocks.push({ start: m.index, end: m.index + tag.length, kind: name });
+    }
+    for (const b of blocks) {
+      const x = xml.slice(b.start, b.end);
+      b.text = segmentsOf(x).filter(s => s.kind === 'text').map(s => s.text.split(SEP).join(' ').trim()).filter(Boolean)
+        .join(b.kind === 'tbl' ? ' · ' : ' ');
+      b.sect = /<w:sectPr\b/.test(x);
+      b.image = /<w:drawing\b|<w:pict\b|<w:object\b/.test(x);
+      b.level = 0;
+      if (b.kind === 'p') {
+        const st = /<w:pStyle w:val="([^"]+)"/.exec(x);
+        const ol = /<w:pPr>(?:(?!<\/w:pPr>)[\s\S])*?<w:outlineLvl w:val="(\d)"/.exec(x);
+        b.level = (st && styles.get(st[1])) || (ol && +ol[1] < 9 ? +ol[1] + 1 : 0);
+        // строка оглавления повторяет текст заголовка, но заголовком не считается
+        b.toc = /w:anchor="_Toc|PAGEREF\s+_Toc/.test(x);
+        if (!b.level && b.text && !b.toc) { b.level = guessHeading(b.text); b.guessed = !!b.level; }
+      }
+    }
+    return blocks;
+  }
+  // Конец раздела, который начинается заголовком i (не включительно)
+  function sectionEnd(blocks, i) {
+    const lvl = blocks[i].level;
+    if (!lvl) return i + 1;
+    let j = i + 1;
+    while (j < blocks.length && !(blocks[j].level && blocks[j].level <= lvl)) j++;
+    return j;
+  }
+  // Правила: блок, в тексте которого есть фраза (целыми словами, без учёта регистра), удаляется; если это заголовок — весь раздел
+  function ruleCuts(blocks, rules) {
+    const cut = new Set();
+    // фраза — целыми словами: «Ответственность» не находит «ответственностью» в преамбуле
+    const rs = (rules || []).map(r => r.trim()).filter(r => r.length >= 2)
+      .map(r => new RegExp(`(?<![\\p{L}\\p{N}])${r.split(/\s+/).map(escapeRe).join('\\s+')}(?![\\p{L}\\p{N}])`, 'iu'));
+    if (!rs.length) return cut;
+    blocks.forEach((b, i) => {
+      if (!rs.some(r => r.test(b.text))) return;
+      for (let j = i, e = sectionEnd(blocks, i); j < e; j++) cut.add(j);
+    });
+    return cut;
+  }
+  // Диапазоны удаляемого в document.xml — чтобы «Что найдено» и предпросмотр не показывали удалённое
+  const cutRanges = (blocks, cut) => [...cut].map(i => [blocks[i].start, blocks[i].end]);
+
+  // Участки удалённого для пометок: подряд идущие блоки, но каждый удалённый раздел — отдельно
+  // (разделы 4 и 5 подряд — две пометки); подразделы внутри удалённого раздела отдельной пометки не дают
+  function cutRuns(blocks, cut) {
+    const runs = [];
+    for (const i of [...cut].sort((a, b) => a - b)) {
+      const r = runs[runs.length - 1];
+      const head = r && blocks[r[0]].level;
+      const lvl = blocks[i].level;
+      if (r && r[1] === i - 1 && !(lvl && (!head || lvl <= head))) r[1] = i;
+      else runs.push([i, i]);
+    }
+    return runs;
+  }
+  const cutLabel = (blocks, a, b) => blocks[a].level ? '[Раздел удалён]' : blocks[a].kind === 'tbl' && a === b ? '[Таблица удалена]'
+    : a === b ? '[Абзац удалён]' : '[Фрагмент удалён]';
+
+  // Удаление блоков из document.xml. mode: 'full' — без следа, 'mark' — на месте каждого удалённого участка
+  // абзац «[… удалён]» с оформлением первого абзаца (номер пункта при автонумерации сохраняется)
+  function cutBlocks(xml, blocks, cut, mode) {
+    if (!cut.size) return { xml, removed: '' };
+    const runs = cutRuns(blocks, cut);
+    let out = '', at = 0, removed = '';
+    for (const [a, b] of runs) {
+      out += xml.slice(at, blocks[a].start);
+      removed += xml.slice(blocks[a].start, blocks[b].end);
+      const keep = [];
+      // разрыв раздела (параметры страницы) хранится в абзаце — сам абзац уходит, разрыв остаётся пустым абзацем
+      for (let i = a; i <= b; i++) if (blocks[i].sect && blocks[i].kind === 'p') {
+        const pPr = /<w:pPr\b[\s\S]*?<\/w:pPr>/.exec(xml.slice(blocks[i].start, blocks[i].end));
+        if (pPr) keep.push(`<w:p>${pPr[0]}</w:p>`);
+      }
+      if (mode === 'mark') {
+        const first = blocks[a];
+        const label = cutLabel(blocks, a, b);
+        let pPr = first.kind === 'p' ? (/<w:pPr\b[\s\S]*?<\/w:pPr>/.exec(xml.slice(first.start, first.end)) || [''])[0] : '';
+        pPr = pPr.replace(/<w:sectPr\b[\s\S]*?<\/w:sectPr>/g, '').replace(/<w:rPr\b[\s\S]*?<\/w:rPr>/g, '');
+        out += `<w:p>${pPr}<w:r><w:t>${label}</w:t></w:r></w:p>`;
+      }
+      out += keep.join('');
+      at = blocks[b].end;
+    }
+    out += xml.slice(at);
+    // в теле документа должен остаться хотя бы один абзац
+    if (!/<w:body\b[^>]*>[\s\S]*<w:p[\s>/]/.test(out)) out = out.replace(/(<w:body\b[^>]*>)/, '$1<w:p/>');
+    return { xml: out, removed };
+  }
+
+  // Хвосты удалённого: сноски, примечания, закладки, строки оглавления, картинки и вложенные объекты
+  async function cleanAfterCut(zip, docXml, removed) {
+    const ids = re => [...removed.matchAll(re)].map(m => m[1]);
+    // сноски и концевые сноски
+    for (const [kind, part] of [['footnote', 'word/footnotes.xml'], ['endnote', 'word/endnotes.xml']]) {
+      const gone = ids(new RegExp(`<w:${kind}Reference\\b[^>]*w:id="(-?\\d+)"`, 'g'));
+      if (!gone.length || !zip.file(part)) continue;
+      let x = await zip.file(part).async('string');
+      for (const id of gone) x = x.replace(new RegExp(`<w:${kind}\\b[^>]*w:id="${id}"[\\s\\S]*?</w:${kind}>`), '');
+      zip.file(part, x);
+    }
+    // примечания к удалённому тексту и их метки, оставшиеся снаружи
+    const comments = [...new Set(ids(/<w:comment(?:Reference|RangeStart|RangeEnd)\b[^>]*w:id="(\d+)"/g))];
+    if (comments.length) {
+      for (const id of comments) docXml = docXml.replace(new RegExp(`<w:comment(?:RangeStart|RangeEnd)\\b[^>]*w:id="${id}"[^>]*/>`, 'g'), '')
+        .replace(new RegExp(`<w:r\\b[^>]*>(?:(?!</w:r>)[\\s\\S])*?<w:commentReference\\b[^>]*w:id="${id}"[^>]*/>(?:(?!</w:r>)[\\s\\S])*?</w:r>`, 'g'), '');
+      if (zip.file('word/comments.xml')) {
+        let x = await zip.file('word/comments.xml').async('string');
+        for (const id of comments) x = x.replace(new RegExp(`<w:comment\\b[^>]*w:id="${id}"[\\s\\S]*?</w:comment>`), '');
+        zip.file('word/comments.xml', x);
+      }
+    }
+    // закладки удалённого текста; строки оглавления и перекрёстные ссылки на них показывают удалённые заголовки
+    const marks = [...removed.matchAll(/<w:bookmarkStart\b[^>]*w:name="([^"]+)"/g)].map(m => m[1]);
+    for (const name of marks) {
+      const e = escapeRe(name);
+      for (const re of [new RegExp(`w:anchor="${e}"`), new RegExp(`PAGEREF\\s+${e}\\b`), new RegExp(`REF\\s+${e}\\b`)]) {
+        let m;
+        while ((m = re.exec(docXml))) {
+          const a = Math.max(docXml.lastIndexOf('<w:p>', m.index), docXml.lastIndexOf('<w:p ', m.index));
+          const b = docXml.indexOf('</w:p>', m.index);
+          if (a < 0 || b < 0) break;
+          docXml = docXml.slice(0, a) + docXml.slice(b + 6);
+        }
+      }
+    }
+    const starts = new Set([...docXml.matchAll(/<w:bookmarkStart\b[^>]*w:id="(\d+)"/g)].map(m => m[1]));
+    const ends = new Set([...docXml.matchAll(/<w:bookmarkEnd\b[^>]*w:id="(\d+)"/g)].map(m => m[1]));
+    docXml = docXml.replace(/<w:bookmark(Start|End)\b[^>]*w:id="(\d+)"[^>]*\/>/g, (t, k, id) => (k === 'Start' ? ends : starts).has(id) ? t : '');
+    // связи документа, на которые больше никто не ссылается: картинки, вложенные таблицы, диаграммы
+    const relsName = 'word/_rels/document.xml.rels';
+    const dropped = [];
+    if (zip.file(relsName)) {
+      let rels = await zip.file(relsName).async('string');
+      const used = new Set([...docXml.matchAll(/\br:(?:id|embed|link|pict|dm|lo|qs|cs)="([^"]+)"/g)].map(m => m[1]));
+      const otherParts = Object.keys(zip.files).filter(n => TEXT_PART.test(n) && n !== 'word/document.xml');
+      for (const n of otherParts) for (const m of (await zip.file(n).async('string')).matchAll(/\br:(?:id|embed|link)="([^"]+)"/g)) used.add(m[1]);
+      rels = rels.replace(/<Relationship\b[^>]*\/>/g, r => {
+        const id = /Id="([^"]+)"/.exec(r), type = /Type="([^"]+)"/.exec(r), target = /Target="([^"]+)"/.exec(r);
+        if (!id || used.has(id[1]) || /TargetMode="External"/.test(r) && !/hyperlink/.test(type[1])) return r;
+        if (!/\/(image|oleObject|package|chart|diagram\w*|video|audio|media|hyperlink)$/.test(type[1])) return r;
+        if (target && !/TargetMode="External"/.test(r)) dropped.push('word/' + target[1].replace(/^\.\//, '').replace(/^\/word\//, ''));
+        return '';
+      });
+      zip.file(relsName, rels);
+    }
+    // сами файлы — если на них не ссылается больше ни одна связь; у диаграмм — и их вложенные данные
+    const allRels = async () => (await Promise.all(Object.keys(zip.files).filter(n => /\.rels$/.test(n)).map(n => zip.file(n).async('string')))).join('\n');
+    let removedFiles = 0;
+    for (let k = 0; k < dropped.length; k++) {
+      const f = dropped[k].replace(/\/[^/]+\/\.\.\//g, '/');
+      if (!zip.file(f)) continue;
+      const base = f.split('/').pop();
+      if ((await allRels()).includes(base)) continue;
+      const own = f.replace(/([^/]+)$/, '_rels/$1.rels');
+      if (zip.file(own)) {
+        const dir = f.replace(/[^/]+$/, '');
+        for (const m of (await zip.file(own).async('string')).matchAll(/Target="([^"]+)"/g)) if (!/^(https?|mailto):/.test(m[1])) dropped.push((dir + m[1]).replace(/[^/]+\/\.\.\//g, ''));
+        zip.remove(own);
+      }
+      zip.remove(f);
+      removedFiles++;
+      if (zip.file('[Content_Types].xml')) {
+        const ct = await zip.file('[Content_Types].xml').async('string');
+        zip.file('[Content_Types].xml', ct.replace(new RegExp(`<Override\\b[^>]*PartName="/${escapeRe(f)}"[^>]*/>`), ''));
+      }
+    }
+    return { xml: docXml, removedFiles };
+  }
+
+  const api = { TYPES, detect, customPattern, headingStyles, blocksOf, sectionEnd, ruleCuts, cutRanges, cutRuns, cutBlocks, segmentsOf, rewrite, dictFinder, plan, shiftDate, innValid, analyzeDocx, redactDocx, restoreDocx, previewParagraphs, previewDocument, numberingDefs, acceptRevisions };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.RedactDocx = api;
 })(typeof window !== 'undefined' ? window : globalThis);

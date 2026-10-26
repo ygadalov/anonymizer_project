@@ -3,11 +3,11 @@
   'use strict';
   const A = window.Anon;
   const D = window.RedactDocx;
-  const { $, icon, esc, toast, download, KEY_SHEET } = window.RedactUI;
+  const { $, icon, esc, toast, download, store, KEY_SHEET } = window.RedactUI;
   const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
   const DS = {
-    fileName: '', buffer: null, analysis: null, rows: [], repl: new Map(), keyPairs: [],
+    fileName: '', buffer: null, analysis: null, rows: [], repl: new Map(), keyPairs: [], cutManual: new Map(), cut: new Set(), ruleCut: new Set(),
     seed: '', types: {}, skip: new Set(),
   };
 
@@ -31,6 +31,9 @@
       DS.seed = A.randomSeed();
       DS.types = {};
       DS.skip = new Set();
+      DS.cutManual = new Map();
+      DS.cut = new Set();
+      DS.analysis = null;
       $('dFactor').value = A.factorFromSeed(A.randomSeed());
       $('dShift').value = A.shiftFromSeed(A.randomSeed());
       DS.analysis = await D.analyzeDocx(zip, opts());
@@ -50,17 +53,71 @@
     seed: DS.seed, factor: parseFloat($('dFactor').value) || 1, shiftDays: parseInt($('dShift').value, 10) || 0,
     types: DS.types, skip: [...DS.skip], custom: custom(),
     customCase: $('dCustomCase').checked, customForms: $('dCustomForms').checked,
+    cut: DS.analysis ? D.cutRanges(DS.analysis.blocks, DS.cut) : [],
   });
 
   // ---------- Найденное ----------
+  // ---------- Удаление разделов и абзацев ----------
+  // Итог: по правилам плюс отмеченное вручную, минус возвращённое вручную (cutManual: номер блока → удалить или оставить)
+  const cutRules = () => $('dCutRules').value.split('\n').map(s => s.trim()).filter(s => s.length >= 2);
+  function computeCut() {
+    const blocks = DS.analysis.blocks;
+    DS.ruleCut = D.ruleCuts(blocks, cutRules());
+    DS.cut = new Set([...DS.ruleCut].filter(i => DS.cutManual.get(i) !== false));
+    DS.cutManual.forEach((v, i) => { if (v) DS.cut.add(i); });
+  }
+  function renderOutline() {
+    const B = DS.analysis.blocks;
+    let ctx = 0;
+    $('dOutline').innerHTML = B.map((b, i) => {
+      if (b.level) ctx = b.level;
+      if (!b.text && !b.image && b.kind !== 'tbl') return '';
+      const ind = b.level ? (b.level - 1) * 16 : ctx * 16 + 8;
+      const label = b.kind === 'tbl' ? `Таблица: ${b.text || 'пустая'}` : b.text || 'Картинка';
+      const cut = DS.cut.has(i);
+      const tag = DS.ruleCut.has(i) && cut ? 'по правилу' : b.guessed ? '≈ заголовок' : '';
+      const what = b.level ? 'раздел' : b.kind === 'tbl' ? 'таблицу' : 'абзац';
+      return `<div class="ol-row${b.level ? ' h' : ''}${b.kind === 'tbl' ? ' tbl' : ''}${!b.text && b.image ? ' img' : ''}${cut ? ' cut' : ''}" role="listitem" style="--ind:${ind}px">
+        <button type="button" class="btn ghost icon-only" data-cut="${i}" aria-pressed="${cut}" title="${cut ? 'Вернуть' : 'Удалить'} ${what}" aria-label="${cut ? 'Вернуть' : 'Удалить'} ${what}: ${esc(label.slice(0, 60))}">${icon(cut ? 'undo-2' : 'trash-2', 'i')}</button>
+        <span class="ol-text">${esc(label)}</span>${tag ? `<span class="ol-tag">${tag}</span>` : ''}</div>`;
+    }).join('');
+    const n = DS.cut.size;
+    const secs = [...DS.cut].filter(i => B[i].level).length;
+    $('dCutStats').textContent = n
+      ? `Будет удалено: ${secs ? `${secs} ${A.plural(secs, 'заголовок', 'заголовка', 'заголовков')} с разделами, ` : ''}всего ${n} ${A.plural(n, 'блок', 'блока', 'блоков')} (абзацы, таблицы, картинки).`
+      : 'Ничего не удаляется.';
+  }
+  $('dOutline').addEventListener('click', ev => {
+    const btn = ev.target.closest('[data-cut]');
+    if (!btn) return;
+    const B = DS.analysis.blocks, i = +btn.dataset.cut;
+    const end = D.sectionEnd(B, i);
+    const range = [...Array(end - i)].map((_, k) => i + k);
+    const allCut = range.every(j => DS.cut.has(j));
+    range.forEach(j => DS.cutManual.set(j, !allCut));
+    replan();
+    const again = $('dOutline').querySelector(`[data-cut="${i}"]`);
+    if (again) again.focus();
+  });
+  let rulesTimer;
+  $('dCutRules').addEventListener('input', () => {
+    clearTimeout(rulesTimer);
+    rulesTimer = setTimeout(() => { store.set('redact-doc-cut-rules', $('dCutRules').value); replan(); }, 400);
+  });
+  $('dCutRules').value = store.get('redact-doc-cut-rules') || '';
+  document.querySelectorAll('input[name=dCutMode]').forEach(r => r.addEventListener('change', () => DS.analysis && renderPreview()));
+  const cutMode = () => (document.querySelector('input[name=dCutMode]:checked') || {}).value || 'full';
+
   function replan() {
     if (!DS.analysis) return;
+    computeCut();
     const { rows, repl, keyPairs } = D.plan(DS.analysis.parts, opts());
     DS.rows = rows;
     DS.repl = repl;
     DS.keyPairs = keyPairs;
     renderTypes();
     renderFound();
+    renderOutline();
     renderPreview();
   }
 
@@ -111,18 +168,25 @@
 
   // ---------- Предпросмотр ----------
   function renderPreview() {
-    const paras = D.previewParagraphs(DS.analysis.parts, DS.repl, 40);
+    const only = $('dOnlyChanged').checked;
+    const paras = D.previewDocument(DS.analysis.parts, DS.repl, { blocks: DS.analysis.blocks, cut: DS.cut, mode: cutMode(), onlyChanged: only, numbering: DS.analysis.numbering });
     const n = DS.repl.size;
     const occ = DS.rows.filter(r => r.on).reduce((s, r) => s + r.count, 0);
     $('dStats').textContent = n
-      ? `Будет заменено: ${n.toLocaleString('ru-RU')} ${A.plural(n, 'значение', 'значения', 'значений')}, ${occ.toLocaleString('ru-RU')} ${A.plural(occ, 'вхождение', 'вхождения', 'вхождений')}` +
-        (paras.length >= 40 ? ' · ниже — первые 40 абзацев' : '')
+      ? `Будет заменено: ${n.toLocaleString('ru-RU')} ${A.plural(n, 'значение', 'значения', 'значений')}, ${occ.toLocaleString('ru-RU')} ${A.plural(occ, 'вхождение', 'вхождения', 'вхождений')}`
       : 'Замен нет: отметьте найденное или добавьте своё на шаге 2.';
     const partName = p => /header/.test(p) ? 'Колонтитул' : /footer/.test(p) ? 'Колонтитул' : /footnotes/.test(p) ? 'Сноска'
       : /endnotes/.test(p) ? 'Концевая сноска' : /comments/.test(p) ? 'Примечание' : '';
-    $('dPreview').innerHTML = paras.map(p => `<p>${partName(p.part) ? `<span class="caption muted doc-part">${partName(p.part)}</span>` : ''}${p.pieces.map(x => x.text !== undefined
+    $('dPreview').classList.toggle('full', !only);
+    // удалённый участок: в режиме «С пометкой» — пометка, как в файле; название удалённого — только здесь, зачёркнутым
+    const numLabel = p => p.num ? `<span class="num-label">${esc(p.num)}</span>` : '';
+    const cutLine = p => `<p class="cut-line">${p.mark ? `<span class="mark">${numLabel(p)}${esc(p.mark)}</span>` : '<span class="cut-note">удалено</span>'}` +
+      `<span class="cut-what">${esc(p.cutWhat.length > 90 ? p.cutWhat.slice(0, 90) + '…' : p.cutWhat)}</span>` +
+      `${p.cutCount > 1 ? `<span class="cut-note">и ещё ${p.cutCount - 1} ${A.plural(p.cutCount - 1, 'блок', 'блока', 'блоков')}</span>` : ''}</p>`;
+    $('dPreview').innerHTML = paras.length ? paras.map(p => p.cutWhat !== undefined ? cutLine(p) : `<p class="${p.heading ? 'h' : ''}${p.table ? ' tbl' : ''}">${partName(p.part) ? `<span class="caption muted doc-part">${partName(p.part)}</span>` : ''}${numLabel(p)}${p.pieces.map(x => x.text !== undefined
       ? esc(x.text)
-      : `<span class="pair-inline" title="${esc(x.orig)} → ${esc(x.repl)}"><span class="rv rv-detected">${esc(x.orig)}</span><span class="rv-arrow" aria-hidden="true">→</span><span class="rv rv-token">${esc(x.repl)}</span></span>`).join('')}</p>`).join('');
+      : `<span class="pair-inline" title="${esc(x.orig)} → ${esc(x.repl)}"><span class="rv rv-detected">${esc(x.orig)}</span><span class="rv-arrow" aria-hidden="true">→</span><span class="rv rv-token">${esc(x.repl)}</span></span>`).join('')}</p>`).join('')
+      : `<p class="small muted">${only ? 'Абзацев с заменами нет.' : 'В документе не осталось текста.'}</p>`;
 
     const info = [], danger = [];
     const i = DS.analysis.info;
@@ -132,8 +196,14 @@
     if (i.comments) (($('dComments').checked) ? info : danger).push($('dComments').checked
       ? `Примечания (${i.comments}) будут удалены вместе с именами авторов.`
       : `Примечания (${i.comments}) останутся; найденное в них заменится, а имена авторов — уберутся.`);
-    if (i.images) danger.push(`В документе ${i.images} ${A.plural(i.images, 'картинка', 'картинки', 'картинок')} — например, сканы подписей и печатей. Redact их не читает: картинки останутся в файле как есть.`);
+    // картинки удалённых разделов уходят из файла; предупреждаем только об оставшихся (в тексте и колонтитулах)
+    const B = DS.analysis.blocks;
+    const cutImg = B.filter((b, k) => b.image && DS.cut.has(k)).length;
+    const leftImg = B.some((b, k) => b.image && !DS.cut.has(k)) || DS.analysis.parts.some(p => p.name !== 'word/document.xml' && /<w:drawing\b|<w:pict\b/.test(p.xml));
+    if (i.images && leftImg) danger.push(`В документе есть картинки — например, сканы подписей и печатей. Redact их не читает: картинки${cutImg ? ' вне удаляемых разделов' : ''} останутся в файле как есть.`);
+    if (cutImg) info.push(`Картинки из удаляемых разделов (${cutImg}) будут удалены из файла вместе с текстом.`);
     if (i.embeddings) danger.push(`В документе ${i.embeddings} ${A.plural(i.embeddings, 'вложенный объект', 'вложенных объекта', 'вложенных объектов')} (например, таблица Excel). Redact их не читает: они останутся в файле как есть — проверьте их отдельно.`);
+    if (DS.cut.size) danger.push(`Будут удалены ${DS.cut.size} ${A.plural(DS.cut.size, 'блок', 'блока', 'блоков')} документа${cutMode() === 'mark' ? ' (на их месте — пометка «[… удалён]»)' : ''}: по ключу их не вернуть. Проверьте список в «Удалить разделы и абзацы».`);
     const kept = DS.rows.filter(r => !r.on);
     if (kept.length) danger.push(`Останутся без замены: ${kept.length} ${A.plural(kept.length, 'значение', 'значения', 'значений')} (${kept.slice(0, 5).map(r => `«${r.value}»`).join(', ')}${kept.length > 5 ? '…' : ''}).`);
     info.push('Проверьте предпросмотр: Redact находит типовые данные по шаблонам, но не понимает смысл текста. Адреса, названия без формы организации и имена без отчества добавьте в «Добавить своё».');
@@ -141,7 +211,7 @@
       ? `<div class="notice ${cls}"><div class="notice-title">${icon(ic, 'i i20')}${title}</div><ul>${items.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
     $('dWarnings').innerHTML = notice('danger', 'triangle-alert', `Возможна утечка данных: ${danger.length}`, danger) + notice('', 'circle-alert', 'Проверьте перед выгрузкой', info);
   }
-  ['dRevisions', 'dComments'].forEach(id => $(id).addEventListener('change', () => DS.analysis && renderPreview()));
+  ['dRevisions', 'dComments', 'dOnlyChanged'].forEach(id => $(id).addEventListener('change', () => DS.analysis && renderPreview()));
 
   // ---------- Выгрузка ----------
   const baseName = () => DS.fileName.replace(/\.[^.]+$/, '');
@@ -153,6 +223,7 @@
       const zip = await JSZip.loadAsync(DS.buffer);
       const { replaced } = await D.redactDocx(zip, {
         repl: DS.repl, clean: { revisions: $('dRevisions').checked, comments: $('dComments').checked, meta: $('dMeta').checked },
+        cut: DS.cut, mode: cutMode(),
       });
       const blob = await zip.generateAsync({ type: 'blob', mimeType: DOCX_MIME, compression: 'DEFLATE' });
       download(blob, baseName() + '_redact.docx');
@@ -215,7 +286,7 @@
       confirm: 'Да, очистить',
     });
     if (!ok) return;
-    Object.assign(DS, { fileName: '', buffer: null, analysis: null, rows: [], repl: new Map(), keyPairs: [], seed: '', types: {}, skip: new Set() });
+    Object.assign(DS, { fileName: '', buffer: null, analysis: null, rows: [], repl: new Map(), keyPairs: [], cutManual: new Map(), cut: new Set(), ruleCut: new Set(), seed: '', types: {}, skip: new Set() });
     ['d2', 'd3', 'dClearRow'].forEach(id => $(id).classList.add('hidden'));
     for (const id of ['dFileInfo', 'dSummary', 'dTypes', 'dPreview', 'dWarnings', 'dStats']) $(id).innerHTML = '';
     $('dFound').tBodies[0].innerHTML = '';

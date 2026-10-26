@@ -123,3 +123,139 @@ test('«Добавить своё»: без учёта регистра и во 
   const exact = D.plan(parts, { custom: ['Лесная'], customCase: true, customForms: false });
   assert.deepStrictEqual(exact.rows.find(r => r.value === 'Лесная').count, 1);
 });
+
+// документ со структурой: заголовки (стиль и «угаданный»), оглавление, сноска, примечание и картинка в удаляемом разделе
+function makeSectionsDocx() {
+  const zip = new JSZip();
+  const h = (t, st) => `<w:p><w:pPr><w:pStyle w:val="${st}"/></w:pPr>${run(t)}</w:p>`;
+  const body = [
+    // оглавление: строки со ссылками на закладки заголовков
+    `<w:p><w:hyperlink w:anchor="_Toc1">${run('1. Предмет договора')}</w:hyperlink></w:p>`,
+    `<w:p><w:hyperlink w:anchor="_Toc2">${run('2. Секретные условия')}</w:hyperlink></w:p>`,
+    `<w:p><w:pPr><w:pStyle w:val="1"/></w:pPr><w:bookmarkStart w:id="1" w:name="_Toc1"/>${run('1. Предмет договора')}<w:bookmarkEnd w:id="1"/></w:p>`,
+    para(run('Поставщик передаёт товар.')),
+    `<w:p><w:pPr><w:pStyle w:val="1"/></w:pPr><w:bookmarkStart w:id="2" w:name="_Toc2"/>${run('2. Секретные условия')}<w:bookmarkEnd w:id="2"/></w:p>`,
+    para(run('Скидка Вершине — 40%'), '<w:r><w:footnoteReference w:id="1"/></w:r>'),
+    para('<w:commentRangeStart w:id="5"/>', run('Тайный пункт'), '<w:commentRangeEnd w:id="5"/>', '<w:r><w:commentReference w:id="5"/></w:r>'),
+    para('<w:r><w:drawing><a:blip xmlns:a="a" r:embed="rIdImg"/></w:drawing></w:r>'),
+    h('2.1. Подраздел секрета', '2'),
+    `<w:tbl><w:tr><w:tc>${para(run('Цена Вершины'))}</w:tc></w:tr></w:tbl>`,
+    para(run('3. РЕКВИЗИТЫ СТОРОН')),
+    para(run('Банк Тайный, счёт 40702810400000012345')),
+    para(run('ПОДПИСИ')),
+    para(run('Директор')),
+    '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/></w:sectPr>',
+  ].join('');
+  zip.file('[Content_Types].xml', '<?xml version="1.0"?><Types><Override PartName="/word/media/image1.png" ContentType="image/png"/></Types>');
+  zip.file('word/document.xml', `<?xml version="1.0" encoding="UTF-8"?><w:document ${W}><w:body>${body}</w:body></w:document>`);
+  zip.file('word/styles.xml', '<?xml version="1.0"?><w:styles><w:style w:type="paragraph" w:styleId="1"><w:name w:val="heading 1"/></w:style><w:style w:type="paragraph" w:styleId="2"><w:name w:val="heading 2"/></w:style></w:styles>');
+  zip.file('word/footnotes.xml', `<?xml version="1.0"?><w:footnotes ${W}><w:footnote w:id="0">${para(run(' '))}</w:footnote><w:footnote w:id="1">${para(run('Сноска про Вершину'))}</w:footnote></w:footnotes>`);
+  zip.file('word/comments.xml', `<?xml version="1.0"?><w:comments ${W}><w:comment w:id="5" w:author="А">${para(run('Комментарий про тайну'))}</w:comment></w:comments>`);
+  zip.file('word/_rels/document.xml.rels', '<?xml version="1.0"?><Relationships><Relationship Id="rIdImg" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image1.png"/></Relationships>');
+  zip.file('word/media/image1.png', 'PNG');
+  return zip;
+}
+
+test('удаление разделов: структура, правила, хвосты (сноски, примечания, оглавление, картинки)', async () => {
+  const zip = makeSectionsDocx();
+  const a = await D.analyzeDocx(zip, {});
+  const B = a.blocks;
+  const at = t => B.findIndex(b => b.text === t && !b.toc);
+  assert.strictEqual(B[at('2. Секретные условия')].level, 1);
+  assert.strictEqual(B[at('2.1. Подраздел секрета')].level, 2);
+  assert.strictEqual(B[at('3. РЕКВИЗИТЫ СТОРОН')].guessed, true);
+  // раздел 2 — до «3. РЕКВИЗИТЫ», вместе с подразделом и таблицей
+  assert.strictEqual(D.sectionEnd(B, at('2. Секретные условия')), at('3. РЕКВИЗИТЫ СТОРОН'));
+  // правило по тексту заголовка удаляет весь раздел; по тексту абзаца — только абзац
+  const cut = D.ruleCuts(B, ['секретные условия', 'Банк Тайный']);
+  // раздел 2, абзац с банком и строка оглавления «2. Секретные условия»
+  assert.strictEqual(cut.size, at('3. РЕКВИЗИТЫ СТОРОН') - at('2. Секретные условия') + 2);
+  // «Что найдено» не видит удалённое
+  const p = D.plan(a.parts, { cut: D.cutRanges(B, cut) });
+  assert.ok(!p.rows.some(r => r.value === '40702810400000012345'));
+
+  const r = await D.redactDocx(zip, { repl: new Map(), cut, mode: 'full' });
+  const all = await allXml(zip);
+  for (const s of ['Секретные условия', 'Вершин', 'Тайный пункт', 'Комментарий про тайну', 'Банк Тайный', 'Подраздел секрета', '_Toc2', 'rIdImg', 'image1.png'])
+    assert.ok(!all.includes(s), `осталось: ${s}`);
+  assert.strictEqual(r.removedFiles, 1);
+  assert.ok(!zip.file('word/media/image1.png'));
+  const doc = await zip.file('word/document.xml').async('string');
+  assert.ok(doc.includes('1. Предмет договора') && doc.includes('3. РЕКВИЗИТЫ СТОРОН') && doc.includes('<w:sectPr>'));
+  assert.ok(doc.includes('w:footnote') === false && (await zip.file('word/footnotes.xml').async('string')).includes('w:id="0"'));
+
+  // режим с пометкой: на месте раздела — одна строка, оформление заголовка сохраняется
+  const z2 = makeSectionsDocx();
+  const b2 = (await D.analyzeDocx(z2, {})).blocks;
+  await D.redactDocx(z2, { repl: new Map(), cut: new Set([at('2. Секретные условия')].concat([...Array(D.sectionEnd(b2, at('2. Секретные условия')) - at('2. Секретные условия') - 1)].map((_, k) => at('2. Секретные условия') + 1 + k))), mode: 'mark' });
+  const d2 = await z2.file('word/document.xml').async('string');
+  assert.strictEqual((d2.match(/\[Раздел удалён\]/g) || []).length, 1);
+  assert.ok(/<w:pStyle w:val="1"\/><\/w:pPr><w:r><w:t>\[Раздел удалён\]/.test(d2));
+  assert.ok(!d2.includes('Вершин'));
+});
+
+test('предпросмотр — весь документ по порядку: без удалённого, с пометками в режиме «С пометкой»', async () => {
+  const a = await D.analyzeDocx(makeSectionsDocx(), {});
+  const B = a.blocks;
+  const text = x => x.pieces.map(y => y.text ?? y.repl).join('');
+  const full = D.previewDocument(a.parts, new Map(), { blocks: B });
+  // все абзацы основного текста, таблица одной строкой, сноска и примечание — в конце
+  assert.ok(full.some(x => text(x) === 'Поставщик передаёт товар.'));
+  assert.ok(full.some(x => x.table && text(x) === 'Цена Вершины'));
+  assert.ok(full.findIndex(x => text(x) === 'Директор') < full.findIndex(x => /footnotes/.test(x.part)));
+  const sec = B.findIndex(b => b.text === '2. Секретные условия' && !b.toc);
+  const cut = new Set([...Array(D.sectionEnd(B, sec) - sec)].map((_, k) => sec + k));
+  const gone = D.previewDocument(a.parts, new Map(), { blocks: B, cut });
+  assert.ok(!gone.some(x => x.part === 'word/document.xml' && /Тайный пункт|Цена Вершины|Подраздел секрета/.test(text(x))));
+  // на месте раздела — строка «удалено: 2. Секретные условия» (в режиме «С пометкой» — с пометкой, как в файле)
+  const line = gone.find(x => x.cutWhat !== undefined);
+  assert.deepStrictEqual([line.mark, line.cutWhat, line.cutCount], ['', '2. Секретные условия', cut.size]);
+  const marked = D.previewDocument(a.parts, new Map(), { blocks: B, cut, mode: 'mark' });
+  assert.strictEqual(marked.filter(x => x.mark).length, 1);
+  assert.strictEqual(marked.find(x => x.mark).mark, '[Раздел удалён]');
+  assert.strictEqual(marked.length, gone.length);
+});
+
+test('удаление: соседние разделы — отдельные пометки, правила — целыми словами', async () => {
+  const a = await D.analyzeDocx(makeSectionsDocx(), {});
+  const B = a.blocks;
+  const at = t => B.findIndex(b => b.text === t && !b.toc);
+  // «3. РЕКВИЗИТЫ» и «ПОДПИСИ» идут подряд: две пометки, а не одна
+  const cut = D.ruleCuts(B, ['реквизиты сторон', 'подписи']);
+  assert.deepStrictEqual(D.cutRuns(B, cut), [[at('3. РЕКВИЗИТЫ СТОРОН'), at('Банк Тайный, счёт 40702810400000012345')], [at('ПОДПИСИ'), at('Директор')]]);
+  // подраздел внутри удалённого раздела отдельной пометки не даёт
+  const sec = at('2. Секретные условия');
+  const all = new Set([...Array(D.sectionEnd(B, sec) - sec)].map((_, k) => sec + k));
+  assert.strictEqual(D.cutRuns(B, all).length, 1);
+  // фраза ищется целыми словами: «Тайн» не находит «Тайный пункт»
+  assert.strictEqual(D.ruleCuts(B, ['Тайн']).size, 0);
+  assert.ok(D.ruleCuts(B, ['тайный пункт']).has(at('Тайный пункт')));
+});
+
+test('предпросмотр: номера автонумерации Word — как в документе, с учётом удаления', async () => {
+  const zip = new JSZip();
+  const np = (t, ilvl, numId = 1, style = '') => `<w:p><w:pPr>${style ? `<w:pStyle w:val="${style}"/>` : ''}<w:numPr><w:ilvl w:val="${ilvl}"/><w:numId w:val="${numId}"/></w:numPr></w:pPr>${run(t)}</w:p>`;
+  const body = [
+    np('Предмет', 0, 1, 'H1'), np('Товар', 1), np('Цена', 0, 1, 'H1'), np('Сумма', 1), np('Скидка', 1),
+    `<w:p><w:pPr><w:pStyle w:val="H1"/></w:pPr>${run('Срок')}</w:p>`,   // номер из стиля
+    np('Пункт а', 0, 2), np('Пункт б', 0, 2), np('Маркер', 0, 3), np('С пятого', 0, 4),
+  ].join('');
+  zip.file('word/document.xml', `<?xml version="1.0"?><w:document ${W}><w:body>${body}</w:body></w:document>`);
+  zip.file('word/styles.xml', '<?xml version="1.0"?><w:styles><w:style w:type="paragraph" w:styleId="H1"><w:name w:val="heading 1"/><w:pPr><w:numPr><w:numId w:val="1"/></w:numPr></w:pPr></w:style></w:styles>');
+  const lvl = (i, fmt, text, start = 1) => `<w:lvl w:ilvl="${i}"><w:start w:val="${start}"/><w:numFmt w:val="${fmt}"/><w:lvlText w:val="${text}"/></w:lvl>`;
+  zip.file('word/numbering.xml', `<?xml version="1.0"?><w:numbering>
+    <w:abstractNum w:abstractNumId="0">${lvl(0, 'decimal', '%1.')}${lvl(1, 'decimal', '%1.%2.')}</w:abstractNum>
+    <w:abstractNum w:abstractNumId="1">${lvl(0, 'russianLower', '%1)')}</w:abstractNum>
+    <w:abstractNum w:abstractNumId="2">${lvl(0, 'bullet', '')}</w:abstractNum>
+    <w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num><w:num w:numId="2"><w:abstractNumId w:val="1"/></w:num>
+    <w:num w:numId="3"><w:abstractNumId w:val="2"/></w:num>
+    <w:num w:numId="4"><w:abstractNumId w:val="0"/><w:lvlOverride w:ilvl="0"><w:startOverride w:val="5"/></w:lvlOverride></w:num></w:numbering>`);
+  const a = await D.analyzeDocx(zip, {});
+  const nums = o => D.previewDocument(a.parts, new Map(), { blocks: a.blocks, numbering: a.numbering, ...o }).map(x => `${x.num}${x.mark || x.cutWhat || ''}`.trim() || x.pieces.map(y => y.text).join(''));
+  assert.deepStrictEqual(D.previewDocument(a.parts, new Map(), { blocks: a.blocks, numbering: a.numbering }).map(x => x.num),
+    ['1.', '1.1.', '2.', '2.1.', '2.2.', '3.', 'а)', 'б)', '•', '5.']);
+  const cut = D.ruleCuts(a.blocks, ['Цена']);
+  // «Полностью»: Word перенумерует — «Срок» станет 2.; «С пометкой»: пометка получает номер 2., «Срок» остаётся 3.
+  assert.deepStrictEqual(nums({ cut }).slice(0, 4), ['1.', '1.1.', 'Цена', '2.']);
+  assert.deepStrictEqual(nums({ cut, mode: 'mark' }).slice(0, 4), ['1.', '1.1.', '2.[Раздел удалён]', '3.']);
+});
