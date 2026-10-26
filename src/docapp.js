@@ -168,18 +168,20 @@
 
   // ---------- Предпросмотр ----------
   function renderPreview() {
-    const paras = D.previewParagraphs(DS.analysis.parts, DS.repl, 40, D.cutRanges(DS.analysis.blocks, DS.cut));
+    const only = $('dOnlyChanged').checked;
+    const paras = D.previewDocument(DS.analysis.parts, DS.repl, { blocks: DS.analysis.blocks, cut: DS.cut, mode: cutMode(), onlyChanged: only });
     const n = DS.repl.size;
     const occ = DS.rows.filter(r => r.on).reduce((s, r) => s + r.count, 0);
     $('dStats').textContent = n
-      ? `Будет заменено: ${n.toLocaleString('ru-RU')} ${A.plural(n, 'значение', 'значения', 'значений')}, ${occ.toLocaleString('ru-RU')} ${A.plural(occ, 'вхождение', 'вхождения', 'вхождений')}` +
-        (paras.length >= 40 ? ' · ниже — первые 40 абзацев' : '')
+      ? `Будет заменено: ${n.toLocaleString('ru-RU')} ${A.plural(n, 'значение', 'значения', 'значений')}, ${occ.toLocaleString('ru-RU')} ${A.plural(occ, 'вхождение', 'вхождения', 'вхождений')}`
       : 'Замен нет: отметьте найденное или добавьте своё на шаге 2.';
     const partName = p => /header/.test(p) ? 'Колонтитул' : /footer/.test(p) ? 'Колонтитул' : /footnotes/.test(p) ? 'Сноска'
       : /endnotes/.test(p) ? 'Концевая сноска' : /comments/.test(p) ? 'Примечание' : '';
-    $('dPreview').innerHTML = paras.map(p => `<p>${partName(p.part) ? `<span class="caption muted doc-part">${partName(p.part)}</span>` : ''}${p.pieces.map(x => x.text !== undefined
+    $('dPreview').classList.toggle('full', !only);
+    $('dPreview').innerHTML = paras.length ? paras.map(p => `<p class="${p.heading ? 'h' : ''}${p.table ? ' tbl' : ''}${p.mark ? ' mark' : ''}">${partName(p.part) ? `<span class="caption muted doc-part">${partName(p.part)}</span>` : ''}${p.pieces.map(x => x.text !== undefined
       ? esc(x.text)
-      : `<span class="pair-inline" title="${esc(x.orig)} → ${esc(x.repl)}"><span class="rv rv-detected">${esc(x.orig)}</span><span class="rv-arrow" aria-hidden="true">→</span><span class="rv rv-token">${esc(x.repl)}</span></span>`).join('')}</p>`).join('');
+      : `<span class="pair-inline" title="${esc(x.orig)} → ${esc(x.repl)}"><span class="rv rv-detected">${esc(x.orig)}</span><span class="rv-arrow" aria-hidden="true">→</span><span class="rv rv-token">${esc(x.repl)}</span></span>`).join('')}</p>`).join('')
+      : `<p class="small muted">${only ? 'Абзацев с заменами нет.' : 'В документе не осталось текста.'}</p>`;
 
     const info = [], danger = [];
     const i = DS.analysis.info;
@@ -189,7 +191,12 @@
     if (i.comments) (($('dComments').checked) ? info : danger).push($('dComments').checked
       ? `Примечания (${i.comments}) будут удалены вместе с именами авторов.`
       : `Примечания (${i.comments}) останутся; найденное в них заменится, а имена авторов — уберутся.`);
-    if (i.images) danger.push(`В документе ${i.images} ${A.plural(i.images, 'картинка', 'картинки', 'картинок')} — например, сканы подписей и печатей. Redact их не читает: картинки останутся в файле как есть.`);
+    // картинки удалённых разделов уходят из файла; предупреждаем только об оставшихся (в тексте и колонтитулах)
+    const B = DS.analysis.blocks;
+    const cutImg = B.filter((b, k) => b.image && DS.cut.has(k)).length;
+    const leftImg = B.some((b, k) => b.image && !DS.cut.has(k)) || DS.analysis.parts.some(p => p.name !== 'word/document.xml' && /<w:drawing\b|<w:pict\b/.test(p.xml));
+    if (i.images && leftImg) danger.push(`В документе есть картинки — например, сканы подписей и печатей. Redact их не читает: картинки${cutImg ? ' вне удаляемых разделов' : ''} останутся в файле как есть.`);
+    if (cutImg) info.push(`Картинки из удаляемых разделов (${cutImg}) будут удалены из файла вместе с текстом.`);
     if (i.embeddings) danger.push(`В документе ${i.embeddings} ${A.plural(i.embeddings, 'вложенный объект', 'вложенных объекта', 'вложенных объектов')} (например, таблица Excel). Redact их не читает: они останутся в файле как есть — проверьте их отдельно.`);
     if (DS.cut.size) danger.push(`Будут удалены ${DS.cut.size} ${A.plural(DS.cut.size, 'блок', 'блока', 'блоков')} документа${cutMode() === 'mark' ? ' (на их месте — пометка «[… удалён]»)' : ''}: по ключу их не вернуть. Проверьте список в «Удалить разделы и абзацы».`);
     const kept = DS.rows.filter(r => !r.on);
@@ -199,7 +206,7 @@
       ? `<div class="notice ${cls}"><div class="notice-title">${icon(ic, 'i i20')}${title}</div><ul>${items.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
     $('dWarnings').innerHTML = notice('danger', 'triangle-alert', `Возможна утечка данных: ${danger.length}`, danger) + notice('', 'circle-alert', 'Проверьте перед выгрузкой', info);
   }
-  ['dRevisions', 'dComments'].forEach(id => $(id).addEventListener('change', () => DS.analysis && renderPreview()));
+  ['dRevisions', 'dComments', 'dOnlyChanged'].forEach(id => $(id).addEventListener('change', () => DS.analysis && renderPreview()));
 
   // ---------- Выгрузка ----------
   const baseName = () => DS.fileName.replace(/\.[^.]+$/, '');

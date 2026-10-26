@@ -193,3 +193,21 @@ test('удаление разделов: структура, правила, х�
   assert.ok(/<w:pStyle w:val="1"\/><\/w:pPr><w:r><w:t>\[Раздел удалён\]/.test(d2));
   assert.ok(!d2.includes('Вершин'));
 });
+
+test('предпросмотр — весь документ по порядку: без удалённого, с пометками в режиме «С пометкой»', async () => {
+  const a = await D.analyzeDocx(makeSectionsDocx(), {});
+  const B = a.blocks;
+  const text = x => x.pieces.map(y => y.text ?? y.repl).join('');
+  const full = D.previewDocument(a.parts, new Map(), { blocks: B });
+  // все абзацы основного текста, таблица одной строкой, сноска и примечание — в конце
+  assert.ok(full.some(x => text(x) === 'Поставщик передаёт товар.'));
+  assert.ok(full.some(x => x.table && text(x) === 'Цена Вершины'));
+  assert.ok(full.findIndex(x => text(x) === 'Директор') < full.findIndex(x => /footnotes/.test(x.part)));
+  const sec = B.findIndex(b => b.text === '2. Секретные условия' && !b.toc);
+  const cut = new Set([...Array(D.sectionEnd(B, sec) - sec)].map((_, k) => sec + k));
+  const gone = D.previewDocument(a.parts, new Map(), { blocks: B, cut });
+  assert.ok(!gone.some(x => x.part === 'word/document.xml' && /Тайный пункт|Цена Вершины|Подраздел секрета/.test(text(x))));
+  const marked = D.previewDocument(a.parts, new Map(), { blocks: B, cut, mode: 'mark' });
+  assert.strictEqual(marked.filter(x => x.mark).length, 1);
+  assert.strictEqual(marked.length, gone.length + 1);
+});

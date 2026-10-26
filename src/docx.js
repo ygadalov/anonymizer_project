@@ -571,6 +571,64 @@
     return out;
   }
 
+  // Предпросмотр всего документа по порядку: абзацы основного текста (с заголовками и таблицами), затем колонтитулы,
+  // сноски и примечания. Удалённое не показывается, а в режиме «С пометкой» — одна строка на месте удалённого участка.
+  // onlyChanged — только абзацы с заменами. Абзац: { part, pieces, heading, table, mark }
+  function previewDocument(parts, repl, { blocks = [], cut = new Set(), mode = 'full', onlyChanged = false, limit = 3000 } = {}) {
+    const finder = dictFinder(repl);
+    const out = [];
+    const piecesOf = text => {
+      const f = finder(text);
+      const pieces = [];
+      let at = 0;
+      for (const x of f) {
+        if (x.start > at) pieces.push({ text: text.slice(at, x.start).split(SEP).join(' ') });
+        pieces.push({ orig: text.slice(x.start, x.end), repl: x.repl });
+        at = x.end;
+      }
+      if (at < text.length) pieces.push({ text: text.slice(at).split(SEP).join(' ') });
+      return { pieces, changed: f.length > 0 };
+    };
+    const push = (part, text, extra = {}) => {
+      if (!text.split(SEP).join('').trim()) return;
+      const { pieces, changed } = piecesOf(text);
+      if (onlyChanged && !changed) return;
+      out.push({ part, pieces, ...extra });
+    };
+    const doc = parts.find(p => p.name === 'word/document.xml');
+    if (doc) {
+      const segs = doc.segs.filter(s => s.kind === 'text');
+      let k = 0;
+      blocks.forEach((b, i) => {
+        const inBlock = [];
+        while (k < segs.length && segs[k].nodes[0].start < b.end) { if (segs[k].nodes[0].start >= b.start) inBlock.push(segs[k]); k++; }
+        if (cut.has(i)) {
+          if (mode === 'mark' && !onlyChanged && !cut.has(i - 1)) {
+            let j = i; while (cut.has(j + 1)) j++;
+            const label = b.level ? '[Раздел удалён]' : b.kind === 'tbl' && i === j ? '[Таблица удалена]' : i === j ? '[Абзац удалён]' : '[Фрагмент удалён]';
+            out.push({ part: doc.name, pieces: [{ text: label }], mark: true });
+          }
+          return;
+        }
+        if (b.kind !== 'tbl') { for (const s of inBlock) push(doc.name, s.text, { heading: !!b.level }); return; }
+        // таблица — построчно: ячейки строки через « · »
+        const rows = [...doc.xml.slice(b.start, b.end).matchAll(/<w:tr\b[\s\S]*?<\/w:tr>/g)].map(m => [b.start + m.index, b.start + m.index + m[0].length]);
+        const groups = rows.map(() => []);
+        for (const s of inBlock) {
+          const r = rows.findIndex(([a, e]) => s.nodes[0].start >= a && s.nodes[0].start < e);
+          if (r >= 0) groups[r].push(s); else groups.push([s]);
+        }
+        for (const g of groups) {
+          const cells = g.map(s => piecesOf(s.text)).filter(c => c.pieces.some(x => (x.text || x.orig || '').trim()));
+          if (!cells.length || (onlyChanged && !cells.some(c => c.changed))) continue;
+          out.push({ part: doc.name, table: true, pieces: cells.flatMap((c, n) => n ? [{ text: ' · ' }, ...c.pieces] : c.pieces) });
+        }
+      });
+    }
+    for (const p of parts) if (p !== doc) for (const s of p.segs) if (s.kind === 'text') push(p.name, s.text);
+    return out.length > limit ? out.slice(0, limit) : out;
+  }
+
   // ---------- Удаление разделов и абзацев ----------
   // Блок — абзац, таблица или элемент управления содержимым прямо в <w:body>. Раздел — заголовок и всё до следующего
   // заголовка того же или более высокого уровня. Уровень заголовка — из стиля («heading N», уровень структуры)
@@ -763,7 +821,7 @@
     return { xml: docXml, removedFiles };
   }
 
-  const api = { TYPES, detect, customPattern, headingStyles, blocksOf, sectionEnd, ruleCuts, cutRanges, cutBlocks, segmentsOf, rewrite, dictFinder, plan, shiftDate, innValid, analyzeDocx, redactDocx, restoreDocx, previewParagraphs, acceptRevisions };
+  const api = { TYPES, detect, customPattern, headingStyles, blocksOf, sectionEnd, ruleCuts, cutRanges, cutBlocks, segmentsOf, rewrite, dictFinder, plan, shiftDate, innValid, analyzeDocx, redactDocx, restoreDocx, previewParagraphs, previewDocument, acceptRevisions };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.RedactDocx = api;
 })(typeof window !== 'undefined' ? window : globalThis);
