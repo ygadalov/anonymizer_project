@@ -637,6 +637,29 @@ dialog.help::backdrop { background: color-mix(in srgb, var(--surface-sunken) 75%
   .help-nav, .help-body { padding-left: var(--space-4); padding-right: var(--space-4); }
 }
 @media (max-width: 760px) { .hide-sm { display: none; } #btnHelp { width: 40px; padding: 0; } }
+
+/* ---------- Удаление разделов и абзацев (вкладка «Документ Word», шаг 2) ---------- */
+.doc-cut { margin-top: var(--space-6); padding-top: var(--space-4); border-top: 1px solid var(--border); display: grid; gap: var(--space-3); }
+.doc-cut-title { display: flex; align-items: center; gap: var(--space-2); margin: 0; }
+.doc-outline {
+  max-height: 420px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.ol-row {
+  display: flex; align-items: flex-start; gap: var(--space-2); padding: var(--space-1) var(--space-3) var(--space-1) 0;
+  border-bottom: 1px solid var(--border); font: 400 14px/20px var(--font-sans);
+}
+.ol-row:last-child { border-bottom: 0; }
+.ol-row .btn.icon-only { width: 32px; height: 28px; flex: none; color: var(--ink-muted); }
+.ol-row .btn.icon-only:hover { color: var(--ink); }
+.ol-text { flex: 1; min-width: 0; padding-top: 4px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.ol-row.h .ol-text { font-weight: 500; }
+.ol-row { padding-left: var(--ind, 0px); }
+.ol-row.tbl .ol-text, .ol-row.img .ol-text { color: var(--ink-muted); }
+.ol-row.cut { background: var(--surface-sunken); }
+.ol-row.cut .ol-text { text-decoration: line-through; color: var(--ink-muted); }
+.ol-row.cut .btn.icon-only { color: var(--ink); }
+.ol-tag { flex: none; padding-top: 4px; font: 400 12px/20px var(--font-sans); color: var(--ink-muted); }
 </style>
 <script>
   // тема до отрисовки, чтобы не мигало: сохранённый выбор или системная
@@ -674,6 +697,7 @@ dialog.help::backdrop { background: color-mix(in srgb, var(--surface-sunken) 75%
 <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" /></symbol>
 <symbol id="i-table-properties" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3v18" /><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M21 9H3" /><path d="M21 15H3" /></symbol>
 <symbol id="i-text-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 6H3" /><path d="M10 12H3" /><path d="M10 18H3" /><circle cx="17" cy="15" r="3" /><path d="m21 19-1.9-1.9" /></symbol>
+<symbol id="i-trash-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></symbol>
 <symbol id="i-triangle-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></symbol>
 <symbol id="i-undo-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" /></symbol>
 <symbol id="i-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" x2="12" y1="3" y2="15" /></symbol>
@@ -866,6 +890,23 @@ dialog.help::backdrop { background: color-mix(in srgb, var(--surface-sunken) 75%
         <label class="chk"><input type="checkbox" id="dRevisions" checked> Принять исправления<button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">Удалённый в режиме исправлений текст остаётся внутри файла, даже если его не видно. Флажок убирает его, а вставленный текст делает обычным</span></button></label>
         <label class="chk"><input type="checkbox" id="dComments" checked> Удалить примечания</label>
         <label class="chk"><input type="checkbox" id="dMeta" checked> Очистить свойства файла (автор, организация)</label>
+      </div>
+
+      <div class="doc-cut" id="dCut">
+        <h3 class="body-strong doc-cut-title"><svg class="i i20" aria-hidden="true"><use href="#i-trash-2"></use></svg>Удалить разделы и абзацы<button class="info-tip" type="button" aria-label="Об удалении разделов"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">Удалённое уходит из файла целиком: вместе с картинками, сносками, примечаниями и строками оглавления. <b>По ключу его не вернуть.</b> Значения из удалённых разделов пропадают из таблицы «Что найдено».</span></button></h3>
+        <div class="checks">
+          <label class="chk"><input type="radio" name="dCutMode" value="full" checked> Полностью</label>
+          <label class="chk"><input type="radio" name="dCutMode" value="mark"> С пометкой «[Раздел удалён]»<button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">На месте каждого удалённого участка остаётся одна строка «[Раздел удалён]», «[Абзац удалён]» или «[Таблица удалена]» — получатель видит, что текст был. Строка берёт оформление первого удалённого абзаца, поэтому при автонумерации номер первого пункта сохраняется.</span></button></label>
+        </div>
+        <div class="field">
+          <span class="label-row"><label class="caption" for="dCutRules">Удалять, если в тексте есть</label><button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">Каждая фраза — с новой строки, регистр не важен. Если фраза есть в заголовке, удаляется весь раздел с подразделами; если в обычном абзаце или таблице — только они. Правила запоминаются в этом браузере.</span></button></span>
+          <textarea id="dCutRules" rows="2" spellcheck="false" placeholder="Например: Особые условия оплаты, Банковские реквизиты"></textarea>
+        </div>
+        <div class="field">
+          <span class="label-row"><span class="caption">Структура документа</span><button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">Нажмите на корзину у абзаца или таблицы, чтобы удалить их, у заголовка — чтобы удалить весь раздел. Повторное нажатие возвращает. Заголовки Redact берёт из стилей Word, а строки вида «5. ОТВЕТСТВЕННОСТЬ СТОРОН» и прописные — угадывает по виду (отмечены «≈»).</span></button></span>
+          <div class="doc-outline" id="dOutline" role="list"></div>
+        </div>
+        <small class="small muted" id="dCutStats"></small>
       </div>
     </section>
 
@@ -2025,12 +2066,24 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
     return new RegExp(`(?<![\\p{L}\\p{N}])${words.join('[\\s\\u00a0]+')}(?![\\p{L}\\p{N}])`, matchCase ? 'gu' : 'giu');
   }
 
+  // Сегменты с текстом, кроме удаляемых разделов и абзацев (cut — диапазоны [начало, конец) в word/document.xml)
+  function liveSegs(parts, cut = []) {
+    const out = [];
+    for (const p of parts) for (const s of p.segs) {
+      if (s.kind !== 'text') continue;
+      if (cut.length && p.name === 'word/document.xml' && cut.some(([a, b]) => s.nodes[0].start >= a && s.nodes[0].start < b)) continue;
+      out.push([p, s]);
+    }
+    return out;
+  }
+
   function plan(parts, opts) {
     const seed = opts.seed || 'redact-docx';
     const factor = Number(opts.factor) || 1, shift = Math.round(Number(opts.shiftDays) || 0);
     const enabled = opts.types || Object.fromEntries(Object.keys(TYPES).map(t => [t, true]));
     const skip = new Set(opts.skip || []);
-    const allText = parts.map(p => p.segs.filter(s => s.kind === 'text').map(s => s.text).join('\n')).join('\n');
+    const live = liveSegs(parts, opts.cut);
+    const allText = live.map(([, s]) => s.text).join('\n');
 
     // 1. Что найдено: значение → { type, count, info }
     const found = new Map();
@@ -2038,7 +2091,7 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
       const f = found.get(h.value);
       if (f) f.count++; else found.set(h.value, { type: h.type, count: 1, info: h.info, value: h.value });
     };
-    for (const p of parts) for (const s of p.segs) if (s.kind === 'text') detect(s.text).forEach(note);
+    for (const [, s] of live) detect(s.text).forEach(note);
     // «Добавить своё»: без учёта регистра (по умолчанию) и во всех падежах — все найденные формы получают одну замену
     const claimed = new Set(found.keys());
     for (const c of opts.custom || []) {
@@ -2213,6 +2266,7 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
     const parts = await readParts(zip);
     if (!parts.some(p => p.name === 'word/document.xml')) throw new Error('это не документ Word: в архиве нет word/document.xml');
     const { rows, repl } = plan(parts, opts);
+    const styles = zip.file('word/styles.xml') ? headingStyles(await zip.file('word/styles.xml').async('string')) : new Map();
     const names = Object.keys(zip.files);
     const doc = parts.find(p => p.name === 'word/document.xml').xml;
     const info = {
@@ -2222,7 +2276,7 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
       revisions: (doc.match(/<w:(del|ins|moveFrom|moveTo)\b/g) || []).length,
       paragraphs: parts.reduce((n, p) => n + p.segs.filter(s => s.kind === 'text').length, 0),
     };
-    return { parts, rows, repl, info };
+    return { parts, rows, repl, info, blocks: blocksOf(doc, styles) };
   }
 
   // Записанные исправления: удалённый текст убирается из файла, вставленный становится обычным
@@ -2240,10 +2294,20 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
   // Авторы правок и примечаний
   const dropAuthors = xml => xml.replace(/\sw:author="[^"]*"/g, ' w:author="Автор"').replace(/\sw:initials="[^"]*"/g, ' w:initials=""');
 
-  // Обезличивание: zip изменяется на месте. opts: repl (Map), clean: { revisions, comments, meta }
-  async function redactDocx(zip, { repl, clean = {} }) {
+  // Обезличивание: zip изменяется на месте. opts: repl (Map), clean: { revisions, comments, meta },
+  // cut — номера удаляемых блоков (blocksOf), mode — 'full' или 'mark'
+  async function redactDocx(zip, { repl, clean = {}, cut = new Set(), mode = 'full' }) {
     const finder = dictFinder(repl);
-    let replaced = 0;
+    let replaced = 0, removedFiles = 0;
+    // сначала удаление разделов: номера блоков — по исходному тексту, тому же, что видел пользователь
+    if (cut.size) {
+      const doc = await zip.file('word/document.xml').async('string');
+      const styles = zip.file('word/styles.xml') ? headingStyles(await zip.file('word/styles.xml').async('string')) : new Map();
+      const c = cutBlocks(doc, blocksOf(doc, styles), cut, mode);
+      const after = await cleanAfterCut(zip, c.xml, c.removed);
+      removedFiles = after.removedFiles;
+      zip.file('word/document.xml', after.xml);
+    }
     for (const name of Object.keys(zip.files).filter(n => TEXT_PART.test(n))) {
       let xml = await zip.file(name).async('string');
       if (clean.revisions) xml = acceptRevisions(xml);
@@ -2268,7 +2332,7 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
     }
     if (zip.file('word/people.xml')) zip.file('word/people.xml', (await zip.file('word/people.xml').async('string')).replace(/<w15:person\b[\s\S]*?<\/w15:person>/g, ''));
     if (clean.meta) await clearMeta(zip);
-    return { replaced };
+    return { replaced, removedFiles };
   }
 
   async function clearMeta(zip) {
@@ -2309,11 +2373,10 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
   }
 
   // Текст документа для предпросмотра: абзацы с найденным, разметка [исходное → замена]
-  function previewParagraphs(parts, repl, limit = 60) {
+  function previewParagraphs(parts, repl, limit = 60, cut = []) {
     const finder = dictFinder(repl);
     const out = [];
-    for (const p of parts) for (const s of p.segs) {
-      if (s.kind !== 'text') continue;
+    for (const [p, s] of liveSegs(parts, cut)) {
       const f = finder(s.text);
       if (!f.length) continue;
       const pieces = [];
@@ -2330,7 +2393,199 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
     return out;
   }
 
-  const api = { TYPES, detect, customPattern, segmentsOf, rewrite, dictFinder, plan, shiftDate, innValid, analyzeDocx, redactDocx, restoreDocx, previewParagraphs, acceptRevisions };
+  // ---------- Удаление разделов и абзацев ----------
+  // Блок — абзац, таблица или элемент управления содержимым прямо в <w:body>. Раздел — заголовок и всё до следующего
+  // заголовка того же или более высокого уровня. Уровень заголовка — из стиля («heading N», уровень структуры)
+  // или по виду строки: «5. ОТВЕТСТВЕННОСТЬ СТОРОН», «Приложение» прописными — такие заголовки помечены как угаданные.
+  function headingStyles(stylesXml) {
+    const map = new Map();
+    for (const m of (stylesXml || '').matchAll(/<w:style\b[^>]*w:styleId="([^"]+)"[^>]*>([\s\S]*?)<\/w:style>/g)) {
+      const name = /<w:name w:val="([^"]*)"/.exec(m[2]);
+      const lvl = /<w:outlineLvl w:val="(\d)"/.exec(m[2]);
+      const h = name && /^(?:heading|заголовок)\s*(\d)$/i.exec(name[1]);
+      if (h) map.set(m[1], +h[1]);
+      else if (lvl && +lvl[1] < 9) map.set(m[1], +lvl[1] + 1);
+      else if (name && /^title$/i.test(name[1])) map.set(m[1], 1);
+    }
+    return map;
+  }
+  function guessHeading(text) {
+    const t = text.split(SEP).join(' ').trim();
+    if (t.length < 3 || t.length > 90 || /[,;:]$/.test(t)) return 0;
+    if (/^\d{1,2}\.?\s+[А-ЯЁA-Z]/.test(t) && !/^\d+\.\d/.test(t) && !/\.$/.test(t)) return 1;
+    const letters = t.replace(/[^А-ЯЁа-яёA-Za-z]/g, '');
+    if (letters.length >= 4 && letters === letters.toUpperCase()) return 1;
+    return 0;
+  }
+  function blocksOf(xml, styles = new Map()) {
+    const body = /<w:body\b[^>]*>/.exec(xml);
+    if (!body) return [];
+    const blocks = [];
+    const re = /<(\/?)w:(p|tbl|sdt|body)\b[^>]*?(\/?)>/g;
+    re.lastIndex = body.index + body[0].length;
+    let depth = 0, start = -1, kind = '', m;
+    while ((m = re.exec(xml))) {
+      const [tag, close, name, self] = m;
+      if (name === 'body') break;
+      if (!close && !self) { if (depth === 0) { start = m.index; kind = name; } depth++; }
+      else if (close) { depth--; if (depth === 0) blocks.push({ start, end: m.index + tag.length, kind }); }
+      else if (self && depth === 0) blocks.push({ start: m.index, end: m.index + tag.length, kind: name });
+    }
+    for (const b of blocks) {
+      const x = xml.slice(b.start, b.end);
+      b.text = segmentsOf(x).filter(s => s.kind === 'text').map(s => s.text.split(SEP).join(' ').trim()).filter(Boolean)
+        .join(b.kind === 'tbl' ? ' · ' : ' ');
+      b.sect = /<w:sectPr\b/.test(x);
+      b.image = /<w:drawing\b|<w:pict\b|<w:object\b/.test(x);
+      b.level = 0;
+      if (b.kind === 'p') {
+        const st = /<w:pStyle w:val="([^"]+)"/.exec(x);
+        const ol = /<w:pPr>(?:(?!<\/w:pPr>)[\s\S])*?<w:outlineLvl w:val="(\d)"/.exec(x);
+        b.level = (st && styles.get(st[1])) || (ol && +ol[1] < 9 ? +ol[1] + 1 : 0);
+        // строка оглавления повторяет текст заголовка, но заголовком не считается
+        b.toc = /w:anchor="_Toc|PAGEREF\s+_Toc/.test(x);
+        if (!b.level && b.text && !b.toc) { b.level = guessHeading(b.text); b.guessed = !!b.level; }
+      }
+    }
+    return blocks;
+  }
+  // Конец раздела, который начинается заголовком i (не включительно)
+  function sectionEnd(blocks, i) {
+    const lvl = blocks[i].level;
+    if (!lvl) return i + 1;
+    let j = i + 1;
+    while (j < blocks.length && !(blocks[j].level && blocks[j].level <= lvl)) j++;
+    return j;
+  }
+  // Правила: блок, в тексте которого есть фраза (без учёта регистра), удаляется; если это заголовок — весь раздел
+  function ruleCuts(blocks, rules) {
+    const cut = new Set();
+    const rs = (rules || []).map(r => r.trim().toLowerCase()).filter(r => r.length >= 2);
+    if (!rs.length) return cut;
+    blocks.forEach((b, i) => {
+      const t = b.text.toLowerCase();
+      if (!rs.some(r => t.includes(r))) return;
+      for (let j = i, e = sectionEnd(blocks, i); j < e; j++) cut.add(j);
+    });
+    return cut;
+  }
+  // Диапазоны удаляемого в document.xml — чтобы «Что найдено» и предпросмотр не показывали удалённое
+  const cutRanges = (blocks, cut) => [...cut].map(i => [blocks[i].start, blocks[i].end]);
+
+  // Удаление блоков из document.xml. mode: 'full' — без следа, 'mark' — на месте каждого удалённого участка
+  // абзац «[… удалён]» с оформлением первого абзаца (номер пункта при автонумерации сохраняется)
+  function cutBlocks(xml, blocks, cut, mode) {
+    const idx = [...cut].sort((a, b) => a - b);
+    if (!idx.length) return { xml, removed: '' };
+    const runs = [];
+    for (const i of idx) { const r = runs[runs.length - 1]; if (r && r[1] === i - 1) r[1] = i; else runs.push([i, i]); }
+    let out = '', at = 0, removed = '';
+    for (const [a, b] of runs) {
+      out += xml.slice(at, blocks[a].start);
+      removed += xml.slice(blocks[a].start, blocks[b].end);
+      const keep = [];
+      // разрыв раздела (параметры страницы) хранится в абзаце — сам абзац уходит, разрыв остаётся пустым абзацем
+      for (let i = a; i <= b; i++) if (blocks[i].sect && blocks[i].kind === 'p') {
+        const pPr = /<w:pPr\b[\s\S]*?<\/w:pPr>/.exec(xml.slice(blocks[i].start, blocks[i].end));
+        if (pPr) keep.push(`<w:p>${pPr[0]}</w:p>`);
+      }
+      if (mode === 'mark') {
+        const first = blocks[a];
+        const label = first.level ? '[Раздел удалён]' : first.kind === 'tbl' && a === b ? '[Таблица удалена]' : a === b ? '[Абзац удалён]' : '[Фрагмент удалён]';
+        let pPr = first.kind === 'p' ? (/<w:pPr\b[\s\S]*?<\/w:pPr>/.exec(xml.slice(first.start, first.end)) || [''])[0] : '';
+        pPr = pPr.replace(/<w:sectPr\b[\s\S]*?<\/w:sectPr>/g, '').replace(/<w:rPr\b[\s\S]*?<\/w:rPr>/g, '');
+        out += `<w:p>${pPr}<w:r><w:t>${label}</w:t></w:r></w:p>`;
+      }
+      out += keep.join('');
+      at = blocks[b].end;
+    }
+    out += xml.slice(at);
+    // в теле документа должен остаться хотя бы один абзац
+    if (!/<w:body\b[^>]*>[\s\S]*<w:p[\s>/]/.test(out)) out = out.replace(/(<w:body\b[^>]*>)/, '$1<w:p/>');
+    return { xml: out, removed };
+  }
+
+  // Хвосты удалённого: сноски, примечания, закладки, строки оглавления, картинки и вложенные объекты
+  async function cleanAfterCut(zip, docXml, removed) {
+    const ids = re => [...removed.matchAll(re)].map(m => m[1]);
+    // сноски и концевые сноски
+    for (const [kind, part] of [['footnote', 'word/footnotes.xml'], ['endnote', 'word/endnotes.xml']]) {
+      const gone = ids(new RegExp(`<w:${kind}Reference\\b[^>]*w:id="(-?\\d+)"`, 'g'));
+      if (!gone.length || !zip.file(part)) continue;
+      let x = await zip.file(part).async('string');
+      for (const id of gone) x = x.replace(new RegExp(`<w:${kind}\\b[^>]*w:id="${id}"[\\s\\S]*?</w:${kind}>`), '');
+      zip.file(part, x);
+    }
+    // примечания к удалённому тексту и их метки, оставшиеся снаружи
+    const comments = [...new Set(ids(/<w:comment(?:Reference|RangeStart|RangeEnd)\b[^>]*w:id="(\d+)"/g))];
+    if (comments.length) {
+      for (const id of comments) docXml = docXml.replace(new RegExp(`<w:comment(?:RangeStart|RangeEnd)\\b[^>]*w:id="${id}"[^>]*/>`, 'g'), '')
+        .replace(new RegExp(`<w:r\\b[^>]*>(?:(?!</w:r>)[\\s\\S])*?<w:commentReference\\b[^>]*w:id="${id}"[^>]*/>(?:(?!</w:r>)[\\s\\S])*?</w:r>`, 'g'), '');
+      if (zip.file('word/comments.xml')) {
+        let x = await zip.file('word/comments.xml').async('string');
+        for (const id of comments) x = x.replace(new RegExp(`<w:comment\\b[^>]*w:id="${id}"[\\s\\S]*?</w:comment>`), '');
+        zip.file('word/comments.xml', x);
+      }
+    }
+    // закладки удалённого текста; строки оглавления и перекрёстные ссылки на них показывают удалённые заголовки
+    const marks = [...removed.matchAll(/<w:bookmarkStart\b[^>]*w:name="([^"]+)"/g)].map(m => m[1]);
+    for (const name of marks) {
+      const e = escapeRe(name);
+      for (const re of [new RegExp(`w:anchor="${e}"`), new RegExp(`PAGEREF\\s+${e}\\b`), new RegExp(`REF\\s+${e}\\b`)]) {
+        let m;
+        while ((m = re.exec(docXml))) {
+          const a = Math.max(docXml.lastIndexOf('<w:p>', m.index), docXml.lastIndexOf('<w:p ', m.index));
+          const b = docXml.indexOf('</w:p>', m.index);
+          if (a < 0 || b < 0) break;
+          docXml = docXml.slice(0, a) + docXml.slice(b + 6);
+        }
+      }
+    }
+    const starts = new Set([...docXml.matchAll(/<w:bookmarkStart\b[^>]*w:id="(\d+)"/g)].map(m => m[1]));
+    const ends = new Set([...docXml.matchAll(/<w:bookmarkEnd\b[^>]*w:id="(\d+)"/g)].map(m => m[1]));
+    docXml = docXml.replace(/<w:bookmark(Start|End)\b[^>]*w:id="(\d+)"[^>]*\/>/g, (t, k, id) => (k === 'Start' ? ends : starts).has(id) ? t : '');
+    // связи документа, на которые больше никто не ссылается: картинки, вложенные таблицы, диаграммы
+    const relsName = 'word/_rels/document.xml.rels';
+    const dropped = [];
+    if (zip.file(relsName)) {
+      let rels = await zip.file(relsName).async('string');
+      const used = new Set([...docXml.matchAll(/\br:(?:id|embed|link|pict|dm|lo|qs|cs)="([^"]+)"/g)].map(m => m[1]));
+      const otherParts = Object.keys(zip.files).filter(n => TEXT_PART.test(n) && n !== 'word/document.xml');
+      for (const n of otherParts) for (const m of (await zip.file(n).async('string')).matchAll(/\br:(?:id|embed|link)="([^"]+)"/g)) used.add(m[1]);
+      rels = rels.replace(/<Relationship\b[^>]*\/>/g, r => {
+        const id = /Id="([^"]+)"/.exec(r), type = /Type="([^"]+)"/.exec(r), target = /Target="([^"]+)"/.exec(r);
+        if (!id || used.has(id[1]) || /TargetMode="External"/.test(r) && !/hyperlink/.test(type[1])) return r;
+        if (!/\/(image|oleObject|package|chart|diagram\w*|video|audio|media|hyperlink)$/.test(type[1])) return r;
+        if (target && !/TargetMode="External"/.test(r)) dropped.push('word/' + target[1].replace(/^\.\//, '').replace(/^\/word\//, ''));
+        return '';
+      });
+      zip.file(relsName, rels);
+    }
+    // сами файлы — если на них не ссылается больше ни одна связь; у диаграмм — и их вложенные данные
+    const allRels = async () => (await Promise.all(Object.keys(zip.files).filter(n => /\.rels$/.test(n)).map(n => zip.file(n).async('string')))).join('\n');
+    let removedFiles = 0;
+    for (let k = 0; k < dropped.length; k++) {
+      const f = dropped[k].replace(/\/[^/]+\/\.\.\//g, '/');
+      if (!zip.file(f)) continue;
+      const base = f.split('/').pop();
+      if ((await allRels()).includes(base)) continue;
+      const own = f.replace(/([^/]+)$/, '_rels/$1.rels');
+      if (zip.file(own)) {
+        const dir = f.replace(/[^/]+$/, '');
+        for (const m of (await zip.file(own).async('string')).matchAll(/Target="([^"]+)"/g)) if (!/^(https?|mailto):/.test(m[1])) dropped.push((dir + m[1]).replace(/[^/]+\/\.\.\//g, ''));
+        zip.remove(own);
+      }
+      zip.remove(f);
+      removedFiles++;
+      if (zip.file('[Content_Types].xml')) {
+        const ct = await zip.file('[Content_Types].xml').async('string');
+        zip.file('[Content_Types].xml', ct.replace(new RegExp(`<Override\\b[^>]*PartName="/${escapeRe(f)}"[^>]*/>`), ''));
+      }
+    }
+    return { xml: docXml, removedFiles };
+  }
+
+  const api = { TYPES, detect, customPattern, headingStyles, blocksOf, sectionEnd, ruleCuts, cutRanges, cutBlocks, segmentsOf, rewrite, dictFinder, plan, shiftDate, innValid, analyzeDocx, redactDocx, restoreDocx, previewParagraphs, acceptRevisions };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.RedactDocx = api;
 })(typeof window !== 'undefined' ? window : globalThis);
@@ -2338,7 +2593,7 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
 </script>
 <script>
 // Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
-window.ANON_VERSION = '5.5';
+window.ANON_VERSION = '5.6';
 
 </script>
 <script>
@@ -5257,11 +5512,11 @@ if (typeof module !== 'undefined' && module.exports) {
   'use strict';
   const A = window.Anon;
   const D = window.RedactDocx;
-  const { $, icon, esc, toast, download, KEY_SHEET } = window.RedactUI;
+  const { $, icon, esc, toast, download, store, KEY_SHEET } = window.RedactUI;
   const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
   const DS = {
-    fileName: '', buffer: null, analysis: null, rows: [], repl: new Map(), keyPairs: [],
+    fileName: '', buffer: null, analysis: null, rows: [], repl: new Map(), keyPairs: [], cutManual: new Map(), cut: new Set(), ruleCut: new Set(),
     seed: '', types: {}, skip: new Set(),
   };
 
@@ -5285,6 +5540,9 @@ if (typeof module !== 'undefined' && module.exports) {
       DS.seed = A.randomSeed();
       DS.types = {};
       DS.skip = new Set();
+      DS.cutManual = new Map();
+      DS.cut = new Set();
+      DS.analysis = null;
       $('dFactor').value = A.factorFromSeed(A.randomSeed());
       $('dShift').value = A.shiftFromSeed(A.randomSeed());
       DS.analysis = await D.analyzeDocx(zip, opts());
@@ -5304,17 +5562,71 @@ if (typeof module !== 'undefined' && module.exports) {
     seed: DS.seed, factor: parseFloat($('dFactor').value) || 1, shiftDays: parseInt($('dShift').value, 10) || 0,
     types: DS.types, skip: [...DS.skip], custom: custom(),
     customCase: $('dCustomCase').checked, customForms: $('dCustomForms').checked,
+    cut: DS.analysis ? D.cutRanges(DS.analysis.blocks, DS.cut) : [],
   });
 
   // ---------- Найденное ----------
+  // ---------- Удаление разделов и абзацев ----------
+  // Итог: по правилам плюс отмеченное вручную, минус возвращённое вручную (cutManual: номер блока → удалить или оставить)
+  const cutRules = () => $('dCutRules').value.split('\n').map(s => s.trim()).filter(s => s.length >= 2);
+  function computeCut() {
+    const blocks = DS.analysis.blocks;
+    DS.ruleCut = D.ruleCuts(blocks, cutRules());
+    DS.cut = new Set([...DS.ruleCut].filter(i => DS.cutManual.get(i) !== false));
+    DS.cutManual.forEach((v, i) => { if (v) DS.cut.add(i); });
+  }
+  function renderOutline() {
+    const B = DS.analysis.blocks;
+    let ctx = 0;
+    $('dOutline').innerHTML = B.map((b, i) => {
+      if (b.level) ctx = b.level;
+      if (!b.text && !b.image && b.kind !== 'tbl') return '';
+      const ind = b.level ? (b.level - 1) * 16 : ctx * 16 + 8;
+      const label = b.kind === 'tbl' ? `Таблица: ${b.text || 'пустая'}` : b.text || 'Картинка';
+      const cut = DS.cut.has(i);
+      const tag = DS.ruleCut.has(i) && cut ? 'по правилу' : b.guessed ? '≈ заголовок' : '';
+      const what = b.level ? 'раздел' : b.kind === 'tbl' ? 'таблицу' : 'абзац';
+      return `<div class="ol-row${b.level ? ' h' : ''}${b.kind === 'tbl' ? ' tbl' : ''}${!b.text && b.image ? ' img' : ''}${cut ? ' cut' : ''}" role="listitem" style="--ind:${ind}px">
+        <button type="button" class="btn ghost icon-only" data-cut="${i}" aria-pressed="${cut}" title="${cut ? 'Вернуть' : 'Удалить'} ${what}" aria-label="${cut ? 'Вернуть' : 'Удалить'} ${what}: ${esc(label.slice(0, 60))}">${icon(cut ? 'undo-2' : 'trash-2', 'i')}</button>
+        <span class="ol-text">${esc(label)}</span>${tag ? `<span class="ol-tag">${tag}</span>` : ''}</div>`;
+    }).join('');
+    const n = DS.cut.size;
+    const secs = [...DS.cut].filter(i => B[i].level).length;
+    $('dCutStats').textContent = n
+      ? `Будет удалено: ${secs ? `${secs} ${A.plural(secs, 'заголовок', 'заголовка', 'заголовков')} с разделами, ` : ''}всего ${n} ${A.plural(n, 'блок', 'блока', 'блоков')} (абзацы, таблицы, картинки).`
+      : 'Ничего не удаляется.';
+  }
+  $('dOutline').addEventListener('click', ev => {
+    const btn = ev.target.closest('[data-cut]');
+    if (!btn) return;
+    const B = DS.analysis.blocks, i = +btn.dataset.cut;
+    const end = D.sectionEnd(B, i);
+    const range = [...Array(end - i)].map((_, k) => i + k);
+    const allCut = range.every(j => DS.cut.has(j));
+    range.forEach(j => DS.cutManual.set(j, !allCut));
+    replan();
+    const again = $('dOutline').querySelector(`[data-cut="${i}"]`);
+    if (again) again.focus();
+  });
+  let rulesTimer;
+  $('dCutRules').addEventListener('input', () => {
+    clearTimeout(rulesTimer);
+    rulesTimer = setTimeout(() => { store.set('redact-doc-cut-rules', $('dCutRules').value); replan(); }, 400);
+  });
+  $('dCutRules').value = store.get('redact-doc-cut-rules') || '';
+  document.querySelectorAll('input[name=dCutMode]').forEach(r => r.addEventListener('change', () => DS.analysis && renderPreview()));
+  const cutMode = () => (document.querySelector('input[name=dCutMode]:checked') || {}).value || 'full';
+
   function replan() {
     if (!DS.analysis) return;
+    computeCut();
     const { rows, repl, keyPairs } = D.plan(DS.analysis.parts, opts());
     DS.rows = rows;
     DS.repl = repl;
     DS.keyPairs = keyPairs;
     renderTypes();
     renderFound();
+    renderOutline();
     renderPreview();
   }
 
@@ -5365,7 +5677,7 @@ if (typeof module !== 'undefined' && module.exports) {
 
   // ---------- Предпросмотр ----------
   function renderPreview() {
-    const paras = D.previewParagraphs(DS.analysis.parts, DS.repl, 40);
+    const paras = D.previewParagraphs(DS.analysis.parts, DS.repl, 40, D.cutRanges(DS.analysis.blocks, DS.cut));
     const n = DS.repl.size;
     const occ = DS.rows.filter(r => r.on).reduce((s, r) => s + r.count, 0);
     $('dStats').textContent = n
@@ -5388,6 +5700,7 @@ if (typeof module !== 'undefined' && module.exports) {
       : `Примечания (${i.comments}) останутся; найденное в них заменится, а имена авторов — уберутся.`);
     if (i.images) danger.push(`В документе ${i.images} ${A.plural(i.images, 'картинка', 'картинки', 'картинок')} — например, сканы подписей и печатей. Redact их не читает: картинки останутся в файле как есть.`);
     if (i.embeddings) danger.push(`В документе ${i.embeddings} ${A.plural(i.embeddings, 'вложенный объект', 'вложенных объекта', 'вложенных объектов')} (например, таблица Excel). Redact их не читает: они останутся в файле как есть — проверьте их отдельно.`);
+    if (DS.cut.size) danger.push(`Будут удалены ${DS.cut.size} ${A.plural(DS.cut.size, 'блок', 'блока', 'блоков')} документа${cutMode() === 'mark' ? ' (на их месте — пометка «[… удалён]»)' : ''}: по ключу их не вернуть. Проверьте список в «Удалить разделы и абзацы».`);
     const kept = DS.rows.filter(r => !r.on);
     if (kept.length) danger.push(`Останутся без замены: ${kept.length} ${A.plural(kept.length, 'значение', 'значения', 'значений')} (${kept.slice(0, 5).map(r => `«${r.value}»`).join(', ')}${kept.length > 5 ? '…' : ''}).`);
     info.push('Проверьте предпросмотр: Redact находит типовые данные по шаблонам, но не понимает смысл текста. Адреса, названия без формы организации и имена без отчества добавьте в «Добавить своё».');
@@ -5407,6 +5720,7 @@ if (typeof module !== 'undefined' && module.exports) {
       const zip = await JSZip.loadAsync(DS.buffer);
       const { replaced } = await D.redactDocx(zip, {
         repl: DS.repl, clean: { revisions: $('dRevisions').checked, comments: $('dComments').checked, meta: $('dMeta').checked },
+        cut: DS.cut, mode: cutMode(),
       });
       const blob = await zip.generateAsync({ type: 'blob', mimeType: DOCX_MIME, compression: 'DEFLATE' });
       download(blob, baseName() + '_redact.docx');
@@ -5469,7 +5783,7 @@ if (typeof module !== 'undefined' && module.exports) {
       confirm: 'Да, очистить',
     });
     if (!ok) return;
-    Object.assign(DS, { fileName: '', buffer: null, analysis: null, rows: [], repl: new Map(), keyPairs: [], seed: '', types: {}, skip: new Set() });
+    Object.assign(DS, { fileName: '', buffer: null, analysis: null, rows: [], repl: new Map(), keyPairs: [], cutManual: new Map(), cut: new Set(), ruleCut: new Set(), seed: '', types: {}, skip: new Set() });
     ['d2', 'd3', 'dClearRow'].forEach(id => $(id).classList.add('hidden'));
     for (const id of ['dFileInfo', 'dSummary', 'dTypes', 'dPreview', 'dWarnings', 'dStats']) $(id).innerHTML = '';
     $('dFound').tBodies[0].innerHTML = '';
@@ -5580,6 +5894,13 @@ if (typeof module !== 'undefined' && module.exports) {
             <li>«Во всех падежах» (включён): «Вересков» найдёт и «Верескова», «Вересковым»; все формы получат одну замену;</li>
             <li>«Учитывать регистр» (выключен): без него «Вересков» найдёт и «ВЕРЕСКОВ»;</li>
             <li>нужно вернуть по ключу «один в один» — выключите «Во всех падежах» и включите «Учитывать регистр».</li>
+          </ul></li>
+        <li><b>Удалить разделы и абзацы</b> — то, что получателю не нужно видеть вовсе: особые условия, реквизиты, приложения.
+          <ul>
+            <li>в «Структуре документа» нажмите на корзину у абзаца или таблицы; у заголовка — удалится весь раздел с подразделами;</li>
+            <li>правила «Удалять, если в тексте есть…» делают то же по фразам и запоминаются для следующих документов;</li>
+            <li>режим «Полностью» (по умолчанию) — без следа; «С пометкой» — на месте удалённого строка «[Раздел удалён]»;</li>
+            <li>удаляется и всё связанное: картинки, сноски, примечания, строки оглавления. <b>По ключу удалённое не вернуть.</b></li>
           </ul></li>
         <li><b>Проверка и результат.</b> Просмотрите текст с заменами, скачайте документ и ключ. Оформление не меняется;
           заменяется везде — в тексте, таблицах, колонтитулах, сносках и примечаниях. Флажками можно принять исправления
