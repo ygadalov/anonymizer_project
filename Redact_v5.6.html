@@ -672,6 +672,8 @@ dialog.help::backdrop { background: color-mix(in srgb, var(--surface-sunken) 75%
 .cut-line .cut-note { font: 400 13px/20px var(--font-sans); }
 .doc-preview.full .doc-part { display: inline; margin: 0 var(--space-2) 0 0; }
 .legend .spacer { flex: 1; }
+/* номер автонумерации Word в предпросмотре — как в документе, перед текстом абзаца */
+.num-label { display: inline-block; min-width: 2.5em; margin-right: var(--space-1); }
 </style>
 <script>
   // тема до отрисовки, чтобы не мигало: сохранённый выбор или системная
@@ -2280,7 +2282,9 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
     const parts = await readParts(zip);
     if (!parts.some(p => p.name === 'word/document.xml')) throw new Error('это не документ Word: в архиве нет word/document.xml');
     const { rows, repl } = plan(parts, opts);
-    const styles = zip.file('word/styles.xml') ? headingStyles(await zip.file('word/styles.xml').async('string')) : new Map();
+    const stylesXml = zip.file('word/styles.xml') ? await zip.file('word/styles.xml').async('string') : '';
+    const styles = headingStyles(stylesXml);
+    const numbering = numberingDefs(zip.file('word/numbering.xml') ? await zip.file('word/numbering.xml').async('string') : '', stylesXml);
     const names = Object.keys(zip.files);
     const doc = parts.find(p => p.name === 'word/document.xml').xml;
     const info = {
@@ -2290,7 +2294,7 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
       revisions: (doc.match(/<w:(del|ins|moveFrom|moveTo)\b/g) || []).length,
       paragraphs: parts.reduce((n, p) => n + p.segs.filter(s => s.kind === 'text').length, 0),
     };
-    return { parts, rows, repl, info, blocks: blocksOf(doc, styles) };
+    return { parts, rows, repl, info, blocks: blocksOf(doc, styles), numbering };
   }
 
   // Записанные исправления: удалённый текст убирается из файла, вставленный становится обычным
@@ -2407,10 +2411,93 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
     return out;
   }
 
+  // ---------- Автонумерация Word для предпросмотра ----------
+  // Номера списков Word рисует сам при открытии — в тексте документа их нет. Чтобы предпросмотр совпадал с документом,
+  // номера считаются по numbering.xml: формат уровня («%1.%2.»), начало, вид цифр. numPr — у абзаца или в его стиле.
+  function numberingDefs(numberingXml, stylesXml) {
+    const abs = new Map(), nums = new Map(), styleNum = new Map();
+    for (const m of (numberingXml || '').matchAll(/<w:abstractNum\b[^>]*w:abstractNumId="(\d+)"[^>]*>([\s\S]*?)<\/w:abstractNum>/g)) {
+      const lvls = [];
+      for (const l of m[2].matchAll(/<w:lvl\b[^>]*w:ilvl="(\d)"[^>]*>([\s\S]*?)<\/w:lvl>/g)) {
+        const v = tag => (new RegExp(`<w:${tag} w:val="([^"]*)"`).exec(l[2]) || [])[1];
+        lvls[+l[1]] = { start: +(v('start') || 1), fmt: v('numFmt') || 'decimal', text: v('lvlText') ?? `%${+l[1] + 1}.` };
+      }
+      abs.set(m[1], lvls);
+    }
+    for (const m of (numberingXml || '').matchAll(/<w:num\b[^>]*w:numId="(\d+)"[^>]*>([\s\S]*?)<\/w:num>/g)) {
+      const a = /<w:abstractNumId w:val="(\d+)"/.exec(m[2]);
+      const starts = new Map([...m[2].matchAll(/<w:lvlOverride w:ilvl="(\d)">(?:(?!<\/w:lvlOverride>)[\s\S])*?<w:startOverride w:val="(\d+)"/g)].map(x => [+x[1], +x[2]]));
+      if (a) nums.set(m[1], { abs: a[1], starts });
+    }
+    const styles = new Map();
+    for (const m of (stylesXml || '').matchAll(/<w:style\b[^>]*w:styleId="([^"]+)"[^>]*>([\s\S]*?)<\/w:style>/g)) {
+      const based = /<w:basedOn w:val="([^"]+)"/.exec(m[2]);
+      const id = /<w:numId w:val="(\d+)"/.exec(m[2]), lvl = /<w:ilvl w:val="(\d)"/.exec(m[2]);
+      styles.set(m[1], { based: based && based[1], numId: id && id[1], ilvl: lvl ? +lvl[1] : undefined });
+    }
+    for (const id of styles.keys()) {
+      let st = styles.get(id), numId, ilvl, guard = 0;
+      while (st && guard++ < 20) { if (numId === undefined && st.numId) numId = st.numId; if (ilvl === undefined && st.ilvl !== undefined) ilvl = st.ilvl; st = st.based && styles.get(st.based); }
+      if (numId) styleNum.set(id, { numId, ilvl: ilvl || 0 });
+    }
+    return { abs, nums, styleNum };
+  }
+  const ROMAN = [[1000, 'm'], [900, 'cm'], [500, 'd'], [400, 'cd'], [100, 'c'], [90, 'xc'], [50, 'l'], [40, 'xl'], [10, 'x'], [9, 'ix'], [5, 'v'], [4, 'iv'], [1, 'i']];
+  const RU = 'абвгдежзиклмнопрстуфхцчшщэюя';
+  function fmtNum(n, fmt) {
+    const letters = abc => { const k = (n - 1) % abc.length, rep = Math.floor((n - 1) / abc.length) + 1; return abc[k].repeat(rep); };
+    switch (fmt) {
+      case 'decimalZero': return String(n).padStart(2, '0');
+      case 'lowerLetter': return letters('abcdefghijklmnopqrstuvwxyz');
+      case 'upperLetter': return letters('abcdefghijklmnopqrstuvwxyz').toUpperCase();
+      case 'russianLower': return letters(RU);
+      case 'russianUpper': return letters(RU).toUpperCase();
+      case 'lowerRoman': case 'upperRoman': {
+        let r = '', x = n; for (const [v, t] of ROMAN) while (x >= v) { r += t; x -= v; }
+        return fmt === 'upperRoman' ? r.toUpperCase() : r;
+      }
+      case 'bullet': return '•';
+      case 'none': return '';
+      default: return String(n);
+    }
+  }
+  // Счётчик на один проход по документу: next(xml абзаца) → «2.1.» или ''
+  function numberer(defs) {
+    const counters = new Map();
+    return pXml => {
+      if (!defs) return '';
+      const pPr = (/<w:pPr\b[\s\S]*?<\/w:pPr>/.exec(pXml) || [''])[0];
+      let numId = (/<w:numId w:val="(\d+)"/.exec(pPr) || [])[1];
+      let ilvl = (/<w:ilvl w:val="(\d)"/.exec(pPr) || [])[1];
+      const st = /<w:pStyle w:val="([^"]+)"/.exec(pPr);
+      const sn = st && defs.styleNum.get(st[1]);
+      if (numId === undefined && sn) { numId = sn.numId; if (ilvl === undefined) ilvl = sn.ilvl; }
+      if (!numId || numId === '0') return '';
+      const num = defs.nums.get(numId), lvls = num && defs.abs.get(num.abs);
+      if (!lvls) return '';
+      ilvl = +(ilvl || 0);
+      const lv = lvls[ilvl];
+      if (!lv) return '';
+      const c = counters.get(numId) || [];
+      const startOf = k => num.starts.has(k) ? num.starts.get(k) : (lvls[k] ? lvls[k].start : 1);
+      c[ilvl] = c[ilvl] === undefined ? startOf(ilvl) : c[ilvl] + 1;
+      c.length = ilvl + 1;
+      counters.set(numId, c);
+      if (lv.fmt === 'bullet') return '•';
+      return lv.text.replace(/%(\d)/g, (m, k) => { k = +k - 1; return fmtNum(c[k] === undefined ? startOf(k) : c[k], lvls[k] ? lvls[k].fmt : 'decimal'); });
+    };
+  }
+  const paraXmlAt = (xml, at) => {
+    const a = Math.max(xml.lastIndexOf('<w:p>', at), xml.lastIndexOf('<w:p ', at));
+    const b = xml.indexOf('</w:p>', at);
+    return a < 0 || b < 0 ? '' : xml.slice(a, b + 6);
+  };
+
   // Предпросмотр всего документа по порядку: абзацы основного текста (с заголовками и таблицами), затем колонтитулы,
   // сноски и примечания. Удалённое не показывается, а в режиме «С пометкой» — одна строка на месте удалённого участка.
   // onlyChanged — только абзацы с заменами. Абзац: { part, pieces, heading, table, mark }
-  function previewDocument(parts, repl, { blocks = [], cut = new Set(), mode = 'full', onlyChanged = false, limit = 3000 } = {}) {
+  function previewDocument(parts, repl, { blocks = [], cut = new Set(), mode = 'full', onlyChanged = false, limit = 3000, numbering = null } = {}) {
+    const nextNum = numberer(numbering);
     const finder = dictFinder(repl);
     const out = [];
     const piecesOf = text => {
@@ -2436,6 +2523,7 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
       const segs = doc.segs.filter(s => s.kind === 'text');
       let k = 0;
       const runAt = new Map(cutRuns(blocks, cut).map(([a, b]) => [a, b]));
+      // номер абзаца: удалённые абзацы не считаются (Word перенумерует), пометка берёт номер первого удалённого абзаца
       blocks.forEach((b, i) => {
         const inBlock = [];
         while (k < segs.length && segs[k].nodes[0].start < b.end) { if (segs[k].nodes[0].start >= b.start) inBlock.push(segs[k]); k++; }
@@ -2444,15 +2532,17 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
           if (runAt.has(i) && !onlyChanged) {
             const j = runAt.get(i);
             const what = blocks.slice(i, j + 1).map(x => x.text).find(Boolean) || (b.image ? 'картинка' : '');
-            out.push({ part: doc.name, pieces: [], mark: mode === 'mark' ? cutLabel(blocks, i, j) : '', cutWhat: what, cutCount: j - i + 1 });
+            const num = mode === 'mark' && b.kind === 'p' ? nextNum(doc.xml.slice(b.start, b.end)) : '';
+            out.push({ part: doc.name, pieces: [], mark: mode === 'mark' ? cutLabel(blocks, i, j) : '', cutWhat: what, cutCount: j - i + 1, num });
           }
           return;
         }
-        if (b.kind !== 'tbl') { for (const s of inBlock) push(doc.name, s.text, { heading: !!b.level }); return; }
+        if (b.kind !== 'tbl') { for (const s of inBlock) push(doc.name, s.text, { heading: !!b.level, num: nextNum(paraXmlAt(doc.xml, s.nodes[0].start)) }); return; }
         // таблица — построчно: ячейки строки через « · »
         const rows = [...doc.xml.slice(b.start, b.end).matchAll(/<w:tr\b[\s\S]*?<\/w:tr>/g)].map(m => [b.start + m.index, b.start + m.index + m[0].length]);
         const groups = rows.map(() => []);
         for (const s of inBlock) {
+          nextNum(paraXmlAt(doc.xml, s.nodes[0].start));
           const r = rows.findIndex(([a, e]) => s.nodes[0].start >= a && s.nodes[0].start < e);
           if (r >= 0) groups[r].push(s); else groups.push([s]);
         }
@@ -2674,7 +2764,7 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
     return { xml: docXml, removedFiles };
   }
 
-  const api = { TYPES, detect, customPattern, headingStyles, blocksOf, sectionEnd, ruleCuts, cutRanges, cutRuns, cutBlocks, segmentsOf, rewrite, dictFinder, plan, shiftDate, innValid, analyzeDocx, redactDocx, restoreDocx, previewParagraphs, previewDocument, acceptRevisions };
+  const api = { TYPES, detect, customPattern, headingStyles, blocksOf, sectionEnd, ruleCuts, cutRanges, cutRuns, cutBlocks, segmentsOf, rewrite, dictFinder, plan, shiftDate, innValid, analyzeDocx, redactDocx, restoreDocx, previewParagraphs, previewDocument, numberingDefs, acceptRevisions };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.RedactDocx = api;
 })(typeof window !== 'undefined' ? window : globalThis);
@@ -5767,7 +5857,7 @@ if (typeof module !== 'undefined' && module.exports) {
   // ---------- Предпросмотр ----------
   function renderPreview() {
     const only = $('dOnlyChanged').checked;
-    const paras = D.previewDocument(DS.analysis.parts, DS.repl, { blocks: DS.analysis.blocks, cut: DS.cut, mode: cutMode(), onlyChanged: only });
+    const paras = D.previewDocument(DS.analysis.parts, DS.repl, { blocks: DS.analysis.blocks, cut: DS.cut, mode: cutMode(), onlyChanged: only, numbering: DS.analysis.numbering });
     const n = DS.repl.size;
     const occ = DS.rows.filter(r => r.on).reduce((s, r) => s + r.count, 0);
     $('dStats').textContent = n
@@ -5777,10 +5867,11 @@ if (typeof module !== 'undefined' && module.exports) {
       : /endnotes/.test(p) ? 'Концевая сноска' : /comments/.test(p) ? 'Примечание' : '';
     $('dPreview').classList.toggle('full', !only);
     // удалённый участок: в режиме «С пометкой» — пометка, как в файле; название удалённого — только здесь, зачёркнутым
-    const cutLine = p => `<p class="cut-line">${p.mark ? `<span class="mark">${esc(p.mark)}</span>` : '<span class="cut-note">удалено</span>'}` +
+    const numLabel = p => p.num ? `<span class="num-label">${esc(p.num)}</span>` : '';
+    const cutLine = p => `<p class="cut-line">${p.mark ? `<span class="mark">${numLabel(p)}${esc(p.mark)}</span>` : '<span class="cut-note">удалено</span>'}` +
       `<span class="cut-what">${esc(p.cutWhat.length > 90 ? p.cutWhat.slice(0, 90) + '…' : p.cutWhat)}</span>` +
       `${p.cutCount > 1 ? `<span class="cut-note">и ещё ${p.cutCount - 1} ${A.plural(p.cutCount - 1, 'блок', 'блока', 'блоков')}</span>` : ''}</p>`;
-    $('dPreview').innerHTML = paras.length ? paras.map(p => p.cutWhat !== undefined ? cutLine(p) : `<p class="${p.heading ? 'h' : ''}${p.table ? ' tbl' : ''}">${partName(p.part) ? `<span class="caption muted doc-part">${partName(p.part)}</span>` : ''}${p.pieces.map(x => x.text !== undefined
+    $('dPreview').innerHTML = paras.length ? paras.map(p => p.cutWhat !== undefined ? cutLine(p) : `<p class="${p.heading ? 'h' : ''}${p.table ? ' tbl' : ''}">${partName(p.part) ? `<span class="caption muted doc-part">${partName(p.part)}</span>` : ''}${numLabel(p)}${p.pieces.map(x => x.text !== undefined
       ? esc(x.text)
       : `<span class="pair-inline" title="${esc(x.orig)} → ${esc(x.repl)}"><span class="rv rv-detected">${esc(x.orig)}</span><span class="rv-arrow" aria-hidden="true">→</span><span class="rv rv-token">${esc(x.repl)}</span></span>`).join('')}</p>`).join('')
       : `<p class="small muted">${only ? 'Абзацев с заменами нет.' : 'В документе не осталось текста.'}</p>`;

@@ -231,3 +231,31 @@ test('удаление: соседние разделы — отдельные �
   assert.strictEqual(D.ruleCuts(B, ['Тайн']).size, 0);
   assert.ok(D.ruleCuts(B, ['тайный пункт']).has(at('Тайный пункт')));
 });
+
+test('предпросмотр: номера автонумерации Word — как в документе, с учётом удаления', async () => {
+  const zip = new JSZip();
+  const np = (t, ilvl, numId = 1, style = '') => `<w:p><w:pPr>${style ? `<w:pStyle w:val="${style}"/>` : ''}<w:numPr><w:ilvl w:val="${ilvl}"/><w:numId w:val="${numId}"/></w:numPr></w:pPr>${run(t)}</w:p>`;
+  const body = [
+    np('Предмет', 0, 1, 'H1'), np('Товар', 1), np('Цена', 0, 1, 'H1'), np('Сумма', 1), np('Скидка', 1),
+    `<w:p><w:pPr><w:pStyle w:val="H1"/></w:pPr>${run('Срок')}</w:p>`,   // номер из стиля
+    np('Пункт а', 0, 2), np('Пункт б', 0, 2), np('Маркер', 0, 3), np('С пятого', 0, 4),
+  ].join('');
+  zip.file('word/document.xml', `<?xml version="1.0"?><w:document ${W}><w:body>${body}</w:body></w:document>`);
+  zip.file('word/styles.xml', '<?xml version="1.0"?><w:styles><w:style w:type="paragraph" w:styleId="H1"><w:name w:val="heading 1"/><w:pPr><w:numPr><w:numId w:val="1"/></w:numPr></w:pPr></w:style></w:styles>');
+  const lvl = (i, fmt, text, start = 1) => `<w:lvl w:ilvl="${i}"><w:start w:val="${start}"/><w:numFmt w:val="${fmt}"/><w:lvlText w:val="${text}"/></w:lvl>`;
+  zip.file('word/numbering.xml', `<?xml version="1.0"?><w:numbering>
+    <w:abstractNum w:abstractNumId="0">${lvl(0, 'decimal', '%1.')}${lvl(1, 'decimal', '%1.%2.')}</w:abstractNum>
+    <w:abstractNum w:abstractNumId="1">${lvl(0, 'russianLower', '%1)')}</w:abstractNum>
+    <w:abstractNum w:abstractNumId="2">${lvl(0, 'bullet', '')}</w:abstractNum>
+    <w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num><w:num w:numId="2"><w:abstractNumId w:val="1"/></w:num>
+    <w:num w:numId="3"><w:abstractNumId w:val="2"/></w:num>
+    <w:num w:numId="4"><w:abstractNumId w:val="0"/><w:lvlOverride w:ilvl="0"><w:startOverride w:val="5"/></w:lvlOverride></w:num></w:numbering>`);
+  const a = await D.analyzeDocx(zip, {});
+  const nums = o => D.previewDocument(a.parts, new Map(), { blocks: a.blocks, numbering: a.numbering, ...o }).map(x => `${x.num}${x.mark || x.cutWhat || ''}`.trim() || x.pieces.map(y => y.text).join(''));
+  assert.deepStrictEqual(D.previewDocument(a.parts, new Map(), { blocks: a.blocks, numbering: a.numbering }).map(x => x.num),
+    ['1.', '1.1.', '2.', '2.1.', '2.2.', '3.', 'а)', 'б)', '•', '5.']);
+  const cut = D.ruleCuts(a.blocks, ['Цена']);
+  // «Полностью»: Word перенумерует — «Срок» станет 2.; «С пометкой»: пометка получает номер 2., «Срок» остаётся 3.
+  assert.deepStrictEqual(nums({ cut }).slice(0, 4), ['1.', '1.1.', 'Цена', '2.']);
+  assert.deepStrictEqual(nums({ cut, mode: 'mark' }).slice(0, 4), ['1.', '1.1.', '2.[Раздел удалён]', '3.']);
+});

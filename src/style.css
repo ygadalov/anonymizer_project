@@ -394,3 +394,5 @@ dialog.help::backdrop { background: color-mix(in srgb, var(--surface-sunken) 75%
 .cut-line .cut-note { font: 400 13px/20px var(--font-sans); }
 .doc-preview.full .doc-part { display: inline; margin: 0 var(--space-2) 0 0; }
 .legend .spacer { flex: 1; }
+/* номер автонумерации Word в предпросмотре — как в документе, перед текстом абзаца */
+.num-label { display: inline-block; min-width: 2.5em; margin-right: var(--space-1); }
