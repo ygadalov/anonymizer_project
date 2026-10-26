@@ -207,7 +207,27 @@ test('предпросмотр — весь документ по порядку
   const cut = new Set([...Array(D.sectionEnd(B, sec) - sec)].map((_, k) => sec + k));
   const gone = D.previewDocument(a.parts, new Map(), { blocks: B, cut });
   assert.ok(!gone.some(x => x.part === 'word/document.xml' && /Тайный пункт|Цена Вершины|Подраздел секрета/.test(text(x))));
+  // на месте раздела — строка «удалено: 2. Секретные условия» (в режиме «С пометкой» — с пометкой, как в файле)
+  const line = gone.find(x => x.cutWhat !== undefined);
+  assert.deepStrictEqual([line.mark, line.cutWhat, line.cutCount], ['', '2. Секретные условия', cut.size]);
   const marked = D.previewDocument(a.parts, new Map(), { blocks: B, cut, mode: 'mark' });
   assert.strictEqual(marked.filter(x => x.mark).length, 1);
-  assert.strictEqual(marked.length, gone.length + 1);
+  assert.strictEqual(marked.find(x => x.mark).mark, '[Раздел удалён]');
+  assert.strictEqual(marked.length, gone.length);
+});
+
+test('удаление: соседние разделы — отдельные пометки, правила — целыми словами', async () => {
+  const a = await D.analyzeDocx(makeSectionsDocx(), {});
+  const B = a.blocks;
+  const at = t => B.findIndex(b => b.text === t && !b.toc);
+  // «3. РЕКВИЗИТЫ» и «ПОДПИСИ» идут подряд: две пометки, а не одна
+  const cut = D.ruleCuts(B, ['реквизиты сторон', 'подписи']);
+  assert.deepStrictEqual(D.cutRuns(B, cut), [[at('3. РЕКВИЗИТЫ СТОРОН'), at('Банк Тайный, счёт 40702810400000012345')], [at('ПОДПИСИ'), at('Директор')]]);
+  // подраздел внутри удалённого раздела отдельной пометки не даёт
+  const sec = at('2. Секретные условия');
+  const all = new Set([...Array(D.sectionEnd(B, sec) - sec)].map((_, k) => sec + k));
+  assert.strictEqual(D.cutRuns(B, all).length, 1);
+  // фраза ищется целыми словами: «Тайн» не находит «Тайный пункт»
+  assert.strictEqual(D.ruleCuts(B, ['Тайн']).size, 0);
+  assert.ok(D.ruleCuts(B, ['тайный пункт']).has(at('Тайный пункт')));
 });

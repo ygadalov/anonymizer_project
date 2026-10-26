@@ -178,7 +178,11 @@
     const partName = p => /header/.test(p) ? 'Колонтитул' : /footer/.test(p) ? 'Колонтитул' : /footnotes/.test(p) ? 'Сноска'
       : /endnotes/.test(p) ? 'Концевая сноска' : /comments/.test(p) ? 'Примечание' : '';
     $('dPreview').classList.toggle('full', !only);
-    $('dPreview').innerHTML = paras.length ? paras.map(p => `<p class="${p.heading ? 'h' : ''}${p.table ? ' tbl' : ''}${p.mark ? ' mark' : ''}">${partName(p.part) ? `<span class="caption muted doc-part">${partName(p.part)}</span>` : ''}${p.pieces.map(x => x.text !== undefined
+    // удалённый участок: в режиме «С пометкой» — пометка, как в файле; название удалённого — только здесь, зачёркнутым
+    const cutLine = p => `<p class="cut-line">${p.mark ? `<span class="mark">${esc(p.mark)}</span>` : '<span class="cut-note">удалено</span>'}` +
+      `<span class="cut-what">${esc(p.cutWhat.length > 90 ? p.cutWhat.slice(0, 90) + '…' : p.cutWhat)}</span>` +
+      `${p.cutCount > 1 ? `<span class="cut-note">и ещё ${p.cutCount - 1} ${A.plural(p.cutCount - 1, 'блок', 'блока', 'блоков')}</span>` : ''}</p>`;
+    $('dPreview').innerHTML = paras.length ? paras.map(p => p.cutWhat !== undefined ? cutLine(p) : `<p class="${p.heading ? 'h' : ''}${p.table ? ' tbl' : ''}">${partName(p.part) ? `<span class="caption muted doc-part">${partName(p.part)}</span>` : ''}${p.pieces.map(x => x.text !== undefined
       ? esc(x.text)
       : `<span class="pair-inline" title="${esc(x.orig)} → ${esc(x.repl)}"><span class="rv rv-detected">${esc(x.orig)}</span><span class="rv-arrow" aria-hidden="true">→</span><span class="rv rv-token">${esc(x.repl)}</span></span>`).join('')}</p>`).join('')
       : `<p class="small muted">${only ? 'Абзацев с заменами нет.' : 'В документе не осталось текста.'}</p>`;

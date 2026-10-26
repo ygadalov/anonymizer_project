@@ -599,14 +599,16 @@
     if (doc) {
       const segs = doc.segs.filter(s => s.kind === 'text');
       let k = 0;
+      const runAt = new Map(cutRuns(blocks, cut).map(([a, b]) => [a, b]));
       blocks.forEach((b, i) => {
         const inBlock = [];
         while (k < segs.length && segs[k].nodes[0].start < b.end) { if (segs[k].nodes[0].start >= b.start) inBlock.push(segs[k]); k++; }
         if (cut.has(i)) {
-          if (mode === 'mark' && !onlyChanged && !cut.has(i - 1)) {
-            let j = i; while (cut.has(j + 1)) j++;
-            const label = b.level ? '[Раздел удалён]' : b.kind === 'tbl' && i === j ? '[Таблица удалена]' : i === j ? '[Абзац удалён]' : '[Фрагмент удалён]';
-            out.push({ part: doc.name, pieces: [{ text: label }], mark: true });
+          // что удалено — первая строка участка; в файл попадает только пометка (или ничего в режиме «Полностью»)
+          if (runAt.has(i) && !onlyChanged) {
+            const j = runAt.get(i);
+            const what = blocks.slice(i, j + 1).map(x => x.text).find(Boolean) || (b.image ? 'картинка' : '');
+            out.push({ part: doc.name, pieces: [], mark: mode === 'mark' ? cutLabel(blocks, i, j) : '', cutWhat: what, cutCount: j - i + 1 });
           }
           return;
         }
@@ -693,14 +695,15 @@
     while (j < blocks.length && !(blocks[j].level && blocks[j].level <= lvl)) j++;
     return j;
   }
-  // Правила: блок, в тексте которого есть фраза (без учёта регистра), удаляется; если это заголовок — весь раздел
+  // Правила: блок, в тексте которого есть фраза (целыми словами, без учёта регистра), удаляется; если это заголовок — весь раздел
   function ruleCuts(blocks, rules) {
     const cut = new Set();
-    const rs = (rules || []).map(r => r.trim().toLowerCase()).filter(r => r.length >= 2);
+    // фраза — целыми словами: «Ответственность» не находит «ответственностью» в преамбуле
+    const rs = (rules || []).map(r => r.trim()).filter(r => r.length >= 2)
+      .map(r => new RegExp(`(?<![\\p{L}\\p{N}])${r.split(/\s+/).map(escapeRe).join('\\s+')}(?![\\p{L}\\p{N}])`, 'iu'));
     if (!rs.length) return cut;
     blocks.forEach((b, i) => {
-      const t = b.text.toLowerCase();
-      if (!rs.some(r => t.includes(r))) return;
+      if (!rs.some(r => r.test(b.text))) return;
       for (let j = i, e = sectionEnd(blocks, i); j < e; j++) cut.add(j);
     });
     return cut;
@@ -708,13 +711,27 @@
   // Диапазоны удаляемого в document.xml — чтобы «Что найдено» и предпросмотр не показывали удалённое
   const cutRanges = (blocks, cut) => [...cut].map(i => [blocks[i].start, blocks[i].end]);
 
+  // Участки удалённого для пометок: подряд идущие блоки, но каждый удалённый раздел — отдельно
+  // (разделы 4 и 5 подряд — две пометки); подразделы внутри удалённого раздела отдельной пометки не дают
+  function cutRuns(blocks, cut) {
+    const runs = [];
+    for (const i of [...cut].sort((a, b) => a - b)) {
+      const r = runs[runs.length - 1];
+      const head = r && blocks[r[0]].level;
+      const lvl = blocks[i].level;
+      if (r && r[1] === i - 1 && !(lvl && (!head || lvl <= head))) r[1] = i;
+      else runs.push([i, i]);
+    }
+    return runs;
+  }
+  const cutLabel = (blocks, a, b) => blocks[a].level ? '[Раздел удалён]' : blocks[a].kind === 'tbl' && a === b ? '[Таблица удалена]'
+    : a === b ? '[Абзац удалён]' : '[Фрагмент удалён]';
+
   // Удаление блоков из document.xml. mode: 'full' — без следа, 'mark' — на месте каждого удалённого участка
   // абзац «[… удалён]» с оформлением первого абзаца (номер пункта при автонумерации сохраняется)
   function cutBlocks(xml, blocks, cut, mode) {
-    const idx = [...cut].sort((a, b) => a - b);
-    if (!idx.length) return { xml, removed: '' };
-    const runs = [];
-    for (const i of idx) { const r = runs[runs.length - 1]; if (r && r[1] === i - 1) r[1] = i; else runs.push([i, i]); }
+    if (!cut.size) return { xml, removed: '' };
+    const runs = cutRuns(blocks, cut);
     let out = '', at = 0, removed = '';
     for (const [a, b] of runs) {
       out += xml.slice(at, blocks[a].start);
@@ -727,7 +744,7 @@
       }
       if (mode === 'mark') {
         const first = blocks[a];
-        const label = first.level ? '[Раздел удалён]' : first.kind === 'tbl' && a === b ? '[Таблица удалена]' : a === b ? '[Абзац удалён]' : '[Фрагмент удалён]';
+        const label = cutLabel(blocks, a, b);
         let pPr = first.kind === 'p' ? (/<w:pPr\b[\s\S]*?<\/w:pPr>/.exec(xml.slice(first.start, first.end)) || [''])[0] : '';
         pPr = pPr.replace(/<w:sectPr\b[\s\S]*?<\/w:sectPr>/g, '').replace(/<w:rPr\b[\s\S]*?<\/w:rPr>/g, '');
         out += `<w:p>${pPr}<w:r><w:t>${label}</w:t></w:r></w:p>`;
@@ -821,7 +838,7 @@
     return { xml: docXml, removedFiles };
   }
 
-  const api = { TYPES, detect, customPattern, headingStyles, blocksOf, sectionEnd, ruleCuts, cutRanges, cutBlocks, segmentsOf, rewrite, dictFinder, plan, shiftDate, innValid, analyzeDocx, redactDocx, restoreDocx, previewParagraphs, previewDocument, acceptRevisions };
+  const api = { TYPES, detect, customPattern, headingStyles, blocksOf, sectionEnd, ruleCuts, cutRanges, cutRuns, cutBlocks, segmentsOf, rewrite, dictFinder, plan, shiftDate, innValid, analyzeDocx, redactDocx, restoreDocx, previewParagraphs, previewDocument, acceptRevisions };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.RedactDocx = api;
 })(typeof window !== 'undefined' ? window : globalThis);
