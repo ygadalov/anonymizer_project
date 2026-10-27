@@ -771,6 +771,22 @@
       if (skippedType) warnings.push(`«${label(sh, col)}»: ${skippedType} ${plural(skippedType, 'значение не подходит', 'значения не подходят', 'значений не подходят')} под тип «${TYPE_NAMES[cfg.type] || cfg.type}» и ${plural(skippedType, 'оставлено', 'оставлены', 'оставлены')} без изменений.`);
     }
 
+    // 3б. Строки над заголовками (название отчёта, «Подготовил: …»): названия, ФИО и коды из столбцов и даты в тексте.
+    //     Остальное, что поиск находит в этих строках, приложение показывает как возможную утечку
+    const headShift = active.some(x => x.cfg.method === 'shift' || x.cfg.method === 'smart');
+    for (const sh of used_) for (let r = 1; r < sh.an.headerRow; r++) for (let c = 1; c <= sh.grid.maxCol; c++) {
+      const cell = cellIn(sh, r, c);
+      if (!cell || cell.f || typeof cell.v !== 'string') continue;
+      let t = crossRe ? cell.v.replace(crossRe, m => crossLower.get(m.toLowerCase()) ?? m) : cell.v;
+      // даты — только если даты в таблице тоже сдвигаются, иначе шапка разойдётся с данными
+      if (headShift) t = t.replace(RE_DATE_IN_TEXT, (m, d, sep, mo, y) => {
+        if (+mo < 1 || +mo > 12 || +d < 1 || +d > 31) return m;
+        const info = { kind: 'dmy', sep, dPad: d.length === 2, mPad: mo.length === 2, yLen: 4, rest: '' };
+        return formatTextDate(info, Date.UTC(+y, +mo - 1, +d) + D * DAY);
+      });
+      if (t !== cell.v) { bySheet[sh.name].changes.set(r + ':' + c, t); bySheet[sh.name].changed++; changed++; }
+    }
+
     // 4. Предупреждения об утечках: исходные значения в столбцах, которые оставлены как есть
     //    (только на обезличиваемых листах; листы без методов приложение удаляет или показывает отдельно)
     if (cross.size) {
@@ -787,7 +803,7 @@
       }
     }
     return {
-      bySheet, mapping, multi,
+      bySheet, mapping, multi, headShift,
       stats: { changed, columns: active.length, sheets: used_.length },
       warnings, leaks,
       // для ключа соответствий
@@ -895,12 +911,15 @@
   const KEY_FORMAT = 1;
   // какой обратный шаг подходит для метода обезличивания; остальные методы необратимы
   const REVERSE_OF = { pseudo: 'text', fake: 'text', mask: 'text', digits: 'text', hash: 'text', smart: 'smart', scale: 'unscale', shift: 'unshift' };
+  // словарь и таблица чисел «свободных листов» в ключе (src/freesheet.js)
+  const FREE_DICT = 'Свободные листы';
   const RESTORE_ACTIONS = [
     ['keep', 'Оставить'],
     ['text', 'Вернуть значения'],
     ['smart', 'Вернуть в тексте'],
     ['unscale', 'Вернуть суммы'],
     ['unshift', 'Вернуть даты'],
+    ['free', 'Вернуть всё (свободный лист)'],
   ];
   const RESTORE_HINTS = {
     keep: 'Значения не меняются',
@@ -908,6 +927,7 @@
     smart: 'Как «Вернуть значения», плюс даты внутри текста сдвигаются обратно и номера возвращаются по ключу',
     unscale: 'Числа делятся на коэффициент из ключа; суммы из исходного файла возвращаются точно, по таблице ключа',
     unshift: 'Даты сдвигаются обратно на сдвиг из ключа',
+    free: 'Лист обезличивался как свободный: названия, ФИО и номера возвращаются по ключу, числа — точно, даты сдвигаются обратно',
   };
 
   // Ключ для книги: sheets = [{ name, an, columns }] — все листы, которые попадут в результат
@@ -923,6 +943,7 @@
       headerRow: sheets[0] ? sheets[0].an.headerRow : 1,
       factor: Number(config.factor) || 1,
       shiftDays: Math.round(Number(config.shiftDays) || 0),
+      headShift: !!result.headShift,   // даты в строках над заголовками сдвигались
       // все столбцы исходных листов, включая оставленные как есть: при возврате их значения не трогаются,
       // даже если они похожи на замены (например, коды договоров и коды контрагентов в одном формате)
       columns: sheets.flatMap(sh => sh.an.columns.map(c => {
@@ -1057,7 +1078,8 @@
     // внутри текста ищутся замены от 4 символов, а чисто цифровые — от 5, как и при обезличивании
     const keys = [...global.keys()].filter(k => k.length >= (/^[\d\s/.\-]+$/.test(k) ? 5 : 4)).sort((a, b) => b.length - a.length);
     // замена ищется как отдельное слово/число: «Контрагент 047» не совпадёт внутри «Контрагент 0471»
-    const re = keys.length ? new RegExp(`(?<![\\p{L}\\p{N}])(?:${keys.map(escapeRe).join('|')})(?![\\p{L}\\p{N}])`, 'giu') : null;
+    // и не как часть даты или номера: замена кода «60.02» не должна найтись внутри даты «60.02.2017»
+    const re = keys.length ? new RegExp(`(?<![\\p{L}\\p{N}]|\\p{N}[./])(?:${keys.map(escapeRe).join('|')})(?![\\p{L}\\p{N}]|[./]\\p{N})`, 'giu') : null;
     const revDigits = new Map((key.smartDigits || []).map(([o, r]) => [String(r), String(o)]));
     const numbers = new Map(Object.entries(key.numbers || {}).map(([name, list]) => [name, new Map(list.map(([n, o]) => [String(n), o]))]));
     // столбцы ключа: по листу и названию, а также только по названию (если лист в ответном файле переименовали)
@@ -1131,14 +1153,22 @@
       if (action === 'keep') continue;
       const kc = matchKeyColumn(prep, col, sheetName);
       const dictMap = kc && kc.dict ? prep.byDict.get(kc.method + '␟' + kc.dict) : null;
-      const nums = prep.numbers.get(kc ? kc.name : col.name);
+      const nums = prep.numbers.get(action === 'free' ? FREE_DICT : kc ? kc.name : col.name);
       let n = 0;
       for (const r of an.dataRows) {
         const cell = cellAt(r, col.c);
         if (!cell || cell.f) continue;
         const v = cell.v;
         let nv = v;
-        if (action === 'text' || action === 'smart') {
+        if (action === 'free') {
+          // свободный лист: текст — по всему ключу, числа — по таблице «новое → исходное», даты — обратно
+          if (typeof v === 'string') nv = replaceNames(v);
+          else if (typeof v === 'number') {
+            const exact = nums && nums.get(String(v));
+            if (exact !== undefined) nv = exact;
+            else { const o = prep.global.get(String(v)); if (o !== undefined && /^\d{1,15}$/.test(o) && o[0] !== '0') nv = Number(o); }
+          } else if (isDate(v)) nv = new Date(v.getTime() - D * DAY);
+        } else if (action === 'text' || action === 'smart') {
           if (typeof v === 'string') {
             const exact = lookup(dictMap, v.trim());
             nv = exact !== undefined ? /^\s*/.exec(v)[0] + exact + /\s*$/.exec(v)[0] : (action === 'smart' ? smartBack(v) : replaceNames(v));
@@ -1163,6 +1193,23 @@
       }
       restored += n;
       perColumn.push({ col, action, restored: n });
+    }
+
+    // Строки над заголовками (название отчёта, подписи): названия и коды по ключу, даты — обратно, если сдвигались
+    if (actions && Object.values(actions).some(a => a !== 'keep' && a !== 'free')) {
+      for (let r = 1; r < an.headerRow; r++) for (let c = 1; c <= grid.maxCol; c++) {
+        const cell = cellAt(r, c);
+        if (!cell || cell.f || typeof cell.v !== 'string') continue;
+        const parts = [];
+        const hold = x => { parts.push(x); return '\u0001' + (parts.length - 1) + '\u0002'; };
+        let t = key.headShift ? cell.v.replace(RE_DATE_IN_TEXT, (m, d, sep, mo, y) => {
+          if (+mo < 1 || +mo > 12 || +d < 1 || +d > 31) return m;
+          const info = { kind: 'dmy', sep, dPad: d.length === 2, mPad: mo.length === 2, yLen: 4, rest: '' };
+          return hold(formatTextDate(info, Date.UTC(+y, +mo - 1, +d) - D * DAY));
+        }) : cell.v;
+        t = replaceNames(t).replace(/\u0001(\d+)\u0002/g, (_, i) => parts[+i]);
+        if (t !== cell.v) { changes.set(r + ':' + c, t); restored++; }
+      }
     }
 
     // Что осталось невосстановленным: псевдонимы вида «Контрагент 999», которых нет в ключе

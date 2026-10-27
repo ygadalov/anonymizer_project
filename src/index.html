@@ -106,11 +106,16 @@
     <h2 class="h2 step"><span class="num">2</span>Столбцы и методы</h2>
     <div class="row-controls">
       <label class="field-inline"><span class="caption">Лист</span><select id="sheet"></select></label>
-      <label class="field-inline"><span class="caption">Строка заголовков</span><input type="number" id="headerRow" min="1" step="1"></label>
-      <label class="chk"><input type="checkbox" id="keepTotals" checked> Не обезличивать строки «Итого» и «Всего»<button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">Названия и текст в итоговых строках остаются как есть. Суммы в них пересчитываются только при умножении на коэффициент и округлении — чтобы итог сходился со строками</span></button></label>
+      <div class="field-inline"><span class="caption label-row">Вид листа<button class="info-tip" type="button" aria-label="О виде листа"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip"><b>Таблица со столбцами</b> — выгрузка, где на листе одна таблица со строкой заголовков: метод задаётся для каждого столбца. <b>Свободный лист</b> — для листов, где таблицы разбросаны, есть заголовки, подписи и выводы (например, источник для презентации): Redact проверяет каждую ячейку, как текст документа Word, и находит организации, ФИО, ИНН, телефоны, суммы и даты. Названия, обезличенные в столбцах других листов, получают те же замены.</span></button></span>
+        <span class="seg" role="radiogroup" aria-label="Вид листа">
+          <label><input type="radio" name="sheetMode" value="table" checked><span>Таблица со столбцами</span></label>
+          <label><input type="radio" name="sheetMode" value="free"><span>Свободный лист</span></label>
+        </span></div>
+      <label class="field-inline table-only"><span class="caption">Строка заголовков</span><input type="number" id="headerRow" min="1" step="1"></label>
+      <label class="chk table-only"><input type="checkbox" id="keepTotals" checked> Не обезличивать строки «Итого» и «Всего»<button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">Названия и текст в итоговых строках остаются как есть. Суммы в них пересчитываются только при умножении на коэффициент и округлении — чтобы итог сходился со строками</span></button></label>
     </div>
-    <div class="small muted" id="rowsInfo"></div>
-    <div class="row-controls toolbar">
+    <div class="small muted table-only" id="rowsInfo"></div>
+    <div class="row-controls toolbar table-only">
       <button class="btn secondary" id="btnAuto" title="Подобрать методы по названиям столбцов"><svg class="i i20" aria-hidden="true"><use href="#i-wand-sparkles"></use></svg>Подобрать методы</button>
       <button class="btn secondary" id="btnAll" title="Задать метод каждому столбцу этого листа: по названию, а остальным — по типу данных. Только методы, которые восстанавливаются по ключу; нужное иначе можно изменить вручную"><svg class="i i20" aria-hidden="true"><use href="#i-eye-off"></use></svg>Обезличить все</button>
       <button class="btn secondary" id="btnReset"><svg class="i i20" aria-hidden="true"><use href="#i-rotate-ccw"></use></svg>Сбросить методы</button>
@@ -118,7 +123,7 @@
       <button class="btn ghost" id="btnSaveProfile" title="Методы по столбцам, лист, строка заголовков и флажки — чтобы в следующий раз не настраивать заново"><svg class="i i20" aria-hidden="true"><use href="#i-save"></use></svg>Сохранить настройки</button>
       <label class="btn secondary"><svg class="i i20" aria-hidden="true"><use href="#i-folder-open"></use></svg>Загрузить настройки<input type="file" id="profileFile" accept=".json,application/json" hidden></label>
     </div>
-    <div class="table-scroll">
+    <div class="table-scroll table-only">
       <table class="data cols" id="colsTable">
         <thead><tr>
           <th>Столбец</th><th class="c-type">Тип</th><th>Примеры значений</th><th class="r" title="Сколько ячеек заполнено и сколько среди них разных значений">Значений / разных</th><th class="c-method">Метод</th><th class="c-params">Параметры</th>
@@ -126,7 +131,33 @@
         <tbody></tbody>
       </table>
     </div>
-    <div id="settingsInfo" class="small muted settings-info"></div>
+    <div id="settingsInfo" class="small muted settings-info table-only"></div>
+
+    <!-- «Свободный лист» (src/freesheet.js): найденное во всех свободных листах книги -->
+    <div class="free-only hidden" id="freeMode">
+      <p class="small muted" id="fSummary"></p>
+      <div class="checks" id="fTypes"></div>
+      <div class="table-scroll">
+        <table class="data doc-found" id="fFound">
+          <thead><tr><th class="c-chk"><span class="visually-hidden">Заменять</span></th><th>Тип</th><th>Найдено на листах</th><th class="r">Раз</th><th>Замена</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="grid2 doc-extra">
+        <div class="field">
+          <span class="label-row"><label class="caption" for="fCustom">Добавить своё</label><button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">То, что шаблоны не находят: названия без формы организации, фамилии без инициалов, названия проектов. Каждое значение — с новой строки; заменится на «Значение 001», «Значение 002»… во всех свободных листах и вернётся по ключу.</span></button></span>
+          <textarea id="fCustom" rows="3" spellcheck="false" placeholder="Каждое значение с новой строки: название проекта, фамилия без инициалов"></textarea>
+          <div class="checks custom-modes">
+            <label class="chk"><input type="checkbox" id="fCustomForms" checked> Во всех падежах</label>
+            <label class="chk"><input type="checkbox" id="fCustomCase"> Учитывать регистр</label>
+          </div>
+        </div>
+        <div class="checks free-opts">
+          <label class="chk"><input type="checkbox" id="fNumbers" checked> Умножать суммы в ячейках на коэффициент<button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">Числа от 1000 и дробные от 1 умножаются на коэффициент из шага 3 — пропорции и итоги по формулам сохраняются. Годы, доли и проценты (меньше 1), небольшие целые (количество, номера) и номера под подписью «ИНН», «Счёт», «Телефон» не умножаются. Формулы остаются и пересчитываются в Excel.</span></button></label>
+          <label class="chk"><input type="checkbox" id="fDates" checked> Сдвигать даты в ячейках на сдвиг из шага 3</label>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- Шаг 3 -->
@@ -386,6 +417,7 @@
 <script src="docx.js"></script>
 <script src="version.js"></script>
 <script src="engine.js"></script>
+<script src="freesheet.js"></script>
 <script src="app.js"></script>
 <script src="restore.js"></script>
 <script src="dropdown.js"></script>

@@ -674,6 +674,19 @@ dialog.help::backdrop { background: color-mix(in srgb, var(--surface-sunken) 75%
 .legend .spacer { flex: 1; }
 /* номер автонумерации Word в предпросмотре — как в документе, перед текстом абзаца */
 .num-label { display: inline-block; min-width: 2.5em; margin-right: var(--space-1); }
+
+/* ---------- Вид листа: «Таблица со столбцами» или «Свободный лист» (шаг 2) ---------- */
+.seg { display: inline-flex; gap: 2px; padding: 2px; background: var(--surface-sunken); border: 1px solid var(--border); border-radius: var(--radius-md); }
+.seg label { position: relative; cursor: pointer; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg span { display: inline-flex; align-items: center; min-height: 34px; padding: var(--space-1) var(--space-3); border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--ink-muted); font: 500 14px/20px var(--font-sans); }
+.seg label:hover span { color: var(--ink); }
+.seg input:checked + span { background: var(--surface); border-color: var(--border); color: var(--ink); }
+.seg input:focus-visible + span { outline: 2px solid var(--ink); outline-offset: 1px; }
+#step2.free .table-only { display: none; }
+.free-opts { flex-direction: column; align-content: start; gap: 0; }
+.free-cell { white-space: nowrap; }
+@media (max-width: 760px) { .seg { display: flex; width: 100%; } .seg label { flex: 1; } .seg span { width: 100%; justify-content: center; text-align: center; } }
 </style>
 <script>
   // тема до отрисовки, чтобы не мигало: сохранённый выбор или системная
@@ -771,11 +784,16 @@ dialog.help::backdrop { background: color-mix(in srgb, var(--surface-sunken) 75%
     <h2 class="h2 step"><span class="num">2</span>Столбцы и методы</h2>
     <div class="row-controls">
       <label class="field-inline"><span class="caption">Лист</span><select id="sheet"></select></label>
-      <label class="field-inline"><span class="caption">Строка заголовков</span><input type="number" id="headerRow" min="1" step="1"></label>
-      <label class="chk"><input type="checkbox" id="keepTotals" checked> Не обезличивать строки «Итого» и «Всего»<button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">Названия и текст в итоговых строках остаются как есть. Суммы в них пересчитываются только при умножении на коэффициент и округлении — чтобы итог сходился со строками</span></button></label>
+      <div class="field-inline"><span class="caption label-row">Вид листа<button class="info-tip" type="button" aria-label="О виде листа"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip"><b>Таблица со столбцами</b> — выгрузка, где на листе одна таблица со строкой заголовков: метод задаётся для каждого столбца. <b>Свободный лист</b> — для листов, где таблицы разбросаны, есть заголовки, подписи и выводы (например, источник для презентации): Redact проверяет каждую ячейку, как текст документа Word, и находит организации, ФИО, ИНН, телефоны, суммы и даты. Названия, обезличенные в столбцах других листов, получают те же замены.</span></button></span>
+        <span class="seg" role="radiogroup" aria-label="Вид листа">
+          <label><input type="radio" name="sheetMode" value="table" checked><span>Таблица со столбцами</span></label>
+          <label><input type="radio" name="sheetMode" value="free"><span>Свободный лист</span></label>
+        </span></div>
+      <label class="field-inline table-only"><span class="caption">Строка заголовков</span><input type="number" id="headerRow" min="1" step="1"></label>
+      <label class="chk table-only"><input type="checkbox" id="keepTotals" checked> Не обезличивать строки «Итого» и «Всего»<button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">Названия и текст в итоговых строках остаются как есть. Суммы в них пересчитываются только при умножении на коэффициент и округлении — чтобы итог сходился со строками</span></button></label>
     </div>
-    <div class="small muted" id="rowsInfo"></div>
-    <div class="row-controls toolbar">
+    <div class="small muted table-only" id="rowsInfo"></div>
+    <div class="row-controls toolbar table-only">
       <button class="btn secondary" id="btnAuto" title="Подобрать методы по названиям столбцов"><svg class="i i20" aria-hidden="true"><use href="#i-wand-sparkles"></use></svg>Подобрать методы</button>
       <button class="btn secondary" id="btnAll" title="Задать метод каждому столбцу этого листа: по названию, а остальным — по типу данных. Только методы, которые восстанавливаются по ключу; нужное иначе можно изменить вручную"><svg class="i i20" aria-hidden="true"><use href="#i-eye-off"></use></svg>Обезличить все</button>
       <button class="btn secondary" id="btnReset"><svg class="i i20" aria-hidden="true"><use href="#i-rotate-ccw"></use></svg>Сбросить методы</button>
@@ -783,7 +801,7 @@ dialog.help::backdrop { background: color-mix(in srgb, var(--surface-sunken) 75%
       <button class="btn ghost" id="btnSaveProfile" title="Методы по столбцам, лист, строка заголовков и флажки — чтобы в следующий раз не настраивать заново"><svg class="i i20" aria-hidden="true"><use href="#i-save"></use></svg>Сохранить настройки</button>
       <label class="btn secondary"><svg class="i i20" aria-hidden="true"><use href="#i-folder-open"></use></svg>Загрузить настройки<input type="file" id="profileFile" accept=".json,application/json" hidden></label>
     </div>
-    <div class="table-scroll">
+    <div class="table-scroll table-only">
       <table class="data cols" id="colsTable">
         <thead><tr>
           <th>Столбец</th><th class="c-type">Тип</th><th>Примеры значений</th><th class="r" title="Сколько ячеек заполнено и сколько среди них разных значений">Значений / разных</th><th class="c-method">Метод</th><th class="c-params">Параметры</th>
@@ -791,7 +809,33 @@ dialog.help::backdrop { background: color-mix(in srgb, var(--surface-sunken) 75%
         <tbody></tbody>
       </table>
     </div>
-    <div id="settingsInfo" class="small muted settings-info"></div>
+    <div id="settingsInfo" class="small muted settings-info table-only"></div>
+
+    <!-- «Свободный лист» (src/freesheet.js): найденное во всех свободных листах книги -->
+    <div class="free-only hidden" id="freeMode">
+      <p class="small muted" id="fSummary"></p>
+      <div class="checks" id="fTypes"></div>
+      <div class="table-scroll">
+        <table class="data doc-found" id="fFound">
+          <thead><tr><th class="c-chk"><span class="visually-hidden">Заменять</span></th><th>Тип</th><th>Найдено на листах</th><th class="r">Раз</th><th>Замена</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="grid2 doc-extra">
+        <div class="field">
+          <span class="label-row"><label class="caption" for="fCustom">Добавить своё</label><button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">То, что шаблоны не находят: названия без формы организации, фамилии без инициалов, названия проектов. Каждое значение — с новой строки; заменится на «Значение 001», «Значение 002»… во всех свободных листах и вернётся по ключу.</span></button></span>
+          <textarea id="fCustom" rows="3" spellcheck="false" placeholder="Каждое значение с новой строки: название проекта, фамилия без инициалов"></textarea>
+          <div class="checks custom-modes">
+            <label class="chk"><input type="checkbox" id="fCustomForms" checked> Во всех падежах</label>
+            <label class="chk"><input type="checkbox" id="fCustomCase"> Учитывать регистр</label>
+          </div>
+        </div>
+        <div class="checks free-opts">
+          <label class="chk"><input type="checkbox" id="fNumbers" checked> Умножать суммы в ячейках на коэффициент<button class="info-tip" type="button" aria-label="Подробнее"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip">Числа от 1000 и дробные от 1 умножаются на коэффициент из шага 3 — пропорции и итоги по формулам сохраняются. Годы, доли и проценты (меньше 1), небольшие целые (количество, номера) и номера под подписью «ИНН», «Счёт», «Телефон» не умножаются. Формулы остаются и пересчитываются в Excel.</span></button></label>
+          <label class="chk"><input type="checkbox" id="fDates" checked> Сдвигать даты в ячейках на сдвиг из шага 3</label>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- Шаг 3 -->
@@ -2099,7 +2143,8 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
     const enabled = opts.types || Object.fromEntries(Object.keys(TYPES).map(t => [t, true]));
     const skip = new Set(opts.skip || []);
     const live = liveSegs(parts, opts.cut);
-    const allText = live.map(([, s]) => s.text).join('\n');
+    // extraText — текст той же книги вне этих частей (листы-таблицы): замены не должны совпасть и с ним
+    const allText = live.map(([, s]) => s.text).join('\n') + (opts.extraText ? '\n' + opts.extraText : '');
 
     // 1. Что найдено: значение → { type, count, info }
     const found = new Map();
@@ -2129,7 +2174,9 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
 
     // 2. Замены. Ни одна замена не совпадает с исходным значением, с другой заменой или с текстом документа
     const used = new Set(found.keys());
-    const taken = s => used.has(s) || allText.includes(s);
+    // reserved — замены, уже занятые в другом месте (столбцы таблиц той же книги)
+    const reserved = opts.reserved || new Set();
+    const taken = s => used.has(s) || reserved.has(s) || allText.includes(s);
     const rng = engine().makeRng(seed, 'docx');
     const rnd = (lo, hi) => lo + Math.floor(rng() * (hi - lo + 1));
     const pickOf = arr => arr[Math.floor(rng() * arr.length)];
@@ -2163,7 +2210,9 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
       do {
         p = { sur: pickOf(FAKE_SURNAMES), name: female ? pickOf(FAKE_FEMALE) : pickOf(FAKE_MALE), patro: pickOf(FAKE_PATRO), female };
         tries++;
-      } while (tries < 300 && [...persons.values()].some(q => q.sur === p.sur && q.name[0] === p.name[0] && q.patro[0] === p.patro[0]));
+      } while (tries < 300 && ([...persons.values()].some(q => q.sur === p.sur && q.name[0] === p.name[0] && q.patro[0] === p.patro[0])
+        // вымышленная фамилия не должна совпасть с настоящей из документа: «Сорокин» вместо одного человека, когда в тексте есть другой Сорокин
+        || (tries < 200 && new RegExp(`(?<![\\p{L}])${p.sur}`, 'iu').test(allText))));
       persons.set(key, p);
       return p;
     };
@@ -2772,7 +2821,7 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
 </script>
 <script>
 // Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
-window.ANON_VERSION = '5.7';
+window.ANON_VERSION = '5.8';
 
 </script>
 <script>
@@ -3549,6 +3598,22 @@ window.ANON_VERSION = '5.7';
       if (skippedType) warnings.push(`«${label(sh, col)}»: ${skippedType} ${plural(skippedType, 'значение не подходит', 'значения не подходят', 'значений не подходят')} под тип «${TYPE_NAMES[cfg.type] || cfg.type}» и ${plural(skippedType, 'оставлено', 'оставлены', 'оставлены')} без изменений.`);
     }
 
+    // 3б. Строки над заголовками (название отчёта, «Подготовил: …»): названия, ФИО и коды из столбцов и даты в тексте.
+    //     Остальное, что поиск находит в этих строках, приложение показывает как возможную утечку
+    const headShift = active.some(x => x.cfg.method === 'shift' || x.cfg.method === 'smart');
+    for (const sh of used_) for (let r = 1; r < sh.an.headerRow; r++) for (let c = 1; c <= sh.grid.maxCol; c++) {
+      const cell = cellIn(sh, r, c);
+      if (!cell || cell.f || typeof cell.v !== 'string') continue;
+      let t = crossRe ? cell.v.replace(crossRe, m => crossLower.get(m.toLowerCase()) ?? m) : cell.v;
+      // даты — только если даты в таблице тоже сдвигаются, иначе шапка разойдётся с данными
+      if (headShift) t = t.replace(RE_DATE_IN_TEXT, (m, d, sep, mo, y) => {
+        if (+mo < 1 || +mo > 12 || +d < 1 || +d > 31) return m;
+        const info = { kind: 'dmy', sep, dPad: d.length === 2, mPad: mo.length === 2, yLen: 4, rest: '' };
+        return formatTextDate(info, Date.UTC(+y, +mo - 1, +d) + D * DAY);
+      });
+      if (t !== cell.v) { bySheet[sh.name].changes.set(r + ':' + c, t); bySheet[sh.name].changed++; changed++; }
+    }
+
     // 4. Предупреждения об утечках: исходные значения в столбцах, которые оставлены как есть
     //    (только на обезличиваемых листах; листы без методов приложение удаляет или показывает отдельно)
     if (cross.size) {
@@ -3565,7 +3630,7 @@ window.ANON_VERSION = '5.7';
       }
     }
     return {
-      bySheet, mapping, multi,
+      bySheet, mapping, multi, headShift,
       stats: { changed, columns: active.length, sheets: used_.length },
       warnings, leaks,
       // для ключа соответствий
@@ -3673,12 +3738,15 @@ window.ANON_VERSION = '5.7';
   const KEY_FORMAT = 1;
   // какой обратный шаг подходит для метода обезличивания; остальные методы необратимы
   const REVERSE_OF = { pseudo: 'text', fake: 'text', mask: 'text', digits: 'text', hash: 'text', smart: 'smart', scale: 'unscale', shift: 'unshift' };
+  // словарь и таблица чисел «свободных листов» в ключе (src/freesheet.js)
+  const FREE_DICT = 'Свободные листы';
   const RESTORE_ACTIONS = [
     ['keep', 'Оставить'],
     ['text', 'Вернуть значения'],
     ['smart', 'Вернуть в тексте'],
     ['unscale', 'Вернуть суммы'],
     ['unshift', 'Вернуть даты'],
+    ['free', 'Вернуть всё (свободный лист)'],
   ];
   const RESTORE_HINTS = {
     keep: 'Значения не меняются',
@@ -3686,6 +3754,7 @@ window.ANON_VERSION = '5.7';
     smart: 'Как «Вернуть значения», плюс даты внутри текста сдвигаются обратно и номера возвращаются по ключу',
     unscale: 'Числа делятся на коэффициент из ключа; суммы из исходного файла возвращаются точно, по таблице ключа',
     unshift: 'Даты сдвигаются обратно на сдвиг из ключа',
+    free: 'Лист обезличивался как свободный: названия, ФИО и номера возвращаются по ключу, числа — точно, даты сдвигаются обратно',
   };
 
   // Ключ для книги: sheets = [{ name, an, columns }] — все листы, которые попадут в результат
@@ -3701,6 +3770,7 @@ window.ANON_VERSION = '5.7';
       headerRow: sheets[0] ? sheets[0].an.headerRow : 1,
       factor: Number(config.factor) || 1,
       shiftDays: Math.round(Number(config.shiftDays) || 0),
+      headShift: !!result.headShift,   // даты в строках над заголовками сдвигались
       // все столбцы исходных листов, включая оставленные как есть: при возврате их значения не трогаются,
       // даже если они похожи на замены (например, коды договоров и коды контрагентов в одном формате)
       columns: sheets.flatMap(sh => sh.an.columns.map(c => {
@@ -3835,7 +3905,8 @@ window.ANON_VERSION = '5.7';
     // внутри текста ищутся замены от 4 символов, а чисто цифровые — от 5, как и при обезличивании
     const keys = [...global.keys()].filter(k => k.length >= (/^[\d\s/.\-]+$/.test(k) ? 5 : 4)).sort((a, b) => b.length - a.length);
     // замена ищется как отдельное слово/число: «Контрагент 047» не совпадёт внутри «Контрагент 0471»
-    const re = keys.length ? new RegExp(`(?<![\\p{L}\\p{N}])(?:${keys.map(escapeRe).join('|')})(?![\\p{L}\\p{N}])`, 'giu') : null;
+    // и не как часть даты или номера: замена кода «60.02» не должна найтись внутри даты «60.02.2017»
+    const re = keys.length ? new RegExp(`(?<![\\p{L}\\p{N}]|\\p{N}[./])(?:${keys.map(escapeRe).join('|')})(?![\\p{L}\\p{N}]|[./]\\p{N})`, 'giu') : null;
     const revDigits = new Map((key.smartDigits || []).map(([o, r]) => [String(r), String(o)]));
     const numbers = new Map(Object.entries(key.numbers || {}).map(([name, list]) => [name, new Map(list.map(([n, o]) => [String(n), o]))]));
     // столбцы ключа: по листу и названию, а также только по названию (если лист в ответном файле переименовали)
@@ -3909,14 +3980,22 @@ window.ANON_VERSION = '5.7';
       if (action === 'keep') continue;
       const kc = matchKeyColumn(prep, col, sheetName);
       const dictMap = kc && kc.dict ? prep.byDict.get(kc.method + '␟' + kc.dict) : null;
-      const nums = prep.numbers.get(kc ? kc.name : col.name);
+      const nums = prep.numbers.get(action === 'free' ? FREE_DICT : kc ? kc.name : col.name);
       let n = 0;
       for (const r of an.dataRows) {
         const cell = cellAt(r, col.c);
         if (!cell || cell.f) continue;
         const v = cell.v;
         let nv = v;
-        if (action === 'text' || action === 'smart') {
+        if (action === 'free') {
+          // свободный лист: текст — по всему ключу, числа — по таблице «новое → исходное», даты — обратно
+          if (typeof v === 'string') nv = replaceNames(v);
+          else if (typeof v === 'number') {
+            const exact = nums && nums.get(String(v));
+            if (exact !== undefined) nv = exact;
+            else { const o = prep.global.get(String(v)); if (o !== undefined && /^\d{1,15}$/.test(o) && o[0] !== '0') nv = Number(o); }
+          } else if (isDate(v)) nv = new Date(v.getTime() - D * DAY);
+        } else if (action === 'text' || action === 'smart') {
           if (typeof v === 'string') {
             const exact = lookup(dictMap, v.trim());
             nv = exact !== undefined ? /^\s*/.exec(v)[0] + exact + /\s*$/.exec(v)[0] : (action === 'smart' ? smartBack(v) : replaceNames(v));
@@ -3941,6 +4020,23 @@ window.ANON_VERSION = '5.7';
       }
       restored += n;
       perColumn.push({ col, action, restored: n });
+    }
+
+    // Строки над заголовками (название отчёта, подписи): названия и коды по ключу, даты — обратно, если сдвигались
+    if (actions && Object.values(actions).some(a => a !== 'keep' && a !== 'free')) {
+      for (let r = 1; r < an.headerRow; r++) for (let c = 1; c <= grid.maxCol; c++) {
+        const cell = cellAt(r, c);
+        if (!cell || cell.f || typeof cell.v !== 'string') continue;
+        const parts = [];
+        const hold = x => { parts.push(x); return '\u0001' + (parts.length - 1) + '\u0002'; };
+        let t = key.headShift ? cell.v.replace(RE_DATE_IN_TEXT, (m, d, sep, mo, y) => {
+          if (+mo < 1 || +mo > 12 || +d < 1 || +d > 31) return m;
+          const info = { kind: 'dmy', sep, dPad: d.length === 2, mPad: mo.length === 2, yLen: 4, rest: '' };
+          return hold(formatTextDate(info, Date.UTC(+y, +mo - 1, +d) - D * DAY));
+        }) : cell.v;
+        t = replaceNames(t).replace(/\u0001(\d+)\u0002/g, (_, i) => parts[+i]);
+        if (t !== cell.v) { changes.set(r + ':' + c, t); restored++; }
+      }
     }
 
     // Что осталось невосстановленным: псевдонимы вида «Контрагент 999», которых нет в ключе
@@ -4019,10 +4115,225 @@ window.ANON_VERSION = '5.7';
 
 </script>
 <script>
+/*
+ * «Свободный лист»: обезличивание листа без столбцов — для книг, где таблицы разбросаны по листу, есть заголовки,
+ * подписи и выводы (источники для презентаций). Каждая ячейка с текстом проходит тот же поиск, что документы Word
+ * (src/docx.js): организации, ФИО, ИНН, счета, телефоны, почта, суммы, даты, плюс «Добавить своё».
+ * Числа в ячейках умножаются на коэффициент, даты сдвигаются — как в таблицах. Названия, уже обезличенные в столбцах
+ * других листов, получают те же замены: одна компания — один псевдоним во всей книге.
+ * Без DOM: работает в браузере и в Node (тесты).
+ */
+(function (root) {
+  'use strict';
+  const A = () => root.Anon || require('./engine.js');
+  const D = () => root.RedactDocx || require('./docx.js');
+  const FREE_DICT = 'Свободные листы';
+  const DAY = 86400000;
+
+  // Ячейки листа: [строка, столбец, ячейка] — без пустых и без второй половины объединённых
+  function cellsOf(grid) {
+    const out = [];
+    for (let r = 1; r <= grid.maxRow; r++) {
+      const row = grid.rows[r];
+      if (!row) continue;
+      for (let c = 1; c <= grid.maxCol; c++) {
+        const x = row[c];
+        if (x && !x.slave && x.v !== null && x.v !== undefined && x.v !== '') out.push([r, c, x]);
+      }
+    }
+    return out;
+  }
+
+  // Номер без подписи («7720019233» в ячейке под заголовком «ИНН») шаблоны не распознают — подпись берётся
+  // из ближайшей текстовой ячейки выше в том же столбце. Такие числа не умножаются, а заменяются как номера
+  const ID_LABEL = /(?:^|[\s(«"])(инн|кпп|бик|огрн|снилс|телефон|тел\.?|р\/с|к\/с|расч[её]тный сч[её]т|сч[её]т|паспорт)(?![\p{L}])/iu;
+  const DIGITS = /^\+?[\d\s()\-]{5,}$/;
+  function idLabel(grid, r, c) {
+    for (let rr = r - 1; rr >= 1 && rr >= r - 60; rr--) {
+      const x = grid.rows[rr] && grid.rows[rr][c];
+      if (!x || x.slave || x.v === null || x.v === '' || typeof x.v !== 'string') continue;
+      if (DIGITS.test(x.v.trim())) continue;
+      const m = ID_LABEL.exec(x.v);
+      return m ? m[1].toUpperCase() : '';
+    }
+    return '';
+  }
+  const idText = (grid, r, c, v) => {
+    const t = typeof v === 'number' ? (Number.isInteger(v) && v >= 0 ? String(v) : '') : String(v).trim();
+    if (!t || !DIGITS.test(t)) return '';
+    const label = idLabel(grid, r, c);
+    return label ? `${label} ${t}` : '';
+  };
+
+  // Какие числа умножать: суммы — от 1000 или дробные от 1. Годы (1900–2100), доли и проценты (меньше 1)
+  // и небольшие целые (количество, номера пунктов) не меняются
+  const scalable = v => typeof v === 'number' && Number.isFinite(v) &&
+    (Math.abs(v) >= 1000 ? !(Number.isInteger(v) && v >= 1900 && v <= 2100) : !Number.isInteger(v) && Math.abs(v) >= 1);
+
+  /*
+   * План: что найдено в тексте свободных листов и чем заменяется.
+   * sheets = [{ name, grid }]; opts — как у RedactDocx.plan (seed, factor, shiftDays, types, skip, custom, customCase,
+   * customForms) плюс known: Map «исходное → замена» из столбцов других листов (для общих псевдонимов).
+   * Возвращает { rows, repl, keyPairs } — как RedactDocx.plan.
+   */
+  function planFree(sheets, opts = {}) {
+    const parts = sheets.map(sh => ({
+      name: sh.name,
+      segs: cellsOf(sh.grid).map(([r, c, x]) => {
+        // номер под подписью («ИНН» выше в столбце) ищется вместе с подписью: «ИНН 7720019233»
+        const text = idText(sh.grid, r, c, x.v) || (typeof x.v === 'string' ? x.v : '');
+        return text && { kind: 'text', text, nodes: [{ start: r * 16384 + c }] };
+      }).filter(Boolean),
+    }));
+    // известные названия из столбцов ищутся и здесь (во всех падежах), чтобы получить ту же замену.
+    // Название без формы организации и кавычек — тоже: «АО «Нордлиния»» → «Нордлиния» → «Клиент 004»
+    const bare = x => A().splitLegalForm(String(x).trim()).core.replace(/^[«"„“]+|[»"“”]+$/g, '').trim();
+    const known = new Map();
+    for (const [o, n] of opts.known || []) {
+      const s = String(o).trim();
+      if (s.length < 4 || /^[\d\s/.\-]+$/.test(s)) continue;
+      known.set(s.toLowerCase(), String(n));
+      const core = bare(s);
+      if (core.length >= 4 && !known.has(core.toLowerCase())) known.set(core.toLowerCase(), bare(n));
+    }
+    const custom = [...(opts.custom || []), ...[...(opts.known || [])].map(([o]) => String(o).trim()).filter(s => known.has(s.toLowerCase()))];
+    // замены из столбцов заняты: «Контрагент 001» на листе-таблице и на свободном листе — одна и та же компания
+    const reserved = new Set();
+    for (const [, n] of opts.known || []) { reserved.add(String(n)); reserved.add(bare(n)); }
+    const p = D().plan(parts, { ...opts, custom, reserved });
+    if (!known.size) return p;
+    // замены известных значений — как в столбцах; ключ — без повторов.
+    // Человек из столбца в другой форме («Лаптева И. В.» при «Лаптев Илья Викторович») — та же замена
+    const userCustom = new Set((opts.custom || []).map(x => String(x).trim().toLowerCase()));
+    const persons = new Map();
+    for (const r of p.rows) {
+      const k = known.get(r.value.toLowerCase()) || known.get(bare(r.value).toLowerCase());
+      if (!k) continue;
+      r.repl = k;
+      if (r.type === 'custom' && !userCustom.has(r.value.toLowerCase())) r.fromTable = true;
+      const pk = personKey(r.value);
+      if (pk && !persons.has(pk)) persons.set(pk, k);
+    }
+    // другая форма того же человека — псевдоним со случайными инициалами («Сотрудник 001 К. М.»), как в таблицах:
+    // замена своя, поэтому по ключу возвращается именно эта форма
+    const usedRepl = new Set(p.rows.map(r => r.repl));
+    for (const r of p.rows) {
+      if (r.type !== 'person' || known.has(r.value.toLowerCase())) continue;
+      const pk = personKey(r.value);
+      const k = persons.get(pk);
+      if (!k) continue;
+      const real = pk.split('|')[1].toUpperCase();
+      const LET = 'АБВГДЕЖЗИКЛМНОПРСТУФЭЮЯ';
+      let out, attempt = 0;
+      do {
+        const rnd = A().makeRng(opts.seed || 'free', 'initials', r.value, attempt++);
+        const fake = [...real].map(() => LET[Math.floor(rnd() * LET.length)]).join('');
+        out = fake === real ? '' : `${k} ${[...fake].map(x => x + '.').join(' ')}`;
+      } while ((!out || usedRepl.has(out)) && attempt < 50);
+      usedRepl.add(out);
+      r.repl = out;
+    }
+    const repl = new Map(), keyPairs = [];
+    const order = [...p.rows].sort((a, b) => (known.has(b.value.toLowerCase()) ? 1 : 0) - (known.has(a.value.toLowerCase()) ? 1 : 0));
+    for (const r of order) {
+      if (!r.on) continue;
+      repl.set(r.value, r.repl);
+      for (const f of r.forms || []) repl.set(f, r.repl);
+      // одна пара на замену: иначе у «Сотрудник 001» два исходных значения, и по ключу не вернуть ни одно.
+      // Первой идёт форма из столбцов (полное ФИО) — она и вернётся
+      if (!keyPairs.some(([, x]) => x === r.repl)) keyPairs.push([r.keyValue || r.value, r.repl]);
+    }
+    return { rows: p.rows, repl, keyPairs };
+  }
+
+  // Человек без учёта падежа и формы записи: основа фамилии + инициалы («лаптев|ив» для «Лаптева И. В.»
+  // и «Лаптев Илья Викторович»). Не ФИО — пустая строка
+  function personKey(v) {
+    const t = String(v).trim().split(/\s+/);
+    let sur = '', ini = '';
+    if (t.length === 3 && t.every(w => /^[А-ЯЁ][а-яё-]+$/.test(w))) { sur = t[0]; ini = t[1][0] + t[2][0]; }
+    else {
+      const words = t.filter(w => /^[А-ЯЁ][а-яё-]{2,}$/.test(w));
+      const letters = t.join(' ').match(/(?:^|\s|\.)([А-ЯЁ])\./g) || [];
+      if (words.length !== 1 || letters.length < 1) return '';
+      sur = words[0]; ini = letters.map(x => x.replace(/[\s.]/g, '')).join('');
+    }
+    return sur.toLowerCase().replace(/(ого|ому|ым|ой|ою|ую|ая|а|у|е|ом)$/, '') + '|' + ini.toLowerCase();
+  }
+
+  /*
+   * Применить план к листам: { bySheet: { [лист]: { changes: Map('r:c' → значение), changed } }, numberPairs, stats }.
+   * opts: factor, shiftDays, numbers (умножать числа), dates (сдвигать даты).
+   * numberPairs — «новое → исходное» для чисел: по ключу они возвращаются точно, без ошибки округления.
+   */
+  function applyFree(sheets, plan, opts = {}) {
+    const finder = D().dictFinder(plan.repl);
+    const K = Number(opts.factor) || 1, S = Math.round(Number(opts.shiftDays) || 0);
+    const n2o = new Map(), o2n = new Map();
+    const bySheet = {};
+    const stats = { text: 0, numbers: 0, dates: 0 };
+    for (const sh of sheets) {
+      const out = bySheet[sh.name] = { changes: new Map(), changed: 0 };
+      for (const [r, c, x] of cellsOf(sh.grid)) {
+        const v = x.v;
+        let nv = v;
+        if (typeof v === 'string') {
+          const f = finder(v);
+          if (!f.length) continue;
+          let s = '', at = 0;
+          for (const m of f) { s += v.slice(at, m.start) + m.repl; at = m.end; }
+          nv = s + v.slice(at);
+          stats.text++;
+        } else if (x.f) {
+          continue;   // формула пересчитается в Excel из обезличенных ячеек
+        } else if (typeof v === 'number' && plan.repl.has(String(v)) && idText(sh.grid, r, c, v)) {
+          // ИНН, счёт или телефон, записанный числом: замена — тоже число
+          const t = plan.repl.get(String(v));
+          nv = /^\d{1,15}$/.test(t) && t[0] !== '0' ? Number(t) : t;
+          stats.text++;
+        } else if (typeof v === 'number' && opts.numbers !== false && scalable(v)) {
+          if (o2n.has(v)) nv = o2n.get(v);
+          else {
+            const dec = Number.isInteger(v) && Number.isInteger(v * K) ? 0 : 2;
+            nv = Math.round(v * K * 10 ** dec) / 10 ** dec;
+            // замены уникальны — иначе по ключу не вернуть
+            while (n2o.has(nv) || nv === v) nv = Math.round((nv + (dec ? 0.01 : 1)) * 100) / 100;
+            n2o.set(nv, v); o2n.set(v, nv);
+          }
+          stats.numbers++;
+        } else if (A().isDate(v) && opts.dates !== false && S) {
+          nv = new Date(v.getTime() + S * DAY);
+          stats.dates++;
+        } else continue;
+        out.changes.set(r + ':' + c, nv);
+        out.changed++;
+      }
+    }
+    return { bySheet, numberPairs: [...n2o].map(([n, o]) => [n, o]), stats };
+  }
+
+  // Текст ячеек, оставшийся после обезличивания, в котором поиск Redact ещё что-то находит (для предупреждений)
+  function findLeft(texts) {
+    const out = [];
+    for (const t of texts) {
+      const hits = D().detect(t).filter(h => h.type !== 'date' && h.type !== 'amount');
+      if (hits.length) out.push({ text: t, hits });
+    }
+    return out;
+  }
+
+  const api = { FREE_DICT, cellsOf, scalable, personKey, planFree, applyFree, findLeft };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.RedactFree = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
 /* Интерфейс Redact (обезличивание таблиц). Логика замен — в engine.js (window.Anon). */
 (function () {
   'use strict';
   const A = window.Anon;
+  const F = window.RedactFree;
   const $ = id => document.getElementById(id);
   const icon = (name, cls = 'i') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"></use></svg>`;
   const KEY_SHEET = 'redact-key';
@@ -4043,6 +4354,8 @@ window.ANON_VERSION = '5.7';
     cols: {},         // настройки текущего листа по номеру столбца
     result: null,
   };
+  // «Свободные листы»: снятые типы и значения — общие для всех свободных листов книги
+  const FS = { types: {}, skip: new Set() };
 
   $('appVersion').textContent = 'v' + A.VERSION;
 
@@ -4108,6 +4421,9 @@ window.ANON_VERSION = '5.7';
         const fixed = await A.repairXlsx(S.buffer, JSZip);
         if (fixed.changed) S.buffer = fixed.buffer;
         S.loadNotes = [...(conv ? conv.notes : []), ...fixed.notes];
+        // диаграммы ExcelJS не переносит: в обезличенный файл они не попадут (зато и их копии данных не утекут)
+        const charts = Object.keys((await JSZip.loadAsync(S.buffer)).files).filter(n => /^xl\/charts\/chart\d+\.xml$/.test(n)).length;
+        if (charts) S.loadNotes.push(`В книге ${charts} ${A.plural(charts, 'диаграмма', 'диаграммы', 'диаграмм')}: в обезличенный файл ${charts > 1 ? 'они не попадут' : 'она не попадёт'} — постройте заново по обезличенным данным. Это и защита: диаграмма хранит копию подписей и чисел.`);
         S.wb = new ExcelJS.Workbook();
         await S.wb.xlsx.load(S.buffer);
         if (!S.wb.worksheets.length) throw new Error('В книге нет листов.');
@@ -4142,6 +4458,7 @@ window.ANON_VERSION = '5.7';
       pending: null, loadNotes: [], kind: null, fileName: '', buffer: null, wb: null,
       sheets: [], sheetIndex: 0, grid: null, csv: null, an: null, cols: {}, result: null,
     });
+    Object.assign(FS, { types: {}, skip: new Set() });
     clearTimeout(previewTimer);
     ['step2', 'step3', 'step4'].forEach(id => $(id).classList.add('hidden'));
     $('btnClear').classList.add('hidden');
@@ -4172,14 +4489,16 @@ window.ANON_VERSION = '5.7';
     const cols = {};
     for (const col of an.columns) cols[col.c] = A.suggest(col);
     const saved = store.get(layoutKey(an));
-    const st = { name, grid, an, cols, saved: !!(saved && saved.columns) };
+    const st = { name, grid, an, cols, saved: !!(saved && saved.columns), mode: (saved && saved.mode) || 'table' };
     if (st.saved) applySettingsColumns(saved.columns, st);
     return st;
   }
   const isActive = cfg => cfg && cfg.method && cfg.method !== 'keep';
   const activeCount = st => st.an.columns.filter(col => isActive(st.cols[col.c])).length;
-  const usedSheets = () => S.sheets.filter(st => activeCount(st) > 0);
-  const resultSheets = () => S.sheets.filter(st => activeCount(st) > 0 || !$('dropUnused').checked);
+  // лист обезличивается: свободный — всегда, таблица — если у столбцов есть методы
+  const isUsed = st => st.mode === 'free' || activeCount(st) > 0;
+  const usedSheets = () => S.sheets.filter(isUsed);
+  const resultSheets = () => S.sheets.filter(st => isUsed(st) || !$('dropUnused').checked);
 
   // Однотипные столбцы на разных листах (контрагенты, ИНН, организация) получают общую группу замен —
   // одна и та же компания на «ДЗ» и «КЗ» станет одним псевдонимом. Группы, заданные вручную, не трогаются
@@ -4212,7 +4531,7 @@ window.ANON_VERSION = '5.7';
     sel.innerHTML = S.sheets.map((st, i) => {
       const n = activeCount(st);
       const hidden = S.wb && S.wb.worksheets[i].state && S.wb.worksheets[i].state !== 'visible' ? ' (скрытый)' : '';
-      const status = n ? `${n} ${A.plural(n, 'столбец', 'столбца', 'столбцов')}` : 'не обезличивается';
+      const status = st.mode === 'free' ? 'свободный лист' : n ? `${n} ${A.plural(n, 'столбец', 'столбца', 'столбцов')}` : 'не обезличивается';
       return `<option value="${i}">${esc(st.name)}${hidden} · ${status}</option>`;
     }).join('');
     sel.value = String(S.sheetIndex);
@@ -4224,6 +4543,12 @@ window.ANON_VERSION = '5.7';
     const st = S.sheets[i];
     S.grid = st.grid; S.an = st.an; S.cols = st.cols;
     $('headerRow').value = st.an.headerRow;
+    // вид листа: таблица со столбцами или свободный лист (для CSV — только таблица)
+    const free = st.mode === 'free';
+    document.querySelector(`input[name=sheetMode][value=${free ? 'free' : 'table'}]`).checked = true;
+    document.querySelector('#step2 .seg').closest('.field-inline').classList.toggle('hidden', S.kind !== 'xlsx');
+    $('step2').classList.toggle('free', free);
+    $('freeMode').classList.toggle('hidden', !free);
     const tot = st.an.totalsRows.size;
     $('rowsInfo').textContent = `Строк данных: ${st.an.dataRows.length - tot}${tot ? `, строк итогов: ${tot}` : ''} · столбцов: ${st.an.columns.length}` + (st.saved ? ' · применены настройки, сохранённые для этой структуры' : '');
     renderSheetOptions();
@@ -4232,6 +4557,12 @@ window.ANON_VERSION = '5.7';
   }
 
   $('sheet').addEventListener('change', () => showSheet(+$('sheet').value));
+  document.querySelectorAll('input[name=sheetMode]').forEach(r => r.addEventListener('change', () => {
+    const st = S.sheets[S.sheetIndex];
+    st.mode = r.value;
+    rememberLayout();
+    showSheet(S.sheetIndex);
+  }));
   $('headerRow').addEventListener('change', () => {
     const v = Math.max(1, Math.min(S.grid.maxRow, parseInt($('headerRow').value, 10) || 1));
     $('headerRow').value = v;
@@ -4366,7 +4697,65 @@ window.ANON_VERSION = '5.7';
       keepTotals: $('keepTotals').checked,
     };
   }
-  const bookForEngine = (list = S.sheets) => list.map(st => ({ name: st.name, grid: st.grid, an: st.an, columns: st.cols }));
+  const bookForEngine = (list = S.sheets) => list.map(st => ({ name: st.name, grid: st.grid, an: st.an, columns: st.mode === 'free' ? {} : st.cols }));
+
+  // Результат для книги: листы-таблицы — по столбцам (engine.js), свободные листы — по ячейкам (freesheet.js).
+  // Названия из столбцов передаются свободным листам, чтобы одна компания везде получила один псевдоним
+  const fCustom = () => $('fCustom').value.split('\n').map(x => x.trim()).filter(x => x.length >= 2);
+  function computeResult(cfg, list = S.sheets, columnsOf = st => st.cols) {
+    const result = A.transformBook(list.map(st => ({ name: st.name, grid: st.grid, an: st.an, columns: st.mode === 'free' ? {} : columnsOf(st) })), cfg);
+    const free = S.kind === 'xlsx' ? list.filter(st => st.mode === 'free') : [];
+    result.free = null;
+    result.stats.freeSheets = free.length;
+    if (!free.length) return result;
+    const known = new Map(result.groups.flatMap(g => g.pairs).filter(([o, n]) => typeof o === 'string' && typeof n === 'string'));
+    const sheets = free.map(st => ({ name: st.name, grid: st.grid }));
+    const plan = F.planFree(sheets, {
+      seed: cfg.seed, factor: cfg.factor, shiftDays: cfg.shiftDays, types: FS.types, skip: [...FS.skip],
+      custom: fCustom(), customCase: $('fCustomCase').checked, customForms: $('fCustomForms').checked, known,
+      // текст листов-таблиц: вымышленные ФИО и названия не совпадут с настоящими из них
+      extraText: list.filter(st => st.mode !== 'free').flatMap(st => F.cellsOf(st.grid).map(([, , x]) => x.v).filter(v => typeof v === 'string')).join('\n'),
+    });
+    const applied = F.applyFree(sheets, plan, { factor: cfg.factor, shiftDays: cfg.shiftDays, numbers: $('fNumbers').checked, dates: $('fDates').checked });
+    for (const sh of sheets) {
+      result.bySheet[sh.name] = applied.bySheet[sh.name];
+      result.stats.changed += applied.bySheet[sh.name].changed;
+    }
+    result.free = { names: sheets.map(sh => sh.name), plan, applied };
+    return result;
+  }
+
+  // Найденное на свободных листах: типы и значения, которые можно снять
+  function renderFree() {
+    const fr = S.result && S.result.free;
+    if (!fr) return;
+    const rows = fr.plan.rows, D = window.RedactDocx;
+    const counts = {};
+    for (const r of rows) if (!r.fromTable) counts[r.type] = (counts[r.type] || 0) + 1;
+    $('fTypes').innerHTML = Object.entries(D.TYPES).filter(([t]) => counts[t]).map(([t, name]) =>
+      `<label class="chk"><input type="checkbox" data-type="${t}"${FS.types[t] === false ? '' : ' checked'}> ${esc(name)} — ${counts[t]}</label>`).join('');
+    const st = fr.applied.stats;
+    $('fSummary').textContent = `Свободные листы: ${fr.names.map(n => `«${n}»`).join(', ')}. Найдено значений: ${rows.length}` +
+      ` · чисел к умножению: ${st.numbers} · дат: ${st.dates}. Снимите флажок у типа или значения, чтобы оставить его как есть.`;
+    $('fFound').tBodies[0].innerHTML = rows.map((r, i) => `<tr class="${r.on ? 'active' : ''}">
+        <td class="c-chk"><input type="checkbox" data-v="${i}"${r.on ? ' checked' : ''}${FS.types[r.type] === false ? ' disabled' : ''} aria-label="Заменять «${esc(r.value)}»"></td>
+        <td class="small muted">${r.fromTable ? 'Из столбцов других листов' : esc(D.TYPES[r.type])}</td>
+        <td><span class="rv ${r.on ? 'rv-detected' : 'rv-original'}">${esc(r.value)}</span>${r.forms && r.forms.length ? `<span class="small muted found-forms">также: ${r.forms.map(esc).join(', ')}</span>` : ''}</td>
+        <td class="r small">${r.count}</td>
+        <td>${r.on ? `<span class="rv rv-token">${esc(r.repl)}</span>` : '<span class="small muted">останется как есть</span>'}</td>
+      </tr>`).join('');
+  }
+  $('fTypes').addEventListener('change', ev => { const t = ev.target.dataset.type; if (t) { FS.types[t] = ev.target.checked; schedulePreview(); } });
+  $('fFound').addEventListener('change', ev => {
+    const i = ev.target.dataset.v;
+    if (i === undefined || !S.result.free) return;
+    const v = S.result.free.plan.rows[+i].value;
+    if (ev.target.checked) FS.skip.delete(v); else FS.skip.add(v);
+    schedulePreview();
+  });
+  let fCustomTimer;
+  $('fCustom').addEventListener('input', () => { clearTimeout(fCustomTimer); fCustomTimer = setTimeout(schedulePreview, 400); });
+  ['fCustomForms', 'fCustomCase', 'fNumbers', 'fDates'].forEach(id => $(id).addEventListener('change', schedulePreview));
 
   // ---------- Файл настроек (JSON) ----------
   const COL_KEYS = ['type', 'method', 'prefix', 'pct', 'step', 'group'];
@@ -4402,7 +4791,7 @@ window.ANON_VERSION = '5.7';
   }
   function rememberLayout() {
     const k = layoutKey();
-    if (k) store.set(k, { columns: settingsColumns() });
+    if (k) store.set(k, { columns: settingsColumns(), mode: S.sheets[S.sheetIndex].mode });
   }
   function collectSettings() {
     const p = {
@@ -4423,7 +4812,7 @@ window.ANON_VERSION = '5.7';
       },
       columns: settingsColumns(),   // текущий лист — для совместимости с прежними версиями
       // все листы книги: методы и строка заголовков каждого
-      sheets: Object.fromEntries(S.sheets.map(st => [st.name, { headerRow: st.an.headerRow, columns: settingsColumns(st) }])),
+      sheets: Object.fromEntries(S.sheets.map(st => [st.name, { headerRow: st.an.headerRow, columns: settingsColumns(st), mode: st.mode }])),
     };
     if ($('profileWithKey').checked) p.secret = { seed: $('seed').value, factor: +$('factor').value, shiftDays: +$('shiftDays').value };
     return p;
@@ -4450,6 +4839,7 @@ window.ANON_VERSION = '5.7';
       if (i < 0) { if (p.sheets && S.sheets.length > 1) { noSheet.push(sheetName); continue; } i = S.sheetIndex; }
       let st = S.sheets[i];
       if (cfg.headerRow && cfg.headerRow !== st.an.headerRow && cfg.headerRow <= st.grid.maxRow) st = S.sheets[i] = makeState(st.name, st.grid, cfg.headerRow);
+      if (cfg.mode) st.mode = cfg.mode;
       const r = applySettingsColumns(cfg.columns || {}, st);
       hit += r.hit; total += st.an.columns.length;
       missing.push(...r.missing.map(n => entries.length > 1 ? `${st.name} · ${n}` : n));
@@ -4499,24 +4889,36 @@ window.ANON_VERSION = '5.7';
   function runPreview() {
     if (!S.an) return;
     const t0 = performance.now();
-    S.result = A.transformBook(bookForEngine(), config());
+    S.result = computeResult(config());
     const ms = Math.round(performance.now() - t0);
     renderSheetOptions();
-    const active = S.an.columns.filter(col => S.cols[col.c].method !== 'keep');
+    renderFree();
+    const curFree = S.sheets[S.sheetIndex].mode === 'free';
+    const active = curFree ? [] : S.an.columns.filter(col => S.cols[col.c].method !== 'keep');
     const { mapping, warnings, stats } = S.result;
     const changes = S.result.bySheet[S.sheets[S.sheetIndex].name].changes;
     const where = stats.sheets > 1
       ? `в ${stats.columns} ${A.plural(stats.columns, 'столбце', 'столбцах', 'столбцах')} на ${stats.sheets} ${A.plural(stats.sheets, 'листе', 'листах', 'листах')}`
       : `в ${stats.columns} ${A.plural(stats.columns, 'столбце', 'столбцах', 'столбцах')}`;
-    $('previewStats').textContent = stats.columns
-      ? `Будет обезличено ячеек: ${stats.changed.toLocaleString('ru-RU')} ${where} · уникальных замен: ${mapping.length.toLocaleString('ru-RU')} · ${ms} мс` +
-        (stats.sheets > 1 ? ` · ниже — лист «${S.sheets[S.sheetIndex].name}»` : '')
+    const freeNote = stats.freeSheets ? ` и на ${stats.freeSheets} ${A.plural(stats.freeSheets, 'свободном листе', 'свободных листах', 'свободных листах')}` : '';
+    $('previewStats').textContent = stats.columns || stats.freeSheets
+      ? `Будет обезличено ячеек: ${stats.changed.toLocaleString('ru-RU')} ${stats.columns ? where : ''}${freeNote}` +
+        ` · уникальных замен: ${(mapping.length + (S.result.free ? S.result.free.plan.keyPairs.length : 0)).toLocaleString('ru-RU')} · ${ms} мс` +
+        (stats.sheets + stats.freeSheets > 1 ? ` · ниже — лист «${S.sheets[S.sheetIndex].name}»` : '')
       : 'Столбцы для обезличивания не выбраны. Выберите метод хотя бы для одного столбца на шаге 2.';
     const table = $('previewTable');
-    $('legend').classList.toggle('hidden', !active.length);
+    $('legend').classList.toggle('hidden', !active.length && !curFree);
     // «очищено» в легенде — только если в предпросмотре есть очищенные ячейки
     $('legendCleared').classList.toggle('hidden', !active.some(col => S.cols[col.c].method === 'clear'));
-    if (!active.length) { table.innerHTML = ''; }
+    if (curFree) {
+      // свободный лист — список изменённых ячеек по порядку
+      const list = [...changes].slice(0, 40);
+      table.innerHTML = list.length ? `<thead><tr><th class="r">Ячейка</th><th>Было → стало</th></tr></thead><tbody>` + list.map(([k, nv]) => {
+        const [r, c] = k.split(':').map(Number);
+        const old = S.grid.rows[r][c].v;
+        return `<tr><td class="r rownum free-cell">${A.colLetter(c)}${r}</td><td title="${esc(fmt(old))} → ${esc(fmt(nv))}"><div class="pair"><span class="rv rv-detected">${esc(fmt(old))}</span><span class="line"><span class="rv-arrow" aria-hidden="true">→</span><span class="rv rv-token">${esc(fmt(nv))}</span></span></div></td></tr>`;
+      }).join('') + `</tbody>${changes.size > 40 ? `<tfoot><tr><td></td><td class="small muted">и ещё ${changes.size - 40} ${A.plural(changes.size - 40, 'ячейка', 'ячейки', 'ячеек')}</td></tr></tfoot>` : ''}` : '';
+    } else if (!active.length) { table.innerHTML = ''; }
     else {
       const rows = S.an.dataRows.filter(r => active.some(col => changes.has(r + ':' + col.c))).slice(0, 15);
       const head = `<thead><tr><th class="r">Строка</th>${active.map(col => `<th>${esc(col.letter)} · ${esc(col.name)}</th>`).join('')}</tr></thead>`;
@@ -4536,12 +4938,24 @@ window.ANON_VERSION = '5.7';
     }
     const w = [...S.loadNotes, ...warnings];
     // что не вернётся по ключу
-    const lost = usedSheets().flatMap(st => st.an.columns.filter(col => A.IRREVERSIBLE.has(st.cols[col.c].method)).map(col => {
+    const lost = usedSheets().filter(st => st.mode !== 'free').flatMap(st => st.an.columns.filter(col => A.IRREVERSIBLE.has(st.cols[col.c].method)).map(col => {
       const name = A.METHODS[st.cols[col.c].type].find(([k]) => k === st.cols[col.c].method)[1];
       return `«${S.sheets.length > 1 ? st.name + ' · ' : ''}${col.name}» — ${name.toLowerCase()}`;
     }));
     if (lost.length) w.push(`По ключу не вернутся (${lost.length > 1 ? 'эти методы необратимы' : 'метод необратим'}): ${lost.join('; ')}.`);
     const leaks = [...S.result.leaks];
+    // строки над заголовками таблиц: то, что поиск находит и после замен (ФИО, телефоны, почта, названия)
+    for (const st of usedSheets().filter(x => x.mode !== 'free' && x.an.headerRow > 1)) {
+      const ch = S.result.bySheet[st.name].changes, texts = [];
+      for (let r = 1; r < st.an.headerRow; r++) for (let c = 1; c <= st.grid.maxCol; c++) {
+        const cell = st.grid.rows[r][c];
+        if (!cell || cell.slave || typeof cell.v !== 'string') continue;
+        const k = r + ':' + c;
+        texts.push(ch.has(k) ? String(ch.get(k)) : cell.v);
+      }
+      const left = F.findLeft(texts);
+      if (left.length) leaks.push(`Над таблицей${S.sheets.length > 1 ? ` на листе «${st.name}»` : ''} есть текст с данными, которые столбцы не закрывают (например: «${left[0].text.slice(0, 90)}»). Выберите для листа вид «Свободный лист» — тогда Redact проверит каждую ячейку.`);
+    }
     if (S.kind === 'xlsx') {
       for (const st of resultSheets()) {
         const hf = A.headerFooterText(S.wb.worksheets[S.sheets.indexOf(st)]);
@@ -4550,7 +4964,7 @@ window.ANON_VERSION = '5.7';
         if ($('clearHF').checked) w.push(`В колонтитулах${where} есть текст («${hf.join('», «').slice(0, 150)}»). Он будет удалён.`);
         else leaks.push(`В колонтитулах${where} есть текст («${hf.join('», «').slice(0, 150)}»), и он останется в файле. Включите «Очистить колонтитулы» на шаге 3.`);
       }
-      const unused = S.sheets.filter(st => !activeCount(st)).map(st => `«${st.name}»`);
+      const unused = S.sheets.filter(st => !isUsed(st)).map(st => `«${st.name}»`);
       if (unused.length && S.sheets.length > 1) {
         const list = unused.join(', '), many = unused.length > 1;
         if ($('dropUnused').checked) w.push(many
@@ -4617,7 +5031,7 @@ window.ANON_VERSION = '5.7';
     btn.disabled = true;
     try {
       runPreview();
-      if (!S.result.stats.columns) { toast('Не удалось обезличить: не выбран метод ни для одного столбца', 6000, 'error'); return; }
+      if (!S.result.stats.columns && !S.result.stats.freeSheets) { toast('Не удалось обезличить: не выбран метод ни для одного столбца', 6000, 'error'); return; }
       await writeResult(S.result, {
         keep: resultSheets(), suffix: '_redact',
         clean: { meta: $('clearMeta').checked, notes: $('clearNotes').checked, hf: $('clearHF').checked },
@@ -4636,9 +5050,9 @@ window.ANON_VERSION = '5.7';
   $('btnExternal').addEventListener('click', async () => {
     if (!S.an) return;
     runPreview();
-    if (!S.result.stats.columns) { toast('Не удалось обезличить: не выбран метод ни для одного столбца', 6000, 'error'); return; }
+    if (!S.result.stats.columns && !S.result.stats.freeSheets) { toast('Не удалось обезличить: не выбран метод ни для одного столбца', 6000, 'error'); return; }
     const sheets = usedSheets();
-    const plan = sheets.map(st => ({ st, ...A.externalColumns(st.an, st.cols) }));
+    const plan = sheets.map(st => ({ st, ...(st.mode === 'free' ? { columns: {}, scaled: [], shifted: [] } : A.externalColumns(st.an, st.cols)) }));
     const named = list => plan.flatMap(p => p[list].map(n => sheets.length > 1 ? `${p.st.name} · ${n}` : n));
     const listOf = names => `${names.slice(0, 6).map(n => `«${n}»`).join(', ')}${names.length > 6 ? ` и ещё ${names.length - 6}` : ''}`;
     const scaled = named('scaled'), shifted = named('shifted');
@@ -4661,7 +5075,8 @@ window.ANON_VERSION = '5.7';
     try {
       const once = A.randomSeed();
       const cfg = { ...config(), seed: once, factor: A.factorFromSeed(A.randomSeed()), shiftDays: A.shiftFromSeed(A.randomSeed()) };
-      const result = A.transformBook(plan.map(p => ({ name: p.st.name, grid: p.st.grid, an: p.st.an, columns: p.columns })), cfg);
+      const cols = new Map(plan.map(p => [p.st, p.columns]));
+      const result = computeResult(cfg, sheets, st => cols.get(st));
       await writeResult(result, { keep: sheets, suffix: '_external', clean: { meta: true, notes: true, hf: true } });
       toast(`Файл для внешней передачи сохранён: обезличено ячеек ${result.stats.changed.toLocaleString('ru-RU')}. Ключа нет — данные по нему не восстановить`, 6000);
     } catch (e) {
@@ -4684,9 +5099,15 @@ window.ANON_VERSION = '5.7';
       runPreview();
       const cfg = config();
       const key = A.buildKeyBook({
-        sheets: bookForEngine(S.kind === 'xlsx' ? resultSheets() : S.sheets), config: cfg, result: S.result,
+        sheets: bookForEngine((S.kind === 'xlsx' ? resultSheets() : S.sheets).filter(st => st.mode !== 'free')), config: cfg, result: S.result,
         sourceFile: S.fileName, appVersion: A.VERSION,
       });
+      // свободные листы: пары «исходное → замена» и точные числа — отдельным словарём
+      if (S.result.free) {
+        key.freeSheets = S.result.free.names;
+        key.dictionaries.push({ name: F.FREE_DICT, method: 'doc', prefix: '', columns: S.result.free.names, pairs: S.result.free.plan.keyPairs });
+        key.numbers[F.FREE_DICT] = S.result.free.applied.numberPairs;
+      }
       if (S.kind !== 'xlsx') key.sheet = null;
       key.seed = cfg.seed;
       if (pass) {
@@ -4716,6 +5137,7 @@ window.ANON_VERSION = '5.7';
     ];
     ws.getRow(1).font = { bold: true };
     ws.addRows(S.result.mapping);
+    if (S.result.free) ws.addRows(S.result.free.plan.keyPairs.map(([orig, repl]) => ({ dict: F.FREE_DICT, columns: S.result.free.names.join(', '), method: 'doc', orig, repl })));
     // ФИО с инициалами, найденные внутри текста («Смирнов А. В.»)
     ws.addRows((key.smartNames || []).map(([orig, repl]) => ({ dict: 'ФИО в тексте', columns: '', method: 'smart', orig, repl })));
     ws.autoFilter = 'A1:E1';
@@ -4728,7 +5150,8 @@ window.ANON_VERSION = '5.7';
       { k: 'Секретная фраза', v: cfg.seed },
       { k: 'Коэффициент для сумм (исходное = обезличенное ÷ коэффициент)', v: cfg.factor },
       { k: 'Сдвиг дат, дней (исходная дата = обезличенная − сдвиг)', v: cfg.shiftDays },
-      ...S.sheets.flatMap(st => st.an.columns.filter(col => isActive(st.cols[col.c])).map(col => ({
+      ...S.sheets.filter(st => st.mode === 'free').map(st => ({ k: st.name, v: 'Свободный лист' })),
+      ...S.sheets.filter(st => st.mode !== 'free').flatMap(st => st.an.columns.filter(col => isActive(st.cols[col.c])).map(col => ({
         k: `${S.sheets.length > 1 ? st.name + ' · ' : ''}${col.letter} · ${col.name}`,
         v: A.METHODS[st.cols[col.c].type].find(([k]) => k === st.cols[col.c].method)[1],
       }))),
@@ -4763,6 +5186,8 @@ window.ANON_VERSION = '5.7';
   const curName = () => R.kind === 'xlsx' && R.wb ? R.wb.worksheets[R.sheetIndex].name : null;
   // лист есть в ключе — он был обезличен вместе с книгой и восстанавливается полностью
   const inKey = name => !!(R.prep && name != null && R.prep.keySheets.has(name));
+  // листы, которые обезличивались как «свободные» (по ячейкам)
+  const inFree = name => !!(R.prep && name != null && (R.prep.key.freeSheets || []).includes(name));
 
   // ---------- Переключение режимов ----------
   // вкладки по порядку: Таблица Excel · Документ Word · Восстановить по ключу
@@ -5011,6 +5436,19 @@ window.ANON_VERSION = '5.7';
     }
     const name = curName();
     const kept = R.sheetActions.get(name);
+    // свободный лист (обезличивался по ячейкам): все строки — данные, действие одно на весь лист
+    if (inFree(name)) {
+      $('rHeaderRow').value = 1;
+      R.an = A.analyze(R.grid, 0);
+      R.actions = {};
+      for (const col of R.an.columns) R.actions[col.c] = 'free';
+      renderSheetOptions();
+      $('rRowsInfo').textContent = `Свободный лист: обезличивался по ячейкам — вернутся названия, ФИО, номера, суммы и даты на всём листе`;
+      renderCols();
+      ['r2', 'r3'].forEach(id => $(id).classList.remove('hidden'));
+      preview();
+      return;
+    }
     const hr = autoHeader ? (kept ? kept.headerRow : A.detectHeaderRow(R.grid)) : headerRow;
     $('rHeaderRow').value = hr;
     R.an = A.analyze(R.grid, hr);
@@ -5090,8 +5528,8 @@ window.ANON_VERSION = '5.7';
     if (R.prep.ambiguous) info.push(`Замен, которые совпали в разных группах: ${R.prep.ambiguous}. Внутри текста они не заменяются; в своих столбцах восстанавливаются по группе столбца.`);
     if (R.kind === 'xlsx' && R.wb.worksheets.length > 1) {
       const others = R.wb.worksheets.filter((_, i) => i !== R.sheetIndex);
-      const fromKey = others.filter(ws => inKey(ws.name)).map(ws => `«${ws.name}»`);
-      const rest = others.filter(ws => !inKey(ws.name)).map(ws => `«${ws.name}»`);
+      const fromKey = others.filter(ws => inKey(ws.name) || inFree(ws.name)).map(ws => `«${ws.name}»`);
+      const rest = others.filter(ws => !inKey(ws.name) && !inFree(ws.name)).map(ws => `«${ws.name}»`);
       if (fromKey.length) info.push(fromKey.length > 1
         ? `Листы ${fromKey.join(', ')} из ключа тоже будут восстановлены полностью — названия, коды, суммы и даты. Чтобы проверить или изменить действия, выберите лист в списке «Лист».`
         : `Лист ${fromKey[0]} из ключа тоже будет восстановлен полностью — названия, коды, суммы и даты. Чтобы проверить или изменить действия, выберите его в списке «Лист».`);
@@ -5137,7 +5575,10 @@ window.ANON_VERSION = '5.7';
           if (i === R.sheetIndex) { A.applyToWorksheet(ws, R.result.changes); return; }
           const g = A.gridFromWorksheet(ws);
           let an, acts = {};
-          if (inKey(ws.name)) {
+          if (inFree(ws.name)) {
+            an = A.analyze(g, 0);
+            for (const col of an.columns) acts[col.c] = 'free';
+          } else if (inKey(ws.name)) {
             // лист из ключа — полностью, с действиями, выбранными для него (или по умолчанию)
             const kept = R.sheetActions.get(ws.name);
             an = A.analyze(g, kept ? kept.headerRow : A.detectHeaderRow(g));
@@ -6061,6 +6502,12 @@ if (typeof module !== 'undefined' && module.exports) {
           <span class="rv rv-token">замена</span> — новое. Проверьте блок «Проверьте перед выгрузкой», затем нажмите
           «Обезличить и скачать» и <b>скачайте ключ</b> — без него вернуть данные будет нельзя.</li>
       </ol>
+      <p><b>Свободный лист.</b> Если на листе несколько таблиц, заголовки, подписи и выводы (например, источник для
+        презентации), выберите на шаге 2 вид листа «Свободный лист». Redact проверит каждую ячейку, как текст документа Word:
+        организации, ФИО, ИНН (и номера под подписью «ИНН», «Счёт», «Телефон»), почту, суммы и даты. Числа от 1000
+        умножаются на коэффициент, даты сдвигаются, формулы остаются. Названия, обезличенные в столбцах других листов,
+        получают те же замены. Строки над таблицей на обычном листе тоже проверяются: то, что столбцы не закрывают,
+        Redact покажет как возможную утечку.</p>
       <p>«Сохранить настройки» на шаге 2 запоминает методы по столбцам, лист и флажки в файл .json — в следующий раз
         такую же выгрузку можно настроить одной кнопкой.</p>
     </section>
@@ -6145,7 +6592,7 @@ if (typeof module !== 'undefined' && module.exports) {
         <li>Если получатель знает несколько точных сумм, по ним можно вычислить коэффициент — тогда для сумм выбирайте
           «Случайное отклонение ±%».</li>
         <li>.xls (Excel 97–2003) сохраняется в .xlsx без шрифтов, заливки и рамок; значения, форматы чисел, ширина
-          столбцов и объединения на месте. Сводные таблицы и диаграммы могут не сохраниться — лучше обезличивать «плоскую» выгрузку.</li>
+          столбцов и объединения на месте. Сводные таблицы могут не сохраниться, а диаграммы в обезличенный файл не попадают — постройте их заново по обезличенным данным.</li>
         <li>В Word картинки (сканы подписей и печатей) и вложенные объекты остаются как есть.</li>
         <li>PDF и сканы пока не поддерживаются.</li>
       </ul>

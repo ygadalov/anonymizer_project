@@ -14,6 +14,8 @@
   const curName = () => R.kind === 'xlsx' && R.wb ? R.wb.worksheets[R.sheetIndex].name : null;
   // лист есть в ключе — он был обезличен вместе с книгой и восстанавливается полностью
   const inKey = name => !!(R.prep && name != null && R.prep.keySheets.has(name));
+  // листы, которые обезличивались как «свободные» (по ячейкам)
+  const inFree = name => !!(R.prep && name != null && (R.prep.key.freeSheets || []).includes(name));
 
   // ---------- Переключение режимов ----------
   // вкладки по порядку: Таблица Excel · Документ Word · Восстановить по ключу
@@ -262,6 +264,19 @@
     }
     const name = curName();
     const kept = R.sheetActions.get(name);
+    // свободный лист (обезличивался по ячейкам): все строки — данные, действие одно на весь лист
+    if (inFree(name)) {
+      $('rHeaderRow').value = 1;
+      R.an = A.analyze(R.grid, 0);
+      R.actions = {};
+      for (const col of R.an.columns) R.actions[col.c] = 'free';
+      renderSheetOptions();
+      $('rRowsInfo').textContent = `Свободный лист: обезличивался по ячейкам — вернутся названия, ФИО, номера, суммы и даты на всём листе`;
+      renderCols();
+      ['r2', 'r3'].forEach(id => $(id).classList.remove('hidden'));
+      preview();
+      return;
+    }
     const hr = autoHeader ? (kept ? kept.headerRow : A.detectHeaderRow(R.grid)) : headerRow;
     $('rHeaderRow').value = hr;
     R.an = A.analyze(R.grid, hr);
@@ -341,8 +356,8 @@
     if (R.prep.ambiguous) info.push(`Замен, которые совпали в разных группах: ${R.prep.ambiguous}. Внутри текста они не заменяются; в своих столбцах восстанавливаются по группе столбца.`);
     if (R.kind === 'xlsx' && R.wb.worksheets.length > 1) {
       const others = R.wb.worksheets.filter((_, i) => i !== R.sheetIndex);
-      const fromKey = others.filter(ws => inKey(ws.name)).map(ws => `«${ws.name}»`);
-      const rest = others.filter(ws => !inKey(ws.name)).map(ws => `«${ws.name}»`);
+      const fromKey = others.filter(ws => inKey(ws.name) || inFree(ws.name)).map(ws => `«${ws.name}»`);
+      const rest = others.filter(ws => !inKey(ws.name) && !inFree(ws.name)).map(ws => `«${ws.name}»`);
       if (fromKey.length) info.push(fromKey.length > 1
         ? `Листы ${fromKey.join(', ')} из ключа тоже будут восстановлены полностью — названия, коды, суммы и даты. Чтобы проверить или изменить действия, выберите лист в списке «Лист».`
         : `Лист ${fromKey[0]} из ключа тоже будет восстановлен полностью — названия, коды, суммы и даты. Чтобы проверить или изменить действия, выберите его в списке «Лист».`);
@@ -388,7 +403,10 @@
           if (i === R.sheetIndex) { A.applyToWorksheet(ws, R.result.changes); return; }
           const g = A.gridFromWorksheet(ws);
           let an, acts = {};
-          if (inKey(ws.name)) {
+          if (inFree(ws.name)) {
+            an = A.analyze(g, 0);
+            for (const col of an.columns) acts[col.c] = 'free';
+          } else if (inKey(ws.name)) {
             // лист из ключа — полностью, с действиями, выбранными для него (или по умолчанию)
             const kept = R.sheetActions.get(ws.name);
             an = A.analyze(g, kept ? kept.headerRow : A.detectHeaderRow(g));

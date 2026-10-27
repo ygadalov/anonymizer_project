@@ -2,6 +2,7 @@
 (function () {
   'use strict';
   const A = window.Anon;
+  const F = window.RedactFree;
   const $ = id => document.getElementById(id);
   const icon = (name, cls = 'i') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"></use></svg>`;
   const KEY_SHEET = 'redact-key';
@@ -22,6 +23,8 @@
     cols: {},         // настройки текущего листа по номеру столбца
     result: null,
   };
+  // «Свободные листы»: снятые типы и значения — общие для всех свободных листов книги
+  const FS = { types: {}, skip: new Set() };
 
   $('appVersion').textContent = 'v' + A.VERSION;
 
@@ -87,6 +90,9 @@
         const fixed = await A.repairXlsx(S.buffer, JSZip);
         if (fixed.changed) S.buffer = fixed.buffer;
         S.loadNotes = [...(conv ? conv.notes : []), ...fixed.notes];
+        // диаграммы ExcelJS не переносит: в обезличенный файл они не попадут (зато и их копии данных не утекут)
+        const charts = Object.keys((await JSZip.loadAsync(S.buffer)).files).filter(n => /^xl\/charts\/chart\d+\.xml$/.test(n)).length;
+        if (charts) S.loadNotes.push(`В книге ${charts} ${A.plural(charts, 'диаграмма', 'диаграммы', 'диаграмм')}: в обезличенный файл ${charts > 1 ? 'они не попадут' : 'она не попадёт'} — постройте заново по обезличенным данным. Это и защита: диаграмма хранит копию подписей и чисел.`);
         S.wb = new ExcelJS.Workbook();
         await S.wb.xlsx.load(S.buffer);
         if (!S.wb.worksheets.length) throw new Error('В книге нет листов.');
@@ -121,6 +127,7 @@
       pending: null, loadNotes: [], kind: null, fileName: '', buffer: null, wb: null,
       sheets: [], sheetIndex: 0, grid: null, csv: null, an: null, cols: {}, result: null,
     });
+    Object.assign(FS, { types: {}, skip: new Set() });
     clearTimeout(previewTimer);
     ['step2', 'step3', 'step4'].forEach(id => $(id).classList.add('hidden'));
     $('btnClear').classList.add('hidden');
@@ -151,14 +158,16 @@
     const cols = {};
     for (const col of an.columns) cols[col.c] = A.suggest(col);
     const saved = store.get(layoutKey(an));
-    const st = { name, grid, an, cols, saved: !!(saved && saved.columns) };
+    const st = { name, grid, an, cols, saved: !!(saved && saved.columns), mode: (saved && saved.mode) || 'table' };
     if (st.saved) applySettingsColumns(saved.columns, st);
     return st;
   }
   const isActive = cfg => cfg && cfg.method && cfg.method !== 'keep';
   const activeCount = st => st.an.columns.filter(col => isActive(st.cols[col.c])).length;
-  const usedSheets = () => S.sheets.filter(st => activeCount(st) > 0);
-  const resultSheets = () => S.sheets.filter(st => activeCount(st) > 0 || !$('dropUnused').checked);
+  // лист обезличивается: свободный — всегда, таблица — если у столбцов есть методы
+  const isUsed = st => st.mode === 'free' || activeCount(st) > 0;
+  const usedSheets = () => S.sheets.filter(isUsed);
+  const resultSheets = () => S.sheets.filter(st => isUsed(st) || !$('dropUnused').checked);
 
   // Однотипные столбцы на разных листах (контрагенты, ИНН, организация) получают общую группу замен —
   // одна и та же компания на «ДЗ» и «КЗ» станет одним псевдонимом. Группы, заданные вручную, не трогаются
@@ -191,7 +200,7 @@
     sel.innerHTML = S.sheets.map((st, i) => {
       const n = activeCount(st);
       const hidden = S.wb && S.wb.worksheets[i].state && S.wb.worksheets[i].state !== 'visible' ? ' (скрытый)' : '';
-      const status = n ? `${n} ${A.plural(n, 'столбец', 'столбца', 'столбцов')}` : 'не обезличивается';
+      const status = st.mode === 'free' ? 'свободный лист' : n ? `${n} ${A.plural(n, 'столбец', 'столбца', 'столбцов')}` : 'не обезличивается';
       return `<option value="${i}">${esc(st.name)}${hidden} · ${status}</option>`;
     }).join('');
     sel.value = String(S.sheetIndex);
@@ -203,6 +212,12 @@
     const st = S.sheets[i];
     S.grid = st.grid; S.an = st.an; S.cols = st.cols;
     $('headerRow').value = st.an.headerRow;
+    // вид листа: таблица со столбцами или свободный лист (для CSV — только таблица)
+    const free = st.mode === 'free';
+    document.querySelector(`input[name=sheetMode][value=${free ? 'free' : 'table'}]`).checked = true;
+    document.querySelector('#step2 .seg').closest('.field-inline').classList.toggle('hidden', S.kind !== 'xlsx');
+    $('step2').classList.toggle('free', free);
+    $('freeMode').classList.toggle('hidden', !free);
     const tot = st.an.totalsRows.size;
     $('rowsInfo').textContent = `Строк данных: ${st.an.dataRows.length - tot}${tot ? `, строк итогов: ${tot}` : ''} · столбцов: ${st.an.columns.length}` + (st.saved ? ' · применены настройки, сохранённые для этой структуры' : '');
     renderSheetOptions();
@@ -211,6 +226,12 @@
   }
 
   $('sheet').addEventListener('change', () => showSheet(+$('sheet').value));
+  document.querySelectorAll('input[name=sheetMode]').forEach(r => r.addEventListener('change', () => {
+    const st = S.sheets[S.sheetIndex];
+    st.mode = r.value;
+    rememberLayout();
+    showSheet(S.sheetIndex);
+  }));
   $('headerRow').addEventListener('change', () => {
     const v = Math.max(1, Math.min(S.grid.maxRow, parseInt($('headerRow').value, 10) || 1));
     $('headerRow').value = v;
@@ -345,7 +366,65 @@
       keepTotals: $('keepTotals').checked,
     };
   }
-  const bookForEngine = (list = S.sheets) => list.map(st => ({ name: st.name, grid: st.grid, an: st.an, columns: st.cols }));
+  const bookForEngine = (list = S.sheets) => list.map(st => ({ name: st.name, grid: st.grid, an: st.an, columns: st.mode === 'free' ? {} : st.cols }));
+
+  // Результат для книги: листы-таблицы — по столбцам (engine.js), свободные листы — по ячейкам (freesheet.js).
+  // Названия из столбцов передаются свободным листам, чтобы одна компания везде получила один псевдоним
+  const fCustom = () => $('fCustom').value.split('\n').map(x => x.trim()).filter(x => x.length >= 2);
+  function computeResult(cfg, list = S.sheets, columnsOf = st => st.cols) {
+    const result = A.transformBook(list.map(st => ({ name: st.name, grid: st.grid, an: st.an, columns: st.mode === 'free' ? {} : columnsOf(st) })), cfg);
+    const free = S.kind === 'xlsx' ? list.filter(st => st.mode === 'free') : [];
+    result.free = null;
+    result.stats.freeSheets = free.length;
+    if (!free.length) return result;
+    const known = new Map(result.groups.flatMap(g => g.pairs).filter(([o, n]) => typeof o === 'string' && typeof n === 'string'));
+    const sheets = free.map(st => ({ name: st.name, grid: st.grid }));
+    const plan = F.planFree(sheets, {
+      seed: cfg.seed, factor: cfg.factor, shiftDays: cfg.shiftDays, types: FS.types, skip: [...FS.skip],
+      custom: fCustom(), customCase: $('fCustomCase').checked, customForms: $('fCustomForms').checked, known,
+      // текст листов-таблиц: вымышленные ФИО и названия не совпадут с настоящими из них
+      extraText: list.filter(st => st.mode !== 'free').flatMap(st => F.cellsOf(st.grid).map(([, , x]) => x.v).filter(v => typeof v === 'string')).join('\n'),
+    });
+    const applied = F.applyFree(sheets, plan, { factor: cfg.factor, shiftDays: cfg.shiftDays, numbers: $('fNumbers').checked, dates: $('fDates').checked });
+    for (const sh of sheets) {
+      result.bySheet[sh.name] = applied.bySheet[sh.name];
+      result.stats.changed += applied.bySheet[sh.name].changed;
+    }
+    result.free = { names: sheets.map(sh => sh.name), plan, applied };
+    return result;
+  }
+
+  // Найденное на свободных листах: типы и значения, которые можно снять
+  function renderFree() {
+    const fr = S.result && S.result.free;
+    if (!fr) return;
+    const rows = fr.plan.rows, D = window.RedactDocx;
+    const counts = {};
+    for (const r of rows) if (!r.fromTable) counts[r.type] = (counts[r.type] || 0) + 1;
+    $('fTypes').innerHTML = Object.entries(D.TYPES).filter(([t]) => counts[t]).map(([t, name]) =>
+      `<label class="chk"><input type="checkbox" data-type="${t}"${FS.types[t] === false ? '' : ' checked'}> ${esc(name)} — ${counts[t]}</label>`).join('');
+    const st = fr.applied.stats;
+    $('fSummary').textContent = `Свободные листы: ${fr.names.map(n => `«${n}»`).join(', ')}. Найдено значений: ${rows.length}` +
+      ` · чисел к умножению: ${st.numbers} · дат: ${st.dates}. Снимите флажок у типа или значения, чтобы оставить его как есть.`;
+    $('fFound').tBodies[0].innerHTML = rows.map((r, i) => `<tr class="${r.on ? 'active' : ''}">
+        <td class="c-chk"><input type="checkbox" data-v="${i}"${r.on ? ' checked' : ''}${FS.types[r.type] === false ? ' disabled' : ''} aria-label="Заменять «${esc(r.value)}»"></td>
+        <td class="small muted">${r.fromTable ? 'Из столбцов других листов' : esc(D.TYPES[r.type])}</td>
+        <td><span class="rv ${r.on ? 'rv-detected' : 'rv-original'}">${esc(r.value)}</span>${r.forms && r.forms.length ? `<span class="small muted found-forms">также: ${r.forms.map(esc).join(', ')}</span>` : ''}</td>
+        <td class="r small">${r.count}</td>
+        <td>${r.on ? `<span class="rv rv-token">${esc(r.repl)}</span>` : '<span class="small muted">останется как есть</span>'}</td>
+      </tr>`).join('');
+  }
+  $('fTypes').addEventListener('change', ev => { const t = ev.target.dataset.type; if (t) { FS.types[t] = ev.target.checked; schedulePreview(); } });
+  $('fFound').addEventListener('change', ev => {
+    const i = ev.target.dataset.v;
+    if (i === undefined || !S.result.free) return;
+    const v = S.result.free.plan.rows[+i].value;
+    if (ev.target.checked) FS.skip.delete(v); else FS.skip.add(v);
+    schedulePreview();
+  });
+  let fCustomTimer;
+  $('fCustom').addEventListener('input', () => { clearTimeout(fCustomTimer); fCustomTimer = setTimeout(schedulePreview, 400); });
+  ['fCustomForms', 'fCustomCase', 'fNumbers', 'fDates'].forEach(id => $(id).addEventListener('change', schedulePreview));
 
   // ---------- Файл настроек (JSON) ----------
   const COL_KEYS = ['type', 'method', 'prefix', 'pct', 'step', 'group'];
@@ -381,7 +460,7 @@
   }
   function rememberLayout() {
     const k = layoutKey();
-    if (k) store.set(k, { columns: settingsColumns() });
+    if (k) store.set(k, { columns: settingsColumns(), mode: S.sheets[S.sheetIndex].mode });
   }
   function collectSettings() {
     const p = {
@@ -402,7 +481,7 @@
       },
       columns: settingsColumns(),   // текущий лист — для совместимости с прежними версиями
       // все листы книги: методы и строка заголовков каждого
-      sheets: Object.fromEntries(S.sheets.map(st => [st.name, { headerRow: st.an.headerRow, columns: settingsColumns(st) }])),
+      sheets: Object.fromEntries(S.sheets.map(st => [st.name, { headerRow: st.an.headerRow, columns: settingsColumns(st), mode: st.mode }])),
     };
     if ($('profileWithKey').checked) p.secret = { seed: $('seed').value, factor: +$('factor').value, shiftDays: +$('shiftDays').value };
     return p;
@@ -429,6 +508,7 @@
       if (i < 0) { if (p.sheets && S.sheets.length > 1) { noSheet.push(sheetName); continue; } i = S.sheetIndex; }
       let st = S.sheets[i];
       if (cfg.headerRow && cfg.headerRow !== st.an.headerRow && cfg.headerRow <= st.grid.maxRow) st = S.sheets[i] = makeState(st.name, st.grid, cfg.headerRow);
+      if (cfg.mode) st.mode = cfg.mode;
       const r = applySettingsColumns(cfg.columns || {}, st);
       hit += r.hit; total += st.an.columns.length;
       missing.push(...r.missing.map(n => entries.length > 1 ? `${st.name} · ${n}` : n));
@@ -478,24 +558,36 @@
   function runPreview() {
     if (!S.an) return;
     const t0 = performance.now();
-    S.result = A.transformBook(bookForEngine(), config());
+    S.result = computeResult(config());
     const ms = Math.round(performance.now() - t0);
     renderSheetOptions();
-    const active = S.an.columns.filter(col => S.cols[col.c].method !== 'keep');
+    renderFree();
+    const curFree = S.sheets[S.sheetIndex].mode === 'free';
+    const active = curFree ? [] : S.an.columns.filter(col => S.cols[col.c].method !== 'keep');
     const { mapping, warnings, stats } = S.result;
     const changes = S.result.bySheet[S.sheets[S.sheetIndex].name].changes;
     const where = stats.sheets > 1
       ? `в ${stats.columns} ${A.plural(stats.columns, 'столбце', 'столбцах', 'столбцах')} на ${stats.sheets} ${A.plural(stats.sheets, 'листе', 'листах', 'листах')}`
       : `в ${stats.columns} ${A.plural(stats.columns, 'столбце', 'столбцах', 'столбцах')}`;
-    $('previewStats').textContent = stats.columns
-      ? `Будет обезличено ячеек: ${stats.changed.toLocaleString('ru-RU')} ${where} · уникальных замен: ${mapping.length.toLocaleString('ru-RU')} · ${ms} мс` +
-        (stats.sheets > 1 ? ` · ниже — лист «${S.sheets[S.sheetIndex].name}»` : '')
+    const freeNote = stats.freeSheets ? ` и на ${stats.freeSheets} ${A.plural(stats.freeSheets, 'свободном листе', 'свободных листах', 'свободных листах')}` : '';
+    $('previewStats').textContent = stats.columns || stats.freeSheets
+      ? `Будет обезличено ячеек: ${stats.changed.toLocaleString('ru-RU')} ${stats.columns ? where : ''}${freeNote}` +
+        ` · уникальных замен: ${(mapping.length + (S.result.free ? S.result.free.plan.keyPairs.length : 0)).toLocaleString('ru-RU')} · ${ms} мс` +
+        (stats.sheets + stats.freeSheets > 1 ? ` · ниже — лист «${S.sheets[S.sheetIndex].name}»` : '')
       : 'Столбцы для обезличивания не выбраны. Выберите метод хотя бы для одного столбца на шаге 2.';
     const table = $('previewTable');
-    $('legend').classList.toggle('hidden', !active.length);
+    $('legend').classList.toggle('hidden', !active.length && !curFree);
     // «очищено» в легенде — только если в предпросмотре есть очищенные ячейки
     $('legendCleared').classList.toggle('hidden', !active.some(col => S.cols[col.c].method === 'clear'));
-    if (!active.length) { table.innerHTML = ''; }
+    if (curFree) {
+      // свободный лист — список изменённых ячеек по порядку
+      const list = [...changes].slice(0, 40);
+      table.innerHTML = list.length ? `<thead><tr><th class="r">Ячейка</th><th>Было → стало</th></tr></thead><tbody>` + list.map(([k, nv]) => {
+        const [r, c] = k.split(':').map(Number);
+        const old = S.grid.rows[r][c].v;
+        return `<tr><td class="r rownum free-cell">${A.colLetter(c)}${r}</td><td title="${esc(fmt(old))} → ${esc(fmt(nv))}"><div class="pair"><span class="rv rv-detected">${esc(fmt(old))}</span><span class="line"><span class="rv-arrow" aria-hidden="true">→</span><span class="rv rv-token">${esc(fmt(nv))}</span></span></div></td></tr>`;
+      }).join('') + `</tbody>${changes.size > 40 ? `<tfoot><tr><td></td><td class="small muted">и ещё ${changes.size - 40} ${A.plural(changes.size - 40, 'ячейка', 'ячейки', 'ячеек')}</td></tr></tfoot>` : ''}` : '';
+    } else if (!active.length) { table.innerHTML = ''; }
     else {
       const rows = S.an.dataRows.filter(r => active.some(col => changes.has(r + ':' + col.c))).slice(0, 15);
       const head = `<thead><tr><th class="r">Строка</th>${active.map(col => `<th>${esc(col.letter)} · ${esc(col.name)}</th>`).join('')}</tr></thead>`;
@@ -515,12 +607,24 @@
     }
     const w = [...S.loadNotes, ...warnings];
     // что не вернётся по ключу
-    const lost = usedSheets().flatMap(st => st.an.columns.filter(col => A.IRREVERSIBLE.has(st.cols[col.c].method)).map(col => {
+    const lost = usedSheets().filter(st => st.mode !== 'free').flatMap(st => st.an.columns.filter(col => A.IRREVERSIBLE.has(st.cols[col.c].method)).map(col => {
       const name = A.METHODS[st.cols[col.c].type].find(([k]) => k === st.cols[col.c].method)[1];
       return `«${S.sheets.length > 1 ? st.name + ' · ' : ''}${col.name}» — ${name.toLowerCase()}`;
     }));
     if (lost.length) w.push(`По ключу не вернутся (${lost.length > 1 ? 'эти методы необратимы' : 'метод необратим'}): ${lost.join('; ')}.`);
     const leaks = [...S.result.leaks];
+    // строки над заголовками таблиц: то, что поиск находит и после замен (ФИО, телефоны, почта, названия)
+    for (const st of usedSheets().filter(x => x.mode !== 'free' && x.an.headerRow > 1)) {
+      const ch = S.result.bySheet[st.name].changes, texts = [];
+      for (let r = 1; r < st.an.headerRow; r++) for (let c = 1; c <= st.grid.maxCol; c++) {
+        const cell = st.grid.rows[r][c];
+        if (!cell || cell.slave || typeof cell.v !== 'string') continue;
+        const k = r + ':' + c;
+        texts.push(ch.has(k) ? String(ch.get(k)) : cell.v);
+      }
+      const left = F.findLeft(texts);
+      if (left.length) leaks.push(`Над таблицей${S.sheets.length > 1 ? ` на листе «${st.name}»` : ''} есть текст с данными, которые столбцы не закрывают (например: «${left[0].text.slice(0, 90)}»). Выберите для листа вид «Свободный лист» — тогда Redact проверит каждую ячейку.`);
+    }
     if (S.kind === 'xlsx') {
       for (const st of resultSheets()) {
         const hf = A.headerFooterText(S.wb.worksheets[S.sheets.indexOf(st)]);
@@ -529,7 +633,7 @@
         if ($('clearHF').checked) w.push(`В колонтитулах${where} есть текст («${hf.join('», «').slice(0, 150)}»). Он будет удалён.`);
         else leaks.push(`В колонтитулах${where} есть текст («${hf.join('», «').slice(0, 150)}»), и он останется в файле. Включите «Очистить колонтитулы» на шаге 3.`);
       }
-      const unused = S.sheets.filter(st => !activeCount(st)).map(st => `«${st.name}»`);
+      const unused = S.sheets.filter(st => !isUsed(st)).map(st => `«${st.name}»`);
       if (unused.length && S.sheets.length > 1) {
         const list = unused.join(', '), many = unused.length > 1;
         if ($('dropUnused').checked) w.push(many
@@ -596,7 +700,7 @@
     btn.disabled = true;
     try {
       runPreview();
-      if (!S.result.stats.columns) { toast('Не удалось обезличить: не выбран метод ни для одного столбца', 6000, 'error'); return; }
+      if (!S.result.stats.columns && !S.result.stats.freeSheets) { toast('Не удалось обезличить: не выбран метод ни для одного столбца', 6000, 'error'); return; }
       await writeResult(S.result, {
         keep: resultSheets(), suffix: '_redact',
         clean: { meta: $('clearMeta').checked, notes: $('clearNotes').checked, hf: $('clearHF').checked },
@@ -615,9 +719,9 @@
   $('btnExternal').addEventListener('click', async () => {
     if (!S.an) return;
     runPreview();
-    if (!S.result.stats.columns) { toast('Не удалось обезличить: не выбран метод ни для одного столбца', 6000, 'error'); return; }
+    if (!S.result.stats.columns && !S.result.stats.freeSheets) { toast('Не удалось обезличить: не выбран метод ни для одного столбца', 6000, 'error'); return; }
     const sheets = usedSheets();
-    const plan = sheets.map(st => ({ st, ...A.externalColumns(st.an, st.cols) }));
+    const plan = sheets.map(st => ({ st, ...(st.mode === 'free' ? { columns: {}, scaled: [], shifted: [] } : A.externalColumns(st.an, st.cols)) }));
     const named = list => plan.flatMap(p => p[list].map(n => sheets.length > 1 ? `${p.st.name} · ${n}` : n));
     const listOf = names => `${names.slice(0, 6).map(n => `«${n}»`).join(', ')}${names.length > 6 ? ` и ещё ${names.length - 6}` : ''}`;
     const scaled = named('scaled'), shifted = named('shifted');
@@ -640,7 +744,8 @@
     try {
       const once = A.randomSeed();
       const cfg = { ...config(), seed: once, factor: A.factorFromSeed(A.randomSeed()), shiftDays: A.shiftFromSeed(A.randomSeed()) };
-      const result = A.transformBook(plan.map(p => ({ name: p.st.name, grid: p.st.grid, an: p.st.an, columns: p.columns })), cfg);
+      const cols = new Map(plan.map(p => [p.st, p.columns]));
+      const result = computeResult(cfg, sheets, st => cols.get(st));
       await writeResult(result, { keep: sheets, suffix: '_external', clean: { meta: true, notes: true, hf: true } });
       toast(`Файл для внешней передачи сохранён: обезличено ячеек ${result.stats.changed.toLocaleString('ru-RU')}. Ключа нет — данные по нему не восстановить`, 6000);
     } catch (e) {
@@ -663,9 +768,15 @@
       runPreview();
       const cfg = config();
       const key = A.buildKeyBook({
-        sheets: bookForEngine(S.kind === 'xlsx' ? resultSheets() : S.sheets), config: cfg, result: S.result,
+        sheets: bookForEngine((S.kind === 'xlsx' ? resultSheets() : S.sheets).filter(st => st.mode !== 'free')), config: cfg, result: S.result,
         sourceFile: S.fileName, appVersion: A.VERSION,
       });
+      // свободные листы: пары «исходное → замена» и точные числа — отдельным словарём
+      if (S.result.free) {
+        key.freeSheets = S.result.free.names;
+        key.dictionaries.push({ name: F.FREE_DICT, method: 'doc', prefix: '', columns: S.result.free.names, pairs: S.result.free.plan.keyPairs });
+        key.numbers[F.FREE_DICT] = S.result.free.applied.numberPairs;
+      }
       if (S.kind !== 'xlsx') key.sheet = null;
       key.seed = cfg.seed;
       if (pass) {
@@ -695,6 +806,7 @@
     ];
     ws.getRow(1).font = { bold: true };
     ws.addRows(S.result.mapping);
+    if (S.result.free) ws.addRows(S.result.free.plan.keyPairs.map(([orig, repl]) => ({ dict: F.FREE_DICT, columns: S.result.free.names.join(', '), method: 'doc', orig, repl })));
     // ФИО с инициалами, найденные внутри текста («Смирнов А. В.»)
     ws.addRows((key.smartNames || []).map(([orig, repl]) => ({ dict: 'ФИО в тексте', columns: '', method: 'smart', orig, repl })));
     ws.autoFilter = 'A1:E1';
@@ -707,7 +819,8 @@
       { k: 'Секретная фраза', v: cfg.seed },
       { k: 'Коэффициент для сумм (исходное = обезличенное ÷ коэффициент)', v: cfg.factor },
       { k: 'Сдвиг дат, дней (исходная дата = обезличенная − сдвиг)', v: cfg.shiftDays },
-      ...S.sheets.flatMap(st => st.an.columns.filter(col => isActive(st.cols[col.c])).map(col => ({
+      ...S.sheets.filter(st => st.mode === 'free').map(st => ({ k: st.name, v: 'Свободный лист' })),
+      ...S.sheets.filter(st => st.mode !== 'free').flatMap(st => st.an.columns.filter(col => isActive(st.cols[col.c])).map(col => ({
         k: `${S.sheets.length > 1 ? st.name + ' · ' : ''}${col.letter} · ${col.name}`,
         v: A.METHODS[st.cols[col.c].type].find(([k]) => k === st.cols[col.c].method)[1],
       }))),

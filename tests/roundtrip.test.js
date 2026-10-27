@@ -221,3 +221,15 @@ test('«Обезличить все»: каждый непустой столб�
     }
   }
 });
+
+test('восстановление: замена кода не находится внутри даты («60.02» и «02.06.2017»)', () => {
+  // код счёта «60.02» заменён на «02.06» — такой же кусок есть в дате внутри текста
+  const key = { kind: 'redact-key', format: 1, factor: 1, shiftDays: 365, columns: [{ letter: 'A', name: 'Текст', method: 'smart' }],
+    dictionaries: [{ name: 'Счёт', method: 'digits', prefix: '', columns: ['Счёт'], pairs: [['60.02', '02.06']] }], smartDigits: [], numbers: {} };
+  const prep = A.prepareRestore(key);
+  const rows = [null, [null, { v: 'Текст' }], [null, { v: 'Счёт 02.06, акт от 02.06.2017' }]];
+  const g = { rows, maxRow: 2, maxCol: 1 };
+  const an = A.analyze(g, 1);
+  const out = A.restoreTransform(g, an, prep, { 1: 'smart' }, null).changes.get('2:1');
+  assert.strictEqual(out, 'Счёт 60.02, акт от 02.06.2016');
+});

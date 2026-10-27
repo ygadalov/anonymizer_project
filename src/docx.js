@@ -261,7 +261,8 @@
     const enabled = opts.types || Object.fromEntries(Object.keys(TYPES).map(t => [t, true]));
     const skip = new Set(opts.skip || []);
     const live = liveSegs(parts, opts.cut);
-    const allText = live.map(([, s]) => s.text).join('\n');
+    // extraText — текст той же книги вне этих частей (листы-таблицы): замены не должны совпасть и с ним
+    const allText = live.map(([, s]) => s.text).join('\n') + (opts.extraText ? '\n' + opts.extraText : '');
 
     // 1. Что найдено: значение → { type, count, info }
     const found = new Map();
@@ -291,7 +292,9 @@
 
     // 2. Замены. Ни одна замена не совпадает с исходным значением, с другой заменой или с текстом документа
     const used = new Set(found.keys());
-    const taken = s => used.has(s) || allText.includes(s);
+    // reserved — замены, уже занятые в другом месте (столбцы таблиц той же книги)
+    const reserved = opts.reserved || new Set();
+    const taken = s => used.has(s) || reserved.has(s) || allText.includes(s);
     const rng = engine().makeRng(seed, 'docx');
     const rnd = (lo, hi) => lo + Math.floor(rng() * (hi - lo + 1));
     const pickOf = arr => arr[Math.floor(rng() * arr.length)];
@@ -325,7 +328,9 @@
       do {
         p = { sur: pickOf(FAKE_SURNAMES), name: female ? pickOf(FAKE_FEMALE) : pickOf(FAKE_MALE), patro: pickOf(FAKE_PATRO), female };
         tries++;
-      } while (tries < 300 && [...persons.values()].some(q => q.sur === p.sur && q.name[0] === p.name[0] && q.patro[0] === p.patro[0]));
+      } while (tries < 300 && ([...persons.values()].some(q => q.sur === p.sur && q.name[0] === p.name[0] && q.patro[0] === p.patro[0])
+        // вымышленная фамилия не должна совпасть с настоящей из документа: «Сорокин» вместо одного человека, когда в тексте есть другой Сорокин
+        || (tries < 200 && new RegExp(`(?<![\\p{L}])${p.sur}`, 'iu').test(allText))));
       persons.set(key, p);
       return p;
     };

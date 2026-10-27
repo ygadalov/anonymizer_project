@@ -396,3 +396,16 @@ dialog.help::backdrop { background: color-mix(in srgb, var(--surface-sunken) 75%
 .legend .spacer { flex: 1; }
 /* номер автонумерации Word в предпросмотре — как в документе, перед текстом абзаца */
 .num-label { display: inline-block; min-width: 2.5em; margin-right: var(--space-1); }
+
+/* ---------- Вид листа: «Таблица со столбцами» или «Свободный лист» (шаг 2) ---------- */
+.seg { display: inline-flex; gap: 2px; padding: 2px; background: var(--surface-sunken); border: 1px solid var(--border); border-radius: var(--radius-md); }
+.seg label { position: relative; cursor: pointer; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg span { display: inline-flex; align-items: center; min-height: 34px; padding: var(--space-1) var(--space-3); border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--ink-muted); font: 500 14px/20px var(--font-sans); }
+.seg label:hover span { color: var(--ink); }
+.seg input:checked + span { background: var(--surface); border-color: var(--border); color: var(--ink); }
+.seg input:focus-visible + span { outline: 2px solid var(--ink); outline-offset: 1px; }
+#step2.free .table-only { display: none; }
+.free-opts { flex-direction: column; align-content: start; gap: 0; }
+.free-cell { white-space: nowrap; }
+@media (max-width: 760px) { .seg { display: flex; width: 100%; } .seg label { flex: 1; } .seg span { width: 100%; justify-content: center; text-align: center; } }
