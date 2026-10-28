@@ -409,3 +409,4 @@ dialog.help::backdrop { background: color-mix(in srgb, var(--surface-sunken) 75%
 .free-opts { flex-direction: column; align-content: start; gap: 0; }
 .free-cell { white-space: nowrap; }
 @media (max-width: 760px) { .seg { display: flex; width: 100%; } .seg label { flex: 1; } .seg span { width: 100%; justify-content: center; text-align: center; } }
+.help-body a { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }

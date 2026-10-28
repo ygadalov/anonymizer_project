@@ -106,7 +106,7 @@
     <h2 class="h2 step"><span class="num">2</span>Столбцы и методы</h2>
     <div class="row-controls">
       <label class="field-inline"><span class="caption">Лист</span><select id="sheet"></select></label>
-      <div class="field-inline"><span class="caption label-row">Вид листа<button class="info-tip" type="button" aria-label="О виде листа"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip"><b>Таблица со столбцами</b> — выгрузка, где на листе одна таблица со строкой заголовков: метод задаётся для каждого столбца. <b>Свободный лист</b> — для листов, где таблицы разбросаны, есть заголовки, подписи и выводы (например, источник для презентации): Redact проверяет каждую ячейку, как текст документа Word, и находит организации, ФИО, ИНН, телефоны, суммы и даты. Названия, обезличенные в столбцах других листов, получают те же замены.</span></button></span>
+      <div class="field-inline"><span class="caption label-row">Вид листа<button class="info-tip" type="button" aria-label="О виде листа"><svg class="i" aria-hidden="true"><use href="#i-info"></use></svg><span class="info-bubble" role="tooltip" id="sheetModeTip"></span></button></span>
         <span class="seg" role="radiogroup" aria-label="Вид листа">
           <label><input type="radio" name="sheetMode" value="table" checked><span>Таблица со столбцами</span></label>
           <label><input type="radio" name="sheetMode" value="free"><span>Свободный лист</span></label>

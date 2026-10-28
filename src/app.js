@@ -217,6 +217,9 @@
     document.querySelector(`input[name=sheetMode][value=${free ? 'free' : 'table'}]`).checked = true;
     document.querySelector('#step2 .seg').closest('.field-inline').classList.toggle('hidden', S.kind !== 'xlsx');
     $('step2').classList.toggle('free', free);
+    $('sheetModeTip').innerHTML = free
+      ? '<b>Свободный лист</b> — для листа, где таблицы разбросаны, есть заголовки, подписи и выводы (например, источник для презентации). Redact проверяет каждую ячейку, как текст документа Word: организации, ФИО, ИНН, телефоны, суммы и даты. Названия, обезличенные в столбцах других листов, получают те же замены. По ключу лист восстанавливается целиком.'
+      : '<b>Таблица со столбцами</b> — для выгрузки, где на листе одна таблица со строкой заголовков: метод задаётся для каждого столбца. Если таблицы на листе разбросаны или вокруг них есть подписи и выводы, выберите «Свободный лист».';
     $('freeMode').classList.toggle('hidden', !free);
     const tot = st.an.totalsRows.size;
     $('rowsInfo').textContent = `Строк данных: ${st.an.dataRows.length - tot}${tot ? `, строк итогов: ${tot}` : ''} · столбцов: ${st.an.columns.length}` + (st.saved ? ' · применены настройки, сохранённые для этой структуры' : '');
