@@ -344,6 +344,7 @@ dialog.help::backdrop { background: color-mix(in srgb, var(--surface-sunken) 75%
 .help-body { overflow-y: auto; padding: var(--space-2) var(--space-6) var(--space-12); font: 400 15px/24px var(--font-sans); }
 .help-body section { padding-top: var(--space-6); scroll-margin-top: var(--space-2); }
 .help-body h3 { margin: 0 0 var(--space-2); font: 600 18px/26px var(--font-sans); }
+.help-body h4 { margin: var(--space-4) 0 var(--space-2); font: 600 16px/24px var(--font-sans); scroll-margin-top: var(--space-2); }
 .help-body p { margin: 0 0 var(--space-3); }
 .help-body ul, .help-body ol { margin: 0 0 var(--space-3); padding-left: var(--space-6); display: grid; gap: var(--space-1); }
 .help-body li > ul { margin: var(--space-1) 0 0; }
