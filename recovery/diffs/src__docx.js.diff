@@ -1,0 +1,289 @@
+--- v5.8/src/docx.js
++++ v6.2/src/docx.js
+@@ -1,3 +1,4 @@
++
+ /*
+  * Обезличивание документов Word (.docx) — без DOM, работает и в браузере, и в Node (тесты).
+  *
+@@ -22,33 +23,182 @@
+   const escapeAttr = s => escapeXml(s).replace(/"/g, '&quot;');
+   const escapeRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+ 
++  const WORD_NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
++  const REL_NS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
++  const WORD15_NS = 'http://schemas.microsoft.com/office/word/2012/wordml';
++  const canonicalNamespaces = new Map([
++    [WORD_NS, 'w'], ['http://purl.oclc.org/ooxml/wordprocessingml/main', 'w'],
++    [REL_NS, 'r'], ['http://purl.oclc.org/ooxml/officeDocument/relationships', 'r'],
++    [WORD15_NS, 'w15'],
++  ]);
++
++  // Лексический разбор с областями видимости xmlns. Смещения относятся к исходному XML.
++  // DOM не нужен; внешние сущности и DTD не загружаются и не поддерживаются.
++  function xmlTags(xml) {
++    const tags = [], stack = [];
++    const fallback = { w: WORD_NS, r: REL_NS, w15: WORD15_NS, xml: 'http://www.w3.org/XML/1998/namespace' };
++    const token = /<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>|<\?[\s\S]*?\?>|<![^>]*>|<\/?[^>"']*(?:"[^"]*"[^>"']*|'[^']*'[^>"']*)*>/g;
++    for (const m of xml.matchAll(token)) {
++      const raw = m[0];
++      if (/^<!DOCTYPE|^<!ENTITY/i.test(raw)) throw new Error('XML с DTD или внешними сущностями не поддерживается');
++      if (raw.startsWith('<!') || raw.startsWith('<?')) continue;
++      const head = /^<(\/?)\s*([^\s/>]+)/.exec(raw);
++      if (!head) throw new Error('Повреждён XML документа');
++      const closing = !!head[1], name = head[2], self = /\/\s*>$/.test(raw);
++      const parent = stack.length ? stack[stack.length - 1].ns : fallback;
++      const ns = { ...parent }, attrs = [];
++      if (!closing) for (const a of raw.matchAll(/\s+([^\s=/>]+)\s*=\s*(["'])([\s\S]*?)\2/g)) {
++        const value = unescapeXml(a[3]);
++        attrs.push({ name: a[1], value });
++        if (a[1] === 'xmlns') ns[''] = value;
++        else if (a[1].startsWith('xmlns:')) ns[a[1].slice(6)] = value;
++      }
++      const colon = name.indexOf(':'), prefix = colon < 0 ? '' : name.slice(0, colon);
++      const local = colon < 0 ? name : name.slice(colon + 1);
++      const t = { start: m.index, end: m.index + raw.length, raw, name, prefix, local, uri: ns[prefix] || '', ns, attrs, closing, self };
++      if (closing) {
++        const open = stack.pop();
++        if (!open || open.name !== name) throw new Error('Повреждён XML: не совпадают открывающий и закрывающий теги');
++        open.close = t;
++      } else if (!self) stack.push(t);
++      tags.push(t);
++    }
++    if (stack.length) throw new Error('Повреждён XML: есть незакрытые теги');
++    return tags;
++  }
++
++  // Совместимый слой для структурных операций (стили, исправления, удаление разделов).
++  // Меняются только имена элементов/атрибутов известных пространств, не текст или оформление.
++  // Исходные псевдонимы xmlns остаются: XPath и другие значения с префиксами продолжают работать.
++  function normalizeWordXml(xml) {
++    const tags = xmlTags(xml), needed = new Map();
++    const root = tags.find(t => !t.closing);
++    if (!root) return xml;
++    for (const t of tags) for (const a of t.attrs) if (/^xmlns:(w|r|w15)$/.test(a.name)) {
++      const p = a.name.slice(6);
++      if (canonicalNamespaces.get(a.value) !== p) throw new Error('Конфликт пространств имён XML: сохраните документ заново в Word');
++    }
++    const out = [];
++    let at = 0;
++    for (const t of tags) {
++      let raw = t.raw;
++      const p = canonicalNamespaces.get(t.uri);
++      if (p) {
++        if (needed.has(p) && needed.get(p) !== t.uri) throw new Error('Смешанные пространства имён OOXML не поддерживаются');
++        needed.set(p, t.uri);
++        raw = raw.replace(/^(<\/?\s*)[^\s/>]+/, `$1${p}:${t.local}`);
++      }
++      if (!t.closing) raw = raw.replace(/(\s+)([^\s=/>]+)(\s*=\s*)(["'])([\s\S]*?)\4/g, (attr, space, name, eq, quote, value) => {
++        if (name === 'xmlns' || name.startsWith('xmlns:')) return attr;
++        const k = name.indexOf(':'), uri = k < 0 ? '' : t.ns[name.slice(0, k)];
++        const ap = canonicalNamespaces.get(uri);
++        if (!ap) return attr;
++        if (needed.has(ap) && needed.get(ap) !== uri) throw new Error('Смешанные пространства имён OOXML не поддерживаются');
++        needed.set(ap, uri);
++        const next = `${ap}:${name.slice(k + 1)}`;
++        return `${space}${next}="${escapeAttr(unescapeXml(value))}"`;
++      });
++      out.push(xml.slice(at, t.start), raw);
++      at = t.end;
++    }
++    out.push(xml.slice(at));
++    let result = out.join('');
++    const declarations = [...needed].filter(([p, uri]) => root.ns[p] !== uri || !root.attrs.some(a => a.name === `xmlns:${p}` && a.value === uri))
++      .map(([p, uri]) => ` xmlns:${p}="${escapeAttr(uri)}"`).join('');
++    if (declarations) result = result.slice(0, root.start) + result.slice(root.start).replace(/^<[^\s/>]+/, head => head + declarations);
++    return result;
++  }
++
++  async function normalizeWordParts(zip) {
++    for (const name of Object.keys(zip.files).filter(n => /^word\/.*\.xml$/.test(n) && !zip.files[n].dir)) {
++      const before = await zip.file(name).async('string'), after = normalizeWordXml(before);
++      if (before !== after) zip.file(name, after);
++    }
++  }
++
++  // Одновременная подстановка: результат одной замены не становится входом следующей.
++  // В URL учитываем percent-encoding, не декодируя весь адрес (это меняло бы его структуру).
++  function valueReplacer(dict, url = false) {
++    const pairs = new Map();
++    for (const [from, to] of dict) {
++      if (!from) continue;
++      pairs.set(from, url ? encodeURI(to) : to);
++      if (url) for (const encode of [encodeURI, encodeURIComponent]) {
++        const key = encode(from), value = encode(to);
++        pairs.set(key, value);
++        pairs.set(key.replace(/%[0-9A-F]{2}/g, x => x.toLowerCase()), value);
++      }
++    }
++    const keys = [...pairs.keys()].sort((a, b) => b.length - a.length);
++    if (!keys.length) return text => text;
++    const re = new RegExp(keys.map(escapeRe).join('|') + (url ? '|%[0-9a-fA-F]{2}' : ''), 'g');
++    return text => text.replace(re, match => pairs.has(match) ? pairs.get(match) : match);
++  }
++
++  async function rewriteAuxiliary(zip, dict) {
++    const replace = valueReplacer(dict), replaceUrl = valueReplacer(dict, true);
++    for (const name of Object.keys(zip.files).filter(n => !zip.files[n].dir)) {
++      if (/\.rels$/.test(name)) {
++        const xml = await zip.file(name).async('string');
++        // Только внешние ссылки: пути к частям архива и их идентификаторы не меняются.
++        const out = xml.replace(/<Relationship\b(?:[^>"']|"[^"]*"|'[^']*')*\/?\s*>/g, tag => {
++          if (!/\bTargetMode\s*=\s*(["'])External\1/.test(tag)) return tag;
++          return tag.replace(/\bTarget\s*=\s*(["'])(.*?)\1/g, (attr, quote, value) => {
++            const plain = unescapeXml(value), next = replaceUrl(plain);
++            return next === plain ? attr : `Target=${quote}${escapeAttr(next).replace(/'/g, '&apos;')}${quote}`;
++          });
++        });
++        if (out !== xml) zip.file(name, out);
++      } else if (/^customXml\/item\d+\.xml$/.test(name)) {
++        const xml = await zip.file(name).async('string');
++        // Значения данных, не имена тегов, пространства имён или служебные itemProps.
++        const out = xml.replace(/<!--[\s\S]*?-->|<\?[\s\S]*?\?>|<!\[CDATA\[([\s\S]*?)\]\]>|<(?:[^>"']|"[^"]*"|'[^']*')*>|[^<]+/g, (token, cdata) => {
++          if (token.startsWith('<!--') || token.startsWith('<?') || (token.startsWith('<!') && cdata === undefined)) return token;
++          if (cdata !== undefined) return `<![CDATA[${replace(cdata).replace(/\]\]>/g, ']]]]><![CDATA[>')}]]>`;
++          if (token.startsWith('<')) return token.replace(/([\w:.-]+)\s*=\s*(["'])(.*?)\2/g, (attr, key, quote, value) => {
++            if (/^(xmlns(?::|$)|xml:|xsi:)/.test(key)) return attr;
++            const plain = unescapeXml(value), next = replace(plain);
++            return next === plain ? attr : `${key}=${quote}${escapeAttr(next).replace(/'/g, '&apos;')}${quote}`;
++          });
++          const next = replace(unescapeXml(token));
++          return next === unescapeXml(token) ? token : escapeXml(next);
++        });
++        if (out !== xml) zip.file(name, out);
++      } else if (/^word\/.*\.xml$/.test(name)) {
++        const xml = await zip.file(name).async('string');
++        const out = xml.replace(/<(?:[\w.-]+:)?(?:docPr|cNvPr)\b(?:[^>"']|"[^"]*"|'[^']*')*>/g, tag =>
++          tag.replace(/\b(descr|title)\s*=\s*(["'])(.*?)\2/g, (attr, key, quote, value) => {
++            const plain = unescapeXml(value), next = replace(plain);
++            return next === plain ? attr : `${key}=${quote}${escapeAttr(next).replace(/'/g, '&apos;')}${quote}`;
++          }));
++        if (out !== xml) zip.file(name, out);
++      }
++    }
++  }
++
+   // Части документа с текстом: основной текст, колонтитулы, сноски, примечания
+   const TEXT_PART = /^word\/(document|header\d*|footer\d*|footnotes|endnotes|comments(Extended)?)\.xml$/;
+ 
+   // Разметка части на сегменты: сегмент — текст одного абзаца (или кода поля), склеенный из прогонов.
+   // Табуляция и разрыв строки становятся символом \u0001: ни один шаблон поиска его не захватывает.
+   const SEP = '\u0001';
+-  const TOKENS = /<w:(t|instrText)(\s[^>]*)?>([\s\S]*?)<\/w:\1>|<w:(?:t|instrText)(?:\s[^>]*)?\/>|<\/w:p>|<w:p[\s>]|<w:tab\/>|<w:br\b[^>]*\/>|<w:cr\/>/g;
+   function segmentsOf(xml) {
+     const segs = [];
+     let cur = null;
+     const close = () => { if (cur && cur.nodes.length) segs.push(cur); cur = null; };
+-    const open = kind => { if (!cur || cur.kind !== kind) { close(); cur = { kind, nodes: [], text: '' }; } };
+-    TOKENS.lastIndex = 0;
+-    let m;
+-    while ((m = TOKENS.exec(xml))) {
+-      const tok = m[0];
+-      if (m[1]) {
+-        const kind = m[1] === 't' ? 'text' : 'field';
+-        open(kind);
+-        const text = unescapeXml(m[3]);
+-        cur.nodes.push({ start: m.index, end: m.index + tok.length, tag: m[1], attrs: m[2] || '', from: cur.text.length, text });
+-        cur.text += text;
+-      } else if (/^<w:(tab|br|cr)/.test(tok)) {
+-        if (cur) cur.text += SEP;
+-      } else if (tok.startsWith('<w:p') || tok === '</w:p>') {
+-        close();
+-      }
++    for (const t of xmlTags(xml)) {
++      if (canonicalNamespaces.get(t.uri) !== 'w') continue;
++      if (t.local === 'p') { close(); continue; }
++      if (!t.closing && /^(tab|br|cr)$/.test(t.local)) { if (cur) cur.text += SEP; continue; }
++      if (t.closing || t.self || !/^(t|instrText)$/.test(t.local)) continue;
++      const kind = t.local === 't' ? 'text' : 'field';
++      if (!cur || cur.kind !== kind) { close(); cur = { kind, nodes: [], text: '' }; }
++      const body = xml.slice(t.end, t.close.start);
++      const text = body.replace(/<!\[CDATA\[([\s\S]*?)\]\]>|<!--([\s\S]*?)-->|([^<]+)/g,
++        (m, cdata, comment, plain) => cdata !== undefined ? cdata : comment !== undefined ? '' : unescapeXml(plain));
++      const attrs = t.raw.slice(t.raw.indexOf(t.name) + t.name.length, -1);
++      cur.nodes.push({ start: t.start, end: t.close.end, tag: t.name, attrs, from: cur.text.length, text });
++      cur.text += text;
+     }
+     close();
+     return segs;
+@@ -78,7 +228,7 @@
+         if (t === n.text) return;
+         let attrs = n.attrs;
+         if (/^\s|\s$/.test(t) && !/xml:space=/.test(attrs)) attrs += ' xml:space="preserve"';
+-        edits.push({ start: n.start, end: n.end, xml: `<w:${n.tag}${attrs}>${escapeXml(t)}</w:${n.tag}>` });
++        edits.push({ start: n.start, end: n.end, xml: `<${n.tag}${attrs}>${escapeXml(t)}</${n.tag}>` });
+       });
+     }
+     if (!edits.length) return { xml, count };
+@@ -446,6 +596,7 @@
+ 
+   // Анализ: что найдено и чем будет заменено. Плюс то, что Redact не может прочитать (картинки, вложения)
+   async function analyzeDocx(zip, opts = {}) {
++    await normalizeWordParts(zip);
+     const parts = await readParts(zip);
+     if (!parts.some(p => p.name === 'word/document.xml')) throw new Error('это не документ Word: в архиве нет word/document.xml');
+     const { rows, repl } = plan(parts, opts);
+@@ -456,6 +607,7 @@
+     const doc = parts.find(p => p.name === 'word/document.xml').xml;
+     const info = {
+       images: names.filter(n => /^word\/media\//.test(n) && !zip.files[n].dir).length,
++      customXml: names.filter(n => /^customXml\/item\d+\.xml$/.test(n)).length,
+       embeddings: names.filter(n => /^word\/embeddings\//.test(n) && !zip.files[n].dir).length,
+       comments: (parts.find(p => p.name === 'word/comments.xml') || { xml: '' }).xml.split('<w:comment ').length - 1,
+       revisions: (doc.match(/<w:(del|ins|moveFrom|moveTo)\b/g) || []).length,
+@@ -482,6 +634,7 @@
+   // Обезличивание: zip изменяется на месте. opts: repl (Map), clean: { revisions, comments, meta },
+   // cut — номера удаляемых блоков (blocksOf), mode — 'full' или 'mark'
+   async function redactDocx(zip, { repl, clean = {}, cut = new Set(), mode = 'full' }) {
++    await normalizeWordParts(zip);
+     const finder = dictFinder(repl);
+     let replaced = 0, removedFiles = 0;
+     // сначала удаление разделов: номера блоков — по исходному тексту, тому же, что видел пользователь
+@@ -505,16 +658,7 @@
+       replaced += r.count;
+       zip.file(name, r.xml);
+     }
+-    // ссылки mailto: и другие адреса в связях документа
+-    for (const name of Object.keys(zip.files).filter(n => /^word\/_rels\/.*\.rels$/.test(n))) {
+-      let xml = await zip.file(name).async('string');
+-      xml = xml.replace(/Target="([^"]*)"/g, (m, t) => {
+-        const plain = unescapeXml(t);
+-        const out = plain.replace(/(mailto:)(.+)/i, (x, p, addr) => p + (repl.get(addr) || addr));
+-        return out === plain ? m : `Target="${escapeAttr(out)}"`;
+-      });
+-      zip.file(name, xml);
+-    }
++    await rewriteAuxiliary(zip, repl);
+     if (zip.file('word/people.xml')) zip.file('word/people.xml', (await zip.file('word/people.xml').async('string')).replace(/<w15:person\b[\s\S]*?<\/w15:person>/g, ''));
+     if (clean.meta) await clearMeta(zip);
+     return { replaced, removedFiles };
+@@ -542,6 +686,7 @@
+ 
+   // Восстановление: обратная подстановка «замена → исходное» во всех частях с текстом и в ссылках
+   async function restoreDocx(zip, back) {
++    await normalizeWordParts(zip);
+     const finder = dictFinder(back);
+     let restored = 0;
+     for (const name of Object.keys(zip.files).filter(n => TEXT_PART.test(n))) {
+@@ -549,11 +694,7 @@
+       restored += r.count;
+       zip.file(name, r.xml);
+     }
+-    for (const name of Object.keys(zip.files).filter(n => /^word\/_rels\/.*\.rels$/.test(n))) {
+-      let xml = await zip.file(name).async('string');
+-      xml = xml.replace(/Target="mailto:([^"]*)"/gi, (m, a) => { const o = back.get(unescapeXml(a)); return o ? `Target="mailto:${escapeAttr(o)}"` : m; });
+-      zip.file(name, xml);
+-    }
++    await rewriteAuxiliary(zip, back);
+     return { restored };
+   }
+ 
+@@ -931,7 +1072,8 @@
+     return { xml: docXml, removedFiles };
+   }
+ 
+-  const api = { TYPES, detect, customPattern, headingStyles, blocksOf, sectionEnd, ruleCuts, cutRanges, cutRuns, cutBlocks, segmentsOf, rewrite, dictFinder, plan, shiftDate, innValid, analyzeDocx, redactDocx, restoreDocx, previewParagraphs, previewDocument, numberingDefs, acceptRevisions };
++  const api = { normalizeWordXml, TYPES, detect, customPattern, headingStyles, blocksOf, sectionEnd, ruleCuts, cutRanges, cutRuns, cutBlocks, segmentsOf, rewrite, dictFinder, plan, shiftDate, innValid, analyzeDocx, redactDocx, restoreDocx, previewParagraphs, previewDocument, numberingDefs, acceptRevisions };
+   if (typeof module !== 'undefined' && module.exports) module.exports = api;
+   else root.RedactDocx = api;
+ })(typeof window !== 'undefined' ? window : globalThis);
++

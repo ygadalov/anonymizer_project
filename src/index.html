@@ -4,16 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Redact — обезличивание таблиц</title>
-<link rel="icon" type="image/svg+xml" href="../brand/logo/redact-favicon.svg">
-<link rel="stylesheet" href="../brand/tokens.css">
-<link rel="stylesheet" href="fonts.css">
-<link rel="stylesheet" href="info-tooltip.css">
-<link rel="stylesheet" href="info-tooltip-redact.css">
-<link rel="stylesheet" href="style.css">
-<script>
-  // тема до отрисовки, чтобы не мигало: сохранённый выбор или системная
-  try { const t = localStorage.getItem('redact-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
-</script>
+<link rel="icon" type="image/svg+xml" href="{{DATA:src/assets/asset-08.svg:image/svg+xml}}">
+<style>{{FILE:brand/tokens.css}}</style>
+<style>{{FILE:src/fonts.css}}</style>
+<style>{{FILE:src/info-tooltip.css}}</style>
+<style>{{FILE:src/info-tooltip-redact.css}}</style>
+<style>{{FILE:src/style.css}}</style>
+<script>{{FILE:src/theme.js}}</script>
 </head>
 <body>
 <!-- icons:start -->
@@ -58,8 +55,8 @@
 <header class="appbar">
   <div class="wrap appbar-row">
     <a class="brand" href="#" aria-label="Redact">
-      <img class="logo logo-light" src="../brand/logo/redact-logo.svg" alt="Redact" width="137" height="40">
-      <img class="logo logo-dark" src="../brand/logo/redact-logo-inverse.svg" alt="" width="137" height="40">
+      <img class="logo logo-light" src="{{DATA:src/assets/asset-09.svg:image/svg+xml}}" alt="Redact" width="137" height="40">
+      <img class="logo logo-dark" src="{{DATA:src/assets/asset-10.svg:image/svg+xml}}" alt="" width="137" height="40">
     </a>
     <span class="chip mono-small" id="appVersion"></span>
     <span class="spacer"></span>
@@ -79,6 +76,8 @@
     <button class="tab" role="tab" id="tabDoc" aria-selected="false" aria-controls="modeDoc" title="Обезличивание документов .docx"><svg class="i i20" aria-hidden="true"><use href="#i-file-text"></use></svg>Документ Word</button>
     <button class="tab" role="tab" id="tabRestore" aria-selected="false" aria-controls="modeRestore"><svg class="i i20" aria-hidden="true"><use href="#i-undo-2"></use></svg>Восстановить по ключу</button>
   </div>
+
+  <button class="btn secondary hidden" type="button" id="cancelRead">Отменить проверку/чтение файла</button>
 
   <div id="modeRedact" role="tabpanel" aria-labelledby="tabRedact">
 
@@ -408,24 +407,25 @@
 
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
-<script src="../vendor/exceljs.min.js"></script>
-<script src="../vendor/jszip.min.js"></script>
+<script>{{FILE:vendor/exceljs.min.js}}</script>
+<script>{{FILE:vendor/jszip.min.js}}</script>
 <!-- SheetJS для .xls: не выполняется на странице, build.py встраивает текст, src/xls.js запускает его в фоновом потоке -->
-<script type="text/x-worker" id="libCpexcel" src="../vendor/cpexcel.cyr.js"></script>
-<script type="text/x-worker" id="libSheetjs" src="../vendor/xlsx.core.min.js"></script>
-<script src="xls.js"></script>
-<script src="docx.js"></script>
-<script src="version.js"></script>
-<script src="engine.js"></script>
-<script src="freesheet.js"></script>
-<script src="app.js"></script>
-<script src="restore.js"></script>
-<script src="dropdown.js"></script>
-<script src="tooltip.js"></script>
-<script src="info-tooltip.js"></script>
-<script>initInfoTooltips();</script>
-<script src="dialog.js"></script>
-<script src="docapp.js"></script>
-<script src="help.js"></script>
+<script type="text/x-worker" id="libSheetjs">{{FILE:vendor/xlsx.full.min.js}}</script>
+<script type="text/x-worker" id="libZipGuard">{{FILE:vendor/zipguard.min.js}}</script>
+<script>{{FILE:src/limits.js}}</script>
+<script>{{FILE:src/xls.js}}</script>
+<script>{{FILE:src/docx.js}}</script>
+<script>{{FILE:src/version.js}}</script>
+<script>{{FILE:src/engine.js}}</script>
+<script>{{FILE:src/freesheet.js}}</script>
+<script>{{FILE:src/app.js}}</script>
+<script>{{FILE:src/restore.js}}</script>
+<script>{{FILE:src/dropdown.js}}</script>
+<script>{{FILE:src/tooltip.js}}</script>
+<script>{{FILE:src/info-tooltip.js}}</script>
+<script>{{FILE:src/init-info-tooltip.js}}</script>
+<script>{{FILE:src/dialog.js}}</script>
+<script>{{FILE:src/docapp.js}}</script>
+<script>{{FILE:src/help.js}}</script>
 </body>
 </html>

@@ -3,8 +3,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert');
-global.cptable = require('../vendor/cpexcel.cyr.js');
-const X = require('../vendor/xlsx.core.min.js');
+const X = require('../vendor/xlsx.full.min.js');
 const XL = require('../src/xls.js');
 
 const ab = buf => buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);

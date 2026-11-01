@@ -1,0 +1,8 @@
+--- v6.2/src/version.js
++++ v6.3/src/version.js
+@@ -1,4 +1,4 @@
+ 
+ // Версия инструмента: шаг 0.1 (1.0 → 1.1 → … → 1.9 → 2.0). build.py берёт её отсюда для имени файла.
+-window.ANON_VERSION = '6.2';
++window.ANON_VERSION = '6.3';
+ 

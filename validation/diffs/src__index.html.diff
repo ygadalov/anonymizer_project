@@ -1,0 +1,12 @@
+--- v6.2/src/index.html
++++ v6.3/src/index.html
+@@ -410,8 +410,7 @@
+ <script>{{FILE:vendor/exceljs.min.js}}</script>
+ <script>{{FILE:vendor/jszip.min.js}}</script>
+ <!-- SheetJS для .xls: не выполняется на странице, build.py встраивает текст, src/xls.js запускает его в фоновом потоке -->
+-<script type="text/x-worker" id="libCpexcel">{{FILE:vendor/cpexcel.cyr.js}}</script>
+-<script type="text/x-worker" id="libSheetjs">{{FILE:vendor/xlsx.core.min.js}}</script>
++<script type="text/x-worker" id="libSheetjs">{{FILE:vendor/xlsx.full.min.js}}</script>
+ <script type="text/x-worker" id="libZipGuard">{{FILE:vendor/zipguard.min.js}}</script>
+ <script>{{FILE:src/limits.js}}</script>
+ <script>{{FILE:src/xls.js}}</script>
