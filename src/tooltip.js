@@ -1,3 +1,4 @@
+
 /*
  * Подсказки в стиле Redact вместо системных (атрибут title).
  * Системную подсказку рисует ОС: её нельзя оформить, и длинный текст уходит далеко вправо.
@@ -121,3 +122,4 @@
   window.addEventListener('scroll', hide, true);
   window.addEventListener('resize', hide);
 })();
+

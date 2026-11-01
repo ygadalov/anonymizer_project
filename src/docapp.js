@@ -1,3 +1,4 @@
+
 /* Вкладка «Документ Word»: .docx → что найдено → обезличенный .docx и ключ соответствий. Логика — в src/docx.js. */
 (function () {
   'use strict';
@@ -22,9 +23,11 @@
     $('dFileInfo').textContent = 'Читаем документ…';
     try {
       if (/\.doc$/i.test(file.name)) throw new Error('формат .doc (Word 97–2003) не поддерживается. Откройте документ в Word и сохраните как .docx');
+      window.RedactLimits.checkFile(file.size);
       const buf = await file.arrayBuffer();
       const head = new Uint8Array(buf, 0, Math.min(4, buf.byteLength));
       if (head[0] !== 0x50 || head[1] !== 0x4B) throw new Error('это не документ Word .docx');
+      await window.RedactLimits.preflight(buf, JSZip);
       const zip = await JSZip.loadAsync(buf);
       DS.fileName = file.name;
       DS.buffer = buf;
@@ -203,6 +206,7 @@
     if (i.images && leftImg) danger.push(`В документе есть картинки — например, сканы подписей и печатей. Redact их не читает: картинки${cutImg ? ' вне удаляемых разделов' : ''} останутся в файле как есть.`);
     if (cutImg) info.push(`Картинки из удаляемых разделов (${cutImg}) будут удалены из файла вместе с текстом.`);
     if (i.embeddings) danger.push(`В документе ${i.embeddings} ${A.plural(i.embeddings, 'вложенный объект', 'вложенных объекта', 'вложенных объектов')} (например, таблица Excel). Redact их не читает: они останутся в файле как есть — проверьте их отдельно.`);
+    if (i.customXml) danger.push(`В документе есть дополнительные XML-данные (${i.customXml}). В них заменятся только уже выбранные значения; остальные данные автоматически не распознаются. Проверьте содержимое перед передачей.`);
     if (DS.cut.size) danger.push(`Будут удалены ${DS.cut.size} ${A.plural(DS.cut.size, 'блок', 'блока', 'блоков')} документа${cutMode() === 'mark' ? ' (на их месте — пометка «[… удалён]»)' : ''}: по ключу их не вернуть. Проверьте список в «Удалить разделы и абзацы».`);
     const kept = DS.rows.filter(r => !r.on);
     if (kept.length) danger.push(`Останутся без замены: ${kept.length} ${A.plural(kept.length, 'значение', 'значения', 'значений')} (${kept.slice(0, 5).map(r => `«${r.value}»`).join(', ')}${kept.length > 5 ? '…' : ''}).`);
@@ -296,3 +300,4 @@
     toast('Готово к новому документу');
   });
 })();
+

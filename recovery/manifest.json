@@ -1,0 +1,362 @@
+{
+  "source_sha256": "303a8eda4cbefaf1c80746111fa25858e7aa5138874c97bf22a42c2e53e58b0f",
+  "reference_commit": "791baf048edbdb82921b3687154d098121a0c8d8",
+  "blocks": [
+    {
+      "path": "brand/tokens.css",
+      "sha256": "1984bfc74eea940c8c9514ce6ffefc26845b650ba4285d1efc3fc2dc9df74388",
+      "kind": "style",
+      "attributes": ""
+    },
+    {
+      "path": "src/fonts.css",
+      "sha256": "6478bb8ff114cfa00657f5baca26dba5d199bec5dc104f3560d71ab31365da09",
+      "kind": "style",
+      "attributes": ""
+    },
+    {
+      "path": "src/info-tooltip.css",
+      "sha256": "a5e5791c3835e35ee22a59fa790b00fba2119924aca1580242021b7f812936cd",
+      "kind": "style",
+      "attributes": ""
+    },
+    {
+      "path": "src/info-tooltip-redact.css",
+      "sha256": "a07e26109c3d53852590b69e054acc3be7e63d70a9e3cc576b5af211ea631e03",
+      "kind": "style",
+      "attributes": ""
+    },
+    {
+      "path": "src/style.css",
+      "sha256": "1db2e3c8e68259237ae195a12145c690752aaad1f7ae55e8899cfd5294545c16",
+      "kind": "style",
+      "attributes": ""
+    },
+    {
+      "path": "src/theme.js",
+      "sha256": "cc88ed0ee645bb7c9c9222d8f54d75cbca0888e9c034e129b5b21fa9500cfe03",
+      "kind": "script",
+      "attributes": ""
+    },
+    {
+      "path": "vendor/exceljs.min.js",
+      "sha256": "a5cd0b98b50f284d697fb12df8725b58c0071944061012111a7200760b5de2c3",
+      "kind": "script",
+      "attributes": ""
+    },
+    {
+      "path": "vendor/jszip.min.js",
+      "sha256": "82817a45b5fb334ff74d6d2c140888ee98ed2490a52c8bb8dd0db86011471cb4",
+      "kind": "script",
+      "attributes": ""
+    },
+    {
+      "path": "vendor/cpexcel.cyr.js",
+      "sha256": "6106647c89bd1c616176fe4f9ce13cbbd0f28e209e25781ff42c00175a0c3b8a",
+      "kind": "script",
+      "attributes": " type=\"text/x-worker\" id=\"libCpexcel\""
+    },
+    {
+      "path": "vendor/xlsx.core.min.js",
+      "sha256": "a6d7c044823d0d6202588f444fdfea78609330fd84b84014dcc908d3f28bbe62",
+      "kind": "script",
+      "attributes": " type=\"text/x-worker\" id=\"libSheetjs\""
+    },
+    {
+      "path": "vendor/zipguard.min.js",
+      "sha256": "82817a45b5fb334ff74d6d2c140888ee98ed2490a52c8bb8dd0db86011471cb4",
+      "kind": "script",
+      "attributes": " type=\"text/x-worker\" id=\"libZipGuard\""
+    },
+    {
+      "path": "src/limits.js",
+      "sha256": "88425c18a5806e914d17edfdef8cee5152b9595c0a8f93dbc4c535332f408d82",
+      "kind": "script",
+      "attributes": ""
+    },
+    {
+      "path": "src/xls.js",
+      "sha256": "3f49f65a56ea061ed41dc6409d0d2381e6aa3515ff7558b0ca15918233bfed4d",
+      "kind": "script",
+      "attributes": ""
+    },
+    {
+      "path": "src/docx.js",
+      "sha256": "30659b13b99cd2d5b8ea43e90872455ed841234d6cd1db7ebaa8d61ff4c84604",
+      "kind": "script",
+      "attributes": ""
+    },
+    {
+      "path": "src/version.js",
+      "sha256": "ddd185c2f25a919449212ac12e519065cb6cfde54e2c213b5e4f836337a1b8d3",
+      "kind": "script",
+      "attributes": ""
+    },
+    {
+      "path": "src/engine.js",
+      "sha256": "47044c3823c94d38d38fbf6149f068cd0d1e84b902392a72b594e478d748b157",
+      "kind": "script",
+      "attributes": ""
+    },
+    {
+      "path": "src/freesheet.js",
+      "sha256": "6cb711bfcf586a88e11c5b18c9bf1c4275382222fec9aa1bfb224c441c21bdba",
+      "kind": "script",
+      "attributes": ""
+    },
+    {
+      "path": "src/app.js",
+      "sha256": "77c177c5c3cfcce7d8f3adacc067759969a72ec91ecdfbd76aa3604604f9855c",
+      "kind": "script",
+      "attributes": ""
+    },
+    {
+      "path": "src/restore.js",
+      "sha256": "21ded8fcef65a566ea3c6a398389a83ac95ebfd743e3c98a8f80a719286417d3",
+      "kind": "script",
+      "attributes": ""
+    },
+    {
+      "path": "src/dropdown.js",
+      "sha256": "27ea77e83e943e81f67edb68c8ed28ec9f08cd44024adcf448232a106fc51ebe",
+      "kind": "script",
+      "attributes": ""
+    },
+    {
+      "path": "src/tooltip.js",
+      "sha256": "b187b24109d23f1a7738d34a8389386e69c74df5567e6a9de5f08e11478836cb",
+      "kind": "script",
+      "attributes": ""
+    },
+    {
+      "path": "src/info-tooltip.js",
+      "sha256": "e35f347dccf3ce16037782163d63e56d30b303e074abb72539448c8ee7b99f9f",
+      "kind": "script",
+      "attributes": ""
+    },
+    {
+      "path": "src/init-info-tooltip.js",
+      "sha256": "9880aafb4df41ed1329b5955099ee23d6bf89dfdf5ce2b05d65c9cd53c07d8d2",
+      "kind": "script",
+      "attributes": ""
+    },
+    {
+      "path": "src/dialog.js",
+      "sha256": "59e5b274e7edacf05bf23c1399a86fab3c07b8e18fd16400c85cb6dff11f75c4",
+      "kind": "script",
+      "attributes": ""
+    },
+    {
+      "path": "src/docapp.js",
+      "sha256": "e0654c450cbdd4b5db80fcb67f00e48581dfc0fe3c8dd1b6aeaa827a43796eda",
+      "kind": "script",
+      "attributes": ""
+    },
+    {
+      "path": "src/help.js",
+      "sha256": "55ff29305428378fbc6a03906f8b1153814c29f18f74aad46bdc01a1a9c50d49",
+      "kind": "script",
+      "attributes": ""
+    }
+  ],
+  "assets": [
+    {
+      "path": "src/assets/asset-00.woff2",
+      "mime": "font/woff2",
+      "sha256": "15a5cbadfc1aa7a541651600b757bf7b67bce4e145b3239de072db5427889605",
+      "matching_v5_8_asset": "src/fonts/golos-text-cyrillic-400-normal.woff2"
+    },
+    {
+      "path": "src/assets/asset-01.woff2",
+      "mime": "font/woff2",
+      "sha256": "c8246f55dbddb17ceab94b8de2dbcf326dc189f3bc5a8c13d7b14ad05d7d1d81",
+      "matching_v5_8_asset": "src/fonts/golos-text-latin-400-normal.woff2"
+    },
+    {
+      "path": "src/assets/asset-02.woff2",
+      "mime": "font/woff2",
+      "sha256": "22337b726df83521c7f6b2709e4717116eb53106c6140b45d751f36910191ecc",
+      "matching_v5_8_asset": "src/fonts/golos-text-cyrillic-500-normal.woff2"
+    },
+    {
+      "path": "src/assets/asset-03.woff2",
+      "mime": "font/woff2",
+      "sha256": "779e46588bc6f5f18918dcdf87d609a8053e1c925abd9e94d2b46b0254f36b24",
+      "matching_v5_8_asset": "src/fonts/golos-text-latin-500-normal.woff2"
+    },
+    {
+      "path": "src/assets/asset-04.woff2",
+      "mime": "font/woff2",
+      "sha256": "1df9c46f33069094b4769bd2f5f04c5c37e4ce74c77bf062f3bb476d93cc3c2b",
+      "matching_v5_8_asset": "src/fonts/golos-text-cyrillic-600-normal.woff2"
+    },
+    {
+      "path": "src/assets/asset-05.woff2",
+      "mime": "font/woff2",
+      "sha256": "ecd56e7dae8376b32caffd25e5c5e1b37cc400ee6d4d838383cff9454d4e9a48",
+      "matching_v5_8_asset": "src/fonts/golos-text-latin-600-normal.woff2"
+    },
+    {
+      "path": "src/assets/asset-06.woff2",
+      "mime": "font/woff2",
+      "sha256": "522f5827308102a9c0ea7860b5a11306043610ecf03d150ba32056a06e8c56e2",
+      "matching_v5_8_asset": "src/fonts/jetbrains-mono-cyrillic-400-normal.woff2"
+    },
+    {
+      "path": "src/assets/asset-07.woff2",
+      "mime": "font/woff2",
+      "sha256": "14425ba9c695763c1547f48a206b7aa60350a33ae23de09f0407877f3fcd89eb",
+      "matching_v5_8_asset": "src/fonts/jetbrains-mono-latin-400-normal.woff2"
+    },
+    {
+      "path": "src/assets/asset-08.svg",
+      "mime": "image/svg+xml",
+      "sha256": "d3e1a418e6ca7a0179bf5fac217526d449fefe70ce4683b5be06a75426a77bac",
+      "matching_v5_8_asset": "brand/logo/redact-favicon.svg"
+    },
+    {
+      "path": "src/assets/asset-09.svg",
+      "mime": "image/svg+xml",
+      "sha256": "716762d6f4350fc712f50966349a3d843590fefbd47b9aad76c0fede230d186a",
+      "matching_v5_8_asset": "brand/logo/redact-logo.svg"
+    },
+    {
+      "path": "src/assets/asset-10.svg",
+      "mime": "image/svg+xml",
+      "sha256": "32beddbb4621a46e63e80e55512efe75db4f1a505e96bb8870442ac03c26bbcf",
+      "matching_v5_8_asset": "brand/logo/redact-logo-inverse.svg"
+    }
+  ],
+  "comparison": [
+    {
+      "file": "brand/tokens.css",
+      "vs_v5_8": "unchanged",
+      "bytes": 3882
+    },
+    {
+      "file": "src/fonts.css",
+      "vs_v5_8": "changed",
+      "bytes": 114514
+    },
+    {
+      "file": "src/info-tooltip.css",
+      "vs_v5_8": "unchanged",
+      "bytes": 3705
+    },
+    {
+      "file": "src/info-tooltip-redact.css",
+      "vs_v5_8": "unchanged",
+      "bytes": 800
+    },
+    {
+      "file": "src/style.css",
+      "vs_v5_8": "unchanged",
+      "bytes": 28621
+    },
+    {
+      "file": "src/theme.js",
+      "vs_v5_8": "new",
+      "bytes": 252
+    },
+    {
+      "file": "vendor/exceljs.min.js",
+      "vs_v5_8": "unchanged",
+      "bytes": 947704
+    },
+    {
+      "file": "vendor/jszip.min.js",
+      "vs_v5_8": "unchanged",
+      "bytes": 97783
+    },
+    {
+      "file": "vendor/cpexcel.cyr.js",
+      "vs_v5_8": "unchanged",
+      "bytes": 25002
+    },
+    {
+      "file": "vendor/xlsx.core.min.js",
+      "vs_v5_8": "unchanged",
+      "bytes": 437034
+    },
+    {
+      "file": "vendor/zipguard.min.js",
+      "vs_v5_8": "new",
+      "bytes": 97783
+    },
+    {
+      "file": "src/limits.js",
+      "vs_v5_8": "new",
+      "bytes": 9229
+    },
+    {
+      "file": "src/xls.js",
+      "vs_v5_8": "changed",
+      "bytes": 10874
+    },
+    {
+      "file": "src/docx.js",
+      "vs_v5_8": "changed",
+      "bytes": 69001
+    },
+    {
+      "file": "src/version.js",
+      "vs_v5_8": "changed",
+      "bytes": 189
+    },
+    {
+      "file": "src/engine.js",
+      "vs_v5_8": "changed",
+      "bytes": 82359
+    },
+    {
+      "file": "src/freesheet.js",
+      "vs_v5_8": "unchanged",
+      "bytes": 12818
+    },
+    {
+      "file": "src/app.js",
+      "vs_v5_8": "changed",
+      "bytes": 61414
+    },
+    {
+      "file": "src/restore.js",
+      "vs_v5_8": "changed",
+      "bytes": 26844
+    },
+    {
+      "file": "src/dropdown.js",
+      "vs_v5_8": "unchanged",
+      "bytes": 5979
+    },
+    {
+      "file": "src/tooltip.js",
+      "vs_v5_8": "unchanged",
+      "bytes": 6545
+    },
+    {
+      "file": "src/info-tooltip.js",
+      "vs_v5_8": "unchanged",
+      "bytes": 11595
+    },
+    {
+      "file": "src/init-info-tooltip.js",
+      "vs_v5_8": "new",
+      "bytes": 19
+    },
+    {
+      "file": "src/dialog.js",
+      "vs_v5_8": "unchanged",
+      "bytes": 2287
+    },
+    {
+      "file": "src/docapp.js",
+      "vs_v5_8": "changed",
+      "bytes": 21937
+    },
+    {
+      "file": "src/help.js",
+      "vs_v5_8": "changed",
+      "bytes": 24210
+    }
+  ]
+}

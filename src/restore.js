@@ -1,3 +1,4 @@
+
 /* Режим «Восстановить по ключу»: обезличенный (или присланный в ответ) файл + ключ → исходные данные. */
 (function () {
   'use strict';
@@ -51,6 +52,7 @@
   async function loadData(file) {
     $('rFileInfo').textContent = 'Читаем файл…';
     try {
+      window.RedactLimits.checkFile(file.size);
       const buf = await file.arrayBuffer();
       const e = ext(file.name);
       const docx = e === 'docx';
@@ -59,6 +61,7 @@
       R.buffer = buf;
       R.notes = [];
       if (docx) {
+        await window.RedactLimits.preflight(buf, JSZip);
         // документ Word: столбцов нет, восстанавливается весь текст по словарю ключа
         R.kind = 'docx';
         R.wb = null; R.grid = null; R.an = null;
@@ -116,12 +119,15 @@
     $('rPassRow').classList.add('hidden');
     R.envelope = null;
     try {
+      window.RedactLimits.checkFile(file.size);
       const e = ext(file.name);
       R.keyName = file.name;
       R.keyNotes = [];
       if (e === 'xlsx') {
         const wb = new ExcelJS.Workbook();
-        await wb.xlsx.load(await file.arrayBuffer());
+        const buffer = await file.arrayBuffer();
+        await window.RedactLimits.preflight(buffer, JSZip);
+        await wb.xlsx.load(buffer);
         const ks = wb.worksheets.find(ws => ws.name === KEY_SHEET);
         if (ks) {
           const parts = [];
@@ -434,3 +440,4 @@
     } finally { btn.disabled = false; }
   });
 })();
+

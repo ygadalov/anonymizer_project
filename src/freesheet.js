@@ -1,3 +1,4 @@
+
 /*
  * «Свободный лист»: обезличивание листа без столбцов — для книг, где таблицы разбросаны по листу, есть заголовки,
  * подписи и выводы (источники для презентаций). Каждая ячейка с текстом проходит тот же поиск, что документы Word
@@ -209,3 +210,4 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.RedactFree = api;
 })(typeof window !== 'undefined' ? window : globalThis);
+

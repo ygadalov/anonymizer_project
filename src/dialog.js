@@ -1,3 +1,4 @@
+
 /*
  * Диалог подтверждения необратимого действия (brand/BRAND.md, «Кнопки»: danger-solid — только здесь).
  * RedactUI.confirm({ title, text, items, confirm, iconName }) → Promise<boolean>; items — список пояснений под текстом.
@@ -45,3 +46,4 @@
 
   window.RedactUI.confirm = confirmDialog;
 })();
+
