@@ -1,3 +1,4 @@
+
 /* ──────────────────────────────────────────────────────────────
    info-tooltip — подсказки по кнопке (i)
 
@@ -202,3 +203,4 @@ var INFO_TIP_SVG =
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { initInfoTooltips: initInfoTooltips, INFO_TIP_SVG: INFO_TIP_SVG };
 }
+

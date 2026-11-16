@@ -1,0 +1,23 @@
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+HTTP/1.1 200 OK
+date: Sun, 01 Nov 2026 14:19:14 GMT
+server: envoy
+
+HTTP/2 200 
+date: Sun, 01 Nov 2026 14:19:14 GMT
+content-type: text/html; charset=utf-8
+x-content-type-options: nosniff
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=ffoINDzONlKfN%2F%2BNhbNG1id6pAsNKyUgiOsQeHqS2kFBExENPI%2FX%2FcB304UXAM6h8qPWChBs5u56gbXELr4is5%2Fz0s96HGvv%2F6ZPX9rqPSVw6bvhJgzVAL5Y399OdDhLR7Q%3D"}]}
+nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+access-control-allow-origin: *
+cache-control: public, max-age=0, must-revalidate
+referrer-policy: strict-origin-when-cross-origin
+server: envoy
+last-modified: Sun, 01 Nov 2026 14:19:14 GMT
+cf-cache-status: EXPIRED
+cf-ray: a53b88891c4e8b30-DFW
+alt-svc: h3=":443"; ma=86400
+x-envoy-upstream-service-time: 126
+

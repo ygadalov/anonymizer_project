@@ -1,0 +1,9 @@
+{
+  "version": "0.20.3",
+  "retrieved_date": "2026-11-01",
+  "script_url": "https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js",
+  "license_url": "https://cdn.sheetjs.com/xlsx-0.20.3/package/LICENSE",
+  "sha256": "cc015130aa8521e7f088f88898eba949ccdcbfb38df0bd129b44b7273c3a6f41",
+  "documentation_url": "https://docs.sheetjs.com/docs/getting-started/installation/standalone/",
+  "note": "Official full build, unmodified, includes codepage tables; embedded as non-executing worker source."
+}

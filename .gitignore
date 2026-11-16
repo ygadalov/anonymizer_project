@@ -3,3 +3,9 @@ node_modules/
 *.xls
 *.csv
 !examples/*
+
+# Build output and generated browser fixtures
+dist/
+__pycache__/
+# Independent legacy XLS regression inputs
+!tests/fixtures/*.xls

@@ -1,3 +1,4 @@
+
 /* Интерфейс Redact (обезличивание таблиц). Логика замен — в engine.js (window.Anon). */
 (function () {
   'use strict';
@@ -66,6 +67,7 @@
     const ext = (file.name.split('.').pop() || '').toLowerCase();
     $('fileInfo').textContent = 'Читаем файл…';
     try {
+      window.RedactLimits.checkFile(file.size);
       const buf = await file.arrayBuffer();
       S.fileName = file.name;
       S.buffer = buf;
@@ -374,14 +376,15 @@
   // Результат для книги: листы-таблицы — по столбцам (engine.js), свободные листы — по ячейкам (freesheet.js).
   // Названия из столбцов передаются свободным листам, чтобы одна компания везде получила один псевдоним
   const fCustom = () => $('fCustom').value.split('\n').map(x => x.trim()).filter(x => x.length >= 2);
-  function computeResult(cfg, list = S.sheets, columnsOf = st => st.cols) {
-    const result = A.transformBook(list.map(st => ({ name: st.name, grid: st.grid, an: st.an, columns: st.mode === 'free' ? {} : columnsOf(st) })), cfg);
+  function computeResult(cfg, list = S.sheets, columnsOf = st => st.cols, valuesOnly = false) {
+    const gridOf = st => valuesOnly ? A.valuesOnlyGrid(st.grid) : st.grid;
+    const result = A.transformBook(list.map(st => ({ name: st.name, grid: gridOf(st), an: st.an, columns: st.mode === 'free' ? {} : columnsOf(st) })), cfg);
     const free = S.kind === 'xlsx' ? list.filter(st => st.mode === 'free') : [];
     result.free = null;
     result.stats.freeSheets = free.length;
     if (!free.length) return result;
     const known = new Map(result.groups.flatMap(g => g.pairs).filter(([o, n]) => typeof o === 'string' && typeof n === 'string'));
-    const sheets = free.map(st => ({ name: st.name, grid: st.grid }));
+    const sheets = free.map(st => ({ name: st.name, grid: gridOf(st) }));
     const plan = F.planFree(sheets, {
       seed: cfg.seed, factor: cfg.factor, shiftDays: cfg.shiftDays, types: FS.types, skip: [...FS.skip],
       custom: fCustom(), customCase: $('fCustomCase').checked, customForms: $('fCustomForms').checked, known,
@@ -525,6 +528,7 @@
     toast(`Настройки применены: ${hit} из ${total} ${A.plural(total, 'столбца', 'столбцов', 'столбцов')}`);
   }
   async function readSettingsFile(f) {
+    window.RedactLimits.checkFile(f.size);
     const p = JSON.parse(await f.text());
     if (!p || typeof p !== 'object' || !p.columns) throw new Error('это не файл настроек Redact (нет раздела columns)');
     return p;
@@ -647,6 +651,17 @@
           : `Лист ${list} не обезличивается и останется в файле как есть. Задайте методы или включите «Удалять из результата листы, которые не обезличиваются» на шаге 3.`);
       }
     }
+    if (S.kind === 'xlsx') {
+      const risk = A.workbookRisks(S.wb);
+      if (risk.formulas) leaks.push(`В исходной книге есть формулы (${risk.formulas}): обычная выгрузка сохраняет их, включая текст и ссылки внутри. Для удаления формул используйте «Для внешней передачи».`);
+      if (risk.hyperlinks || risk.names) leaks.push(`В исходной книге есть гиперссылки (${risk.hyperlinks}) и именованные диапазоны (${risk.names}). Обычная выгрузка может сохранить их. «Для внешней передачи» удаляет их.`);
+      if (risk.validations || risk.conditionalFormats || risk.tables) leaks.push('В книге есть проверки данных, условное форматирование или определения таблиц. Их правила могут содержать исходные данные; «Для внешней передачи» удаляет эти правила.');
+      if (risk.hiddenSheets.length) leaks.push(`В исходной книге есть скрытые листы (${risk.hiddenSheets.length}). Они также требуют проверки; «Для внешней передачи» удаляет все скрытые листы.`);
+      if (risk.images) leaks.push(`В книге есть изображения (${risk.images}). Redact не распознаёт текст на них: проверьте их отдельно перед любой выгрузкой.`);
+    } else {
+      const risky = S.grid.rows.some(row => row && row.some(cell => cell && A.csvInjectionRisk(cell.v)));
+      if (risky) leaks.push('В CSV есть строки, которые Excel может выполнить как формулы. Кавычки CSV от этого не защищают. «Для внешней передачи» добавляет к таким строкам апостроф.');
+    }
     const notice = (cls, ic, title, items) => items.length
       ? `<div class="notice ${cls}"><div class="notice-title">${icon(ic, 'i i20')}${title}</div><ul>${items.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
     $('warnings').innerHTML =
@@ -667,9 +682,9 @@
 
   // Запись результата: result — из transformBook; opt.keep — листы, которые попадут в файл;
   // opt.clean — что очистить (свойства, примечания, колонтитулы); suffix — окончание имени файла
-  async function writeResult(result, { keep, clean, suffix }) {
+  async function writeResult(result, { keep, clean, suffix, external = false }) {
     if (S.kind === 'csv') {
-      const text = A.gridToCsv(S.grid, result.bySheet[S.sheets[0].name].changes, S.csv.delim, S.csv.decSep);
+      const text = A.gridToCsv(S.grid, result.bySheet[S.sheets[0].name].changes, S.csv.delim, S.csv.decSep, { safe: external });
       download(new Blob([text], { type: 'text/csv;charset=utf-8' }), baseName() + suffix + '.csv');
       return;
     }
@@ -683,6 +698,7 @@
       drop.forEach(x => wb.removeWorksheet(x.id));
       wb.definedNames.model = []; // имена могли ссылаться на удалённые листы
     }
+    if (external) A.prepareExternalWorkbook(wb);
     for (const ws of wb.worksheets) {
       A.applyToWorksheet(ws, result.bySheet[ws.name] ? result.bySheet[ws.name].changes : new Map());
       if (clean.notes) A.clearNotes(ws);
@@ -723,7 +739,8 @@
     if (!S.an) return;
     runPreview();
     if (!S.result.stats.columns && !S.result.stats.freeSheets) { toast('Не удалось обезличить: не выбран метод ни для одного столбца', 6000, 'error'); return; }
-    const sheets = usedSheets();
+    const sheets = usedSheets().filter(st => S.kind !== 'xlsx' || S.wb.getWorksheet(st.name).state === 'visible');
+    if (!sheets.length) { toast('Нет видимых листов с выбранными методами. Сделайте нужный лист видимым в Excel.', 7000, 'error'); return; }
     const plan = sheets.map(st => ({ st, ...(st.mode === 'free' ? { columns: {}, scaled: [], shifted: [] } : A.externalColumns(st.an, st.cols)) }));
     const named = list => plan.flatMap(p => p[list].map(n => sheets.length > 1 ? `${p.st.name} · ${n}` : n));
     const listOf = names => `${names.slice(0, 6).map(n => `«${n}»`).join(', ')}${names.length > 6 ? ` и ещё ${names.length - 6}` : ''}`;
@@ -734,6 +751,8 @@
       scaled.length ? `Суммы, оставленные на шаге 2 как есть, тоже будут умножены: ${listOf(scaled)}.` : null,
       shifted.length ? `Даты, оставленные на шаге 2 как есть, тоже будут сдвинуты: ${listOf(shifted)}.` : null,
       'Свойства файла, примечания и колонтитулы очищаются, листы без методов удаляются.',
+      S.kind === 'xlsx' ? 'Скрытые листы удаляются. Формулы заменяются сохранёнными результатами, к которым применяются выбранные методы. Результаты могли устареть: сначала пересчитайте и сохраните книгу в Excel. Без сохранённого результата выгрузка остановится.' : 'Строки CSV, которые Excel может принять за формулы, получат апостроф в начале. Это меняет текст ячеек.',
+      S.kind === 'xlsx' ? 'Гиперссылки, именованные диапазоны, проверки данных, условное форматирование и определения таблиц удаляются; значения ячеек сохраняются. Картинки и названия листов проверьте отдельно.' : null,
       leaks ? `В предпросмотре есть предупреждения об утечке (${leaks}) — проверьте их до выгрузки.` : null,
     ].filter(Boolean);
     const ok = await window.RedactUI.confirm({
@@ -748,8 +767,8 @@
       const once = A.randomSeed();
       const cfg = { ...config(), seed: once, factor: A.factorFromSeed(A.randomSeed()), shiftDays: A.shiftFromSeed(A.randomSeed()) };
       const cols = new Map(plan.map(p => [p.st, p.columns]));
-      const result = computeResult(cfg, sheets, st => cols.get(st));
-      await writeResult(result, { keep: sheets, suffix: '_external', clean: { meta: true, notes: true, hf: true } });
+      const result = computeResult(cfg, sheets, st => cols.get(st), true);
+      await writeResult(result, { keep: sheets, suffix: '_external', external: true, clean: { meta: true, notes: true, hf: true } });
       toast(`Файл для внешней передачи сохранён: обезличено ячеек ${result.stats.changed.toLocaleString('ru-RU')}. Ключа нет — данные по нему не восстановить`, 6000);
     } catch (e) {
       console.error(e);
@@ -839,3 +858,4 @@
   // общие помощники для режима восстановления (restore.js)
   window.RedactUI = { $, icon, esc, fmt, toast, download, store, KEY_SHEET };
 })();
+

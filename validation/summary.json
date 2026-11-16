@@ -1,0 +1,28 @@
+{
+  "version": "6.3",
+  "sheetjs_version": "0.20.3",
+  "html_sha256": "cbd43f5c8a9de68a474c501309b505dac1d12183364d8e4ae6810a68d8eeb006",
+  "html_bytes": 2665287,
+  "v6_2_bytes": 2175470,
+  "v6_2_unchanged": true,
+  "node_tests_passed": 29,
+  "browser": {
+    "version": "6.3",
+    "title": "Redact — обезличивание таблиц",
+    "zipWorker": {
+      "entries": 2,
+      "bytes": 33
+    },
+    "fonts": "loaded",
+    "buttons": 48,
+    "ui_csv_roundtrip": true,
+    "ui_xls_roundtrip": true,
+    "worker_codepages": [
+      1251,
+      866
+    ],
+    "errors": [],
+    "network_requests": [],
+    "offline": true
+  }
+}

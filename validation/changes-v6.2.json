@@ -1,0 +1,34 @@
+[
+  {
+    "path": "src/help.js",
+    "status": "modified"
+  },
+  {
+    "path": "src/index.html",
+    "status": "modified"
+  },
+  {
+    "path": "src/version.js",
+    "status": "modified"
+  },
+  {
+    "path": "src/xls.js",
+    "status": "modified"
+  },
+  {
+    "path": "vendor/cpexcel.cyr.js",
+    "status": "removed"
+  },
+  {
+    "path": "vendor/sheetjs.provenance.json",
+    "status": "added"
+  },
+  {
+    "path": "vendor/xlsx.core.min.js",
+    "status": "removed"
+  },
+  {
+    "path": "vendor/xlsx.full.min.js",
+    "status": "added"
+  }
+]

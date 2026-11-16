@@ -1,0 +1,30 @@
+--- v6.2/src/xls.js
++++ v6.3/src/xls.js
+@@ -1,11 +1,11 @@
+ 
+ /*
+- * Файлы Excel 97–2003 (.xls) и Excel 5.0/95: чтение через SheetJS (vendor/xlsx.core.min.js, Apache-2.0)
++ * Файлы Excel 97–2003 (.xls) и Excel 5.0/95: чтение через SheetJS (vendor/xlsx.full.min.js, Apache-2.0)
+  * и преобразование в .xlsx, с которым дальше работает весь Redact (ExcelJS).
+  *
+- * SheetJS 0.18.5 разбирает файл в отдельном фоновом потоке (Web Worker). Ограничения размера,
+- * времени и отмена снижают риск зависания, но не исправляют CVE-2023-30533/CVE-2024-22363
+- * и не делают Worker полной границей безопасности. Из потока возвращаются только простые данные — значения,
++ * SheetJS 0.20.3 (полная сборка с кодировками) разбирает файл в отдельном Web Worker.
++ * Ограничения размера, времени и отмена снижают риск зависания. Worker не является
++ * полной границей безопасности. Из потока возвращаются только простые данные — значения,
+  * форматы чисел, формулы, объединения, ширина столбцов и высота строк.
+  *
+  * Без DOM: extractBook и buildWorkbook можно вызывать в Node (тесты).
+@@ -131,9 +131,9 @@
+     if (workerBody) return workerBody;
+     // текст библиотек встроен в страницу при сборке (build.py) как неисполняемые <script type="text/x-worker">
+     const lib = id => { const el = document.getElementById(id); return el ? el.textContent : ''; };
+-    const cp = lib('libCpexcel'), sheetjs = lib('libSheetjs');
++    const sheetjs = lib('libSheetjs');
+     if (!sheetjs) throw new Error('чтение .xls доступно только в собранном файле Redact_vX.Y.html');
+-    const body = `${cp}\n;\n${sheetjs}\n;\n` +
++    const body = `${sheetjs}\n;\n` +
+       `const extractBook = ${extractBook.toString()};\n` +
+       `self.onmessage = e => { try { self.postMessage({ ok: true, data: extractBook(XLSX, new Uint8Array(e.data.buf), e.data.html) }); }` +
+       ` catch (err) { self.postMessage({ ok: false, error: String(err && err.message || err) }); } };`;

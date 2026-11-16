@@ -1,10 +1,11 @@
+
 /*
- * Файлы Excel 97–2003 (.xls) и Excel 5.0/95: чтение через SheetJS (vendor/xlsx.core.min.js, Apache-2.0)
+ * Файлы Excel 97–2003 (.xls) и Excel 5.0/95: чтение через SheetJS (vendor/xlsx.full.min.js, Apache-2.0)
  * и преобразование в .xlsx, с которым дальше работает весь Redact (ExcelJS).
  *
- * SheetJS 0.18.5 разбирает файл в отдельном фоновом потоке (Web Worker): известные уязвимости этой версии
- * при чтении специально испорченных файлов (CVE-2023-30533, CVE-2024-22363) не затрагивают страницу,
- * а зависший разбор прерывается по времени. Из потока возвращаются только простые данные — значения,
+ * SheetJS 0.20.3 (полная сборка с кодировками) разбирает файл в отдельном Web Worker.
+ * Ограничения размера, времени и отмена снижают риск зависания. Worker не является
+ * полной границей безопасности. Из потока возвращаются только простые данные — значения,
  * форматы чисел, формулы, объединения, ширина столбцов и высота строк.
  *
  * Без DOM: extractBook и buildWorkbook можно вызывать в Node (тесты).
@@ -43,6 +44,8 @@
       if (/^-?0\d/.test(t)) return null;
       return Number(t.replace(/[ \u00a0]/g, '').replace(',', '.'));
     };
+    if (wb.SheetNames.length > 100) throw new Error('В книге более 100 листов. Разделите книгу.');
+    let bookCells = 0;
     const props = (wb.Workbook && wb.Workbook.WBProps) || {};
     const meta = (wb.Workbook && wb.Workbook.Sheets) || [];
     return {
@@ -50,9 +53,17 @@
       sheets: wb.SheetNames.map((name, i) => {
         const ws = wb.Sheets[name] || {};
         const cells = [];
+        const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+        let maxR = range.e.r + 1, maxC = range.e.c + 1;
+        for (const m of ws['!merges'] || []) { maxR = Math.max(maxR, m.e.r + 1); maxC = Math.max(maxC, m.e.c + 1); }
+        if (maxR > 100000 || maxC > 2048 || maxR * maxC > 500000 || (ws['!cols'] || []).length > 2048 || (ws['!rows'] || []).length > 100000)
+          throw new Error('Лист XLS слишком большой. Разделите файл.');
+        bookCells += maxR * maxC;
+        if (bookCells > 1000000) throw new Error('Книга XLS содержит слишком много ячеек.');
         for (const k of Object.keys(ws)) {
           if (k[0] === '!') continue;
           const c = ws[k], a = XLSX.utils.decode_cell(k);
+          if (a.r < 0 || a.c < 0 || a.r >= 100000 || a.c >= 2048 || (a.r + 1) * (a.c + 1) > 500000 || cells.length >= 500000) throw new Error('Слишком много ячеек XLS.');
           if (c.t === 'z' && !c.f) continue;
           // ошибки (#Н/Д, #ДЕЛ/0!) — как текст, который показывал Excel
           let v = c.t === 'e' ? (c.w || '#N/A') : (c.v === undefined ? null : c.v), t = c.t === 'e' ? 's' : c.t;
@@ -115,31 +126,23 @@
 
   // ---------- Браузер: разбор в фоновом потоке ----------
   const TIMEOUT_MS = 60000;
-  let workerUrl = null;
-  function makeWorkerUrl() {
-    if (workerUrl) return workerUrl;
+  let workerBody = null;
+  function makeWorkerBody() {
+    if (workerBody) return workerBody;
     // текст библиотек встроен в страницу при сборке (build.py) как неисполняемые <script type="text/x-worker">
     const lib = id => { const el = document.getElementById(id); return el ? el.textContent : ''; };
-    const cp = lib('libCpexcel'), sheetjs = lib('libSheetjs');
+    const sheetjs = lib('libSheetjs');
     if (!sheetjs) throw new Error('чтение .xls доступно только в собранном файле Redact_vX.Y.html');
-    const body = `${cp}\n;\n${sheetjs}\n;\n` +
+    const body = `${sheetjs}\n;\n` +
       `const extractBook = ${extractBook.toString()};\n` +
       `self.onmessage = e => { try { self.postMessage({ ok: true, data: extractBook(XLSX, new Uint8Array(e.data.buf), e.data.html) }); }` +
       ` catch (err) { self.postMessage({ ok: false, error: String(err && err.message || err) }); } };`;
-    workerUrl = URL.createObjectURL(new Blob([body], { type: 'text/javascript' }));
-    return workerUrl;
+    workerBody = body;
+    return workerBody;
   }
   function parseInWorker(buffer, html) {
-    return new Promise((resolve, reject) => {
-      const w = new Worker(makeWorkerUrl());
-      const timer = setTimeout(() => { w.terminate(); reject(new Error('файл .xls разбирается слишком долго — возможно, он повреждён')); }, TIMEOUT_MS);
-      w.onmessage = e => {
-        clearTimeout(timer); w.terminate();
-        if (e.data && e.data.ok) resolve(e.data.data); else reject(new Error(e.data ? e.data.error : 'ошибка чтения .xls'));
-      };
-      w.onerror = e => { clearTimeout(timer); w.terminate(); reject(new Error(e.message || 'ошибка чтения .xls')); e.preventDefault(); };
-      w.postMessage({ buf: buffer.slice(0), html });
-    });
+    root.RedactLimits.checkFile(buffer.byteLength);
+    return root.RedactLimits.runWorker(makeWorkerBody(), { buf: buffer.slice(0), html }, TIMEOUT_MS);
   }
 
   // .xls → { buffer: ArrayBuffer .xlsx, notes: [что сказать пользователю] }
@@ -149,7 +152,7 @@
     catch (e) {
       console.error('xls:', e);
       throw new Error(/password|encrypt/i.test(e.message) ? 'файл .xls защищён паролем — снимите защиту в Excel и попробуйте снова'
-        : /долго/.test(e.message) ? e.message
+        : /долго|лимит|время|отмен|слишком|более|много/.test(e.message) ? e.message
         : 'файл .xls повреждён или сохранён в формате, который Redact не знает. Откройте его в Excel и сохраните как .xlsx');
     }
     if (!data.sheets.length) throw new Error('В книге нет листов.');
@@ -166,3 +169,4 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.RedactXls = api;
 })(typeof window !== 'undefined' ? window : globalThis);
+

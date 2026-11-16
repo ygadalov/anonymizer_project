@@ -1,0 +1,14 @@
+{
+  "version": "6.2",
+  "title": "Redact — обезличивание таблиц",
+  "zipWorker": {
+    "entries": 2,
+    "bytes": 33
+  },
+  "fonts": "loaded",
+  "buttons": 48,
+  "ui_csv_roundtrip": true,
+  "errors": [],
+  "network_requests": [],
+  "offline": true
+}

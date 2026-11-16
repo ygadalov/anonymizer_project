@@ -1,0 +1,132 @@
+[
+  {
+    "file": "brand/tokens.css",
+    "vs_v5_8": "unchanged",
+    "bytes": 3882
+  },
+  {
+    "file": "src/fonts.css",
+    "vs_v5_8": "changed",
+    "bytes": 114514
+  },
+  {
+    "file": "src/info-tooltip.css",
+    "vs_v5_8": "unchanged",
+    "bytes": 3705
+  },
+  {
+    "file": "src/info-tooltip-redact.css",
+    "vs_v5_8": "unchanged",
+    "bytes": 800
+  },
+  {
+    "file": "src/style.css",
+    "vs_v5_8": "unchanged",
+    "bytes": 28621
+  },
+  {
+    "file": "src/theme.js",
+    "vs_v5_8": "new",
+    "bytes": 252
+  },
+  {
+    "file": "vendor/exceljs.min.js",
+    "vs_v5_8": "unchanged",
+    "bytes": 947704
+  },
+  {
+    "file": "vendor/jszip.min.js",
+    "vs_v5_8": "unchanged",
+    "bytes": 97783
+  },
+  {
+    "file": "vendor/cpexcel.cyr.js",
+    "vs_v5_8": "unchanged",
+    "bytes": 25002
+  },
+  {
+    "file": "vendor/xlsx.core.min.js",
+    "vs_v5_8": "unchanged",
+    "bytes": 437034
+  },
+  {
+    "file": "vendor/zipguard.min.js",
+    "vs_v5_8": "new",
+    "bytes": 97783
+  },
+  {
+    "file": "src/limits.js",
+    "vs_v5_8": "new",
+    "bytes": 9229
+  },
+  {
+    "file": "src/xls.js",
+    "vs_v5_8": "changed",
+    "bytes": 10874
+  },
+  {
+    "file": "src/docx.js",
+    "vs_v5_8": "changed",
+    "bytes": 69001
+  },
+  {
+    "file": "src/version.js",
+    "vs_v5_8": "changed",
+    "bytes": 189
+  },
+  {
+    "file": "src/engine.js",
+    "vs_v5_8": "changed",
+    "bytes": 82359
+  },
+  {
+    "file": "src/freesheet.js",
+    "vs_v5_8": "unchanged",
+    "bytes": 12818
+  },
+  {
+    "file": "src/app.js",
+    "vs_v5_8": "changed",
+    "bytes": 61414
+  },
+  {
+    "file": "src/restore.js",
+    "vs_v5_8": "changed",
+    "bytes": 26844
+  },
+  {
+    "file": "src/dropdown.js",
+    "vs_v5_8": "unchanged",
+    "bytes": 5979
+  },
+  {
+    "file": "src/tooltip.js",
+    "vs_v5_8": "unchanged",
+    "bytes": 6545
+  },
+  {
+    "file": "src/info-tooltip.js",
+    "vs_v5_8": "unchanged",
+    "bytes": 11595
+  },
+  {
+    "file": "src/init-info-tooltip.js",
+    "vs_v5_8": "new",
+    "bytes": 19
+  },
+  {
+    "file": "src/dialog.js",
+    "vs_v5_8": "unchanged",
+    "bytes": 2287
+  },
+  {
+    "file": "src/docapp.js",
+    "vs_v5_8": "changed",
+    "bytes": 21937
+  },
+  {
+    "file": "src/help.js",
+    "vs_v5_8": "changed",
+    "bytes": 24210
+  }
+]
